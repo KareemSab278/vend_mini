@@ -1,7 +1,3 @@
-// https://mantine.dev/core/floating-indicator/
-
-// for switching between categories in the menu, we can use a floating indicator to show which category is currently active. This will be a small circle that moves smoothly between the category buttons when they are clicked. We can use the Mantine FloatingIndicator component to achieve this effect.
-
 import { FloatingIndicator } from "@mantine/core";
 import { PrimaryButton } from "./Button";
 export { CategoryIndicator };

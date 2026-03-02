@@ -8,8 +8,6 @@ import { ProductCard } from "./Components/ProductCard";
 
 export { App };
 
-const DISCOUNT_STATUS = false;
-
 function App() {
   const [modalOpen, setModalOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
@@ -56,15 +54,10 @@ function App() {
               <ProductCard
                 key={prod.product_id}
                 product={prod}
-                children={
-                  <>
-                    <div>Quantity: {prod.count}</div>
-                    <PrimaryButton
-                      title="Remove"
-                      onClick={() => appendProduct(prod, "remove")}
-                    />
-                  </>
-                }
+                title={`${prod.product_name} (Qty: ${prod.count})`}
+                selected
+                onRemove={() => appendProduct(prod, "remove")}
+                
               />
             ))}
           </section>
