@@ -464,14 +464,11 @@ Ensure you're calling `POST /api/basket/dispense` after approval.
 
 
 
-sudo apt update
-sudo apt install \
+sudo apt install build-essential pkg-config \
   libgtk-3-dev \
   libwebkit2gtk-4.1-dev \
   libglib2.0-dev \
   libgdk-pixbuf-2.0-dev \
-  build-essential \
-  pkg-config \
   libcairo2-dev \
   libpango1.0-dev \
   libatk1.0-dev \
