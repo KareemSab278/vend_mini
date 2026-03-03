@@ -13,7 +13,7 @@
     "windows": [
       {
         "title": "ordering_system",
-        "fullscreen": true,
+        "fullscreen": false,
         "width": 600,
         "height": 1024,
         "resizable": false
