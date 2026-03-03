@@ -109,7 +109,6 @@ function App() {
     setPayStatus("paying");
     setPayMessage("Initiating payment…");
 
-    // React prices are decimal (e.g. 1.25) — Flask expects scaled ints (e.g. 125)
     const items = selectedProducts.map((p) => ({
       id: p.product_id,
       name: p.product_name,
@@ -189,7 +188,7 @@ function App() {
           {(payStatus === "error" || payStatus === "done") && (
             <PrimaryButton
               title={payStatus === "done" ? "Close" : "Dismiss"}
-              onClick={handleCheckoutCancel}
+              onClick={()=> {handleCheckoutCancel(); setPayStatus("idle"); setPayMessage(""); setSelectedProducts([]);}}
             />
           )}
           {payStatus === "paying" && (

@@ -85,9 +85,6 @@ class MdbBridge:
             "last_rx": "",
             "last_tx": "",
             "cashless": {
-                "x": CASHLESS_X,
-                "inited": None,
-                "active": None,
                 "ready_seen": False,
                 "basket_mode": int(BASKET_MODE),
                 "last_begin": None,
@@ -439,10 +436,10 @@ def api_basket_pay():
             # item_no is a 1-based sequential counter used in basket VNDSUCC/VNDFAIL.
             "pending_items": [
                 {"item_no": idx + 1, "id": item.get("id", 1), "name": item.get("name", ""), "price": item.get("price", 0)}
-                for idx, (item, _) in enumerate(
-                    (item, i)
+                for idx, item in enumerate(
+                    item
                     for item in items
-                    for i in range(max(int(item.get("qty", 1)), 1))
+                    for _ in range(max(int(item.get("qty", 1)), 1))
                 )
             ],
         }
@@ -561,82 +558,11 @@ def api_cashless_cancel():
     return jsonify({"ok": True, "cmd": cmd, "lines": lines})
 
 
-@app.get("/api/cashless/info")
-def api_cashless_info():
-    require_token(request)
-    cmd = f"CSLS{CASHLESS_X}INFOREQ?"
-    lines = bridge.send_and_wait_any(cmd, timeout_s=2.0)
-    return jsonify({"ok": True, "cmd": cmd, "lines": lines})
-
-
-@app.get("/api/cashless/settings")
-def api_cashless_settings():
-    require_token(request)
-    cmd = f"CSLS{CASHLESS_X}SETTINGS?"
-    lines = bridge.send_and_wait_any(cmd, timeout_s=2.0)
-    return jsonify({"ok": True, "cmd": cmd, "lines": lines})
-
-
 @app.get("/api/alive")
 def api_alive():
     require_token(request)
     cmd = "ALIVE?"
     lines = bridge.send_and_wait_any(cmd, timeout_s=1.5)
-    return jsonify({"ok": True, "cmd": cmd, "lines": lines})
-
-
-@app.post("/api/vend/request")
-def api_vend_request():
-    require_token(request)
-    data = request.get_json(force=True, silent=False) or {}
-    price_scaled = int(data.get("price_scaled", 0))
-    item_id = int(data.get("item_id", 1))
-    x = CASHLESS_X
-    if int(BASKET_MODE) == 1:
-        num_items     = int(data.get("num_items", 1))
-        options_scaled = int(data.get("options_scaled", 0))
-        cmd = f"CSLS{x}VNDREQ({price_scaled},{num_items},{options_scaled})"
-    else:
-        cmd = f"CSLS{x}VNDREQ({price_scaled},{item_id})"
-    lines = bridge.send_and_wait_any(cmd, timeout_s=2.5)
-    return jsonify({"ok": True, "cmd": cmd, "lines": lines})
-
-
-@app.post("/api/vend/success")
-def api_vend_success():
-    require_token(request)
-    data = request.get_json(force=True, silent=False) or {}
-    x = CASHLESS_X
-    if int(BASKET_MODE) == 1:
-        item_no           = int(data.get("item_no", 1))
-        item_price_scaled = int(data.get("item_price_scaled", 0))
-        remaining         = int(data.get("remaining", 0))
-        options_scaled    = int(data.get("options_scaled", 0))
-        cmd = f"CSLS{x}VNDSUCC({item_no},{item_price_scaled},{remaining},{options_scaled})"
-    else:
-        price_scaled = int(data.get("price_scaled", 0))
-        item_id      = int(data.get("item_id", 1))
-        cmd = f"CSLS{x}VNDSUCC({price_scaled},{item_id})"
-    lines = bridge.send_and_wait_any(cmd, timeout_s=2.0)
-    return jsonify({"ok": True, "cmd": cmd, "lines": lines})
-
-
-@app.post("/api/vend/fail")
-def api_vend_fail():
-    require_token(request)
-    data = request.get_json(force=True, silent=False) or {}
-    x = CASHLESS_X
-    if int(BASKET_MODE) == 1:
-        item_no           = int(data.get("item_no", 1))
-        item_price_scaled = int(data.get("item_price_scaled", 0))
-        remaining         = int(data.get("remaining", 0))
-        options_scaled    = int(data.get("options_scaled", 0))
-        cmd = f"CSLS{x}VNDFAIL({item_no},{item_price_scaled},{remaining},{options_scaled})"
-    else:
-        price_scaled = int(data.get("price_scaled", 0))
-        item_id      = int(data.get("item_id", 1))
-        cmd = f"CSLS{x}VNDFAIL({price_scaled},{item_id})"
-    lines = bridge.send_and_wait_any(cmd, timeout_s=2.0)
     return jsonify({"ok": True, "cmd": cmd, "lines": lines})
 
 

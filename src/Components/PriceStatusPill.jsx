@@ -26,7 +26,6 @@ const styles = {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        // gap: "2rem",
         background: "#181A20",
         boxShadow: "0px 2px 15px rgba(0, 0, 0, 0.52)",
         borderRadius: "50px",
