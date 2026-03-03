@@ -476,3 +476,7 @@ sudo apt install \
   libpango1.0-dev \
   libatk1.0-dev \
   libx11-dev
+
+deb http://deb.debian.org/debian trixie main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian-security trixie-security main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian trixie-updates main contrib non-free non-free-firmware
