@@ -1,7 +1,7 @@
 import { Button } from "@mantine/core";
 export { PrimaryButton, RemoveButton };
 
-const PrimaryButton = ({ title, onClick, color }) => {
+const PrimaryButton = ({ title, onClick, color, onDoubleClick = new Function() }) => {
   return (
     <section style={{ display: "inline-block", margin: "8px" }}>
       <Button
@@ -24,6 +24,7 @@ const PrimaryButton = ({ title, onClick, color }) => {
           e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.12)";
         }}
         onClick={onClick}
+        onDoubleClick={onDoubleClick}
       >
         {title}
       </Button>

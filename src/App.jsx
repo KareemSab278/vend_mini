@@ -12,6 +12,8 @@ export { App };
 function App() {
   const [modalOpen, setModalOpen] = useState(false);
   const [checkoutActive, setCheckoutActive] = useState(false);
+  const [adminModalOpen, setAdminModalOpen] = useState(false);
+
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedProducts, setSelectedProducts] = useState([]);
 
@@ -178,8 +180,8 @@ function App() {
     activeCategory === "All"
       ? products.filter((prod) => prod.product_availability)
       : products.filter(
-          (prod) => prod.product_category === activeCategory && prod.product_availability,
-        );
+        (prod) => prod.product_category === activeCategory && prod.product_availability,
+      );
 
   const totalPrice = selectedProducts.reduce(
     (sum, p) => sum + p.product_price * p.count,
@@ -199,7 +201,7 @@ function App() {
           {(payStatus === "error" || payStatus === "done") && (
             <PrimaryButton
               title={payStatus === "done" ? "Close" : "Dismiss"}
-              onClick={()=> {handleCheckoutCancel(); setPayStatus("idle"); setPayMessage(""); setSelectedProducts([]);}}
+              onClick={() => { handleCheckoutCancel(); setPayStatus("idle"); setPayMessage(""); setSelectedProducts([]); }}
             />
           )}
           {payStatus === "paying" && (
@@ -264,10 +266,27 @@ function App() {
 
   const priceStatusPill = (
     <PriceStatusPill
-        onModalOpen={() => setModalOpen(true)}
-        onCheckout={handleCheckout}
-        totalPrice={totalPrice}
-      />
+      onModalOpen={() => setModalOpen(true)}
+      onCheckout={handleCheckout}
+      totalPrice={totalPrice}
+    />
+  );
+
+  const adminModal = (
+    <Modal
+      opened={adminModalOpen}
+      closed={() => setAdminModalOpen(false)}
+      title="Admin Panel"
+      children={
+        <section>
+          <PrimaryButton
+            title="Kill App (Double Click)"
+            style={{ position: "fixed", top: 0, right: 0, width: 60, height: 60, zIndex: 9999 }}
+            onDoubleClick={() => invoke("kill_app")}
+          />
+        </section>
+      }
+    />
   );
 
   return (
@@ -277,6 +296,11 @@ function App() {
       {priceStatusPill}
       {checkoutModal}
       {selectedProductsModal}
+      <div
+        style={{ position: "fixed", top: 0, right: 0, width: 60, height: 60, zIndex: 9999, opacity: 0 }}
+        onDoubleClick={() => setAdminModalOpen(true)}
+      />
+      {adminModal}
     </main>
   );
 }

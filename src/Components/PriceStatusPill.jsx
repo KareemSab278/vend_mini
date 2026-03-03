@@ -30,6 +30,7 @@ const styles = {
         boxShadow: "0px 2px 15px rgba(0, 0, 0, 0.52)",
         borderRadius: "50px",
         padding: "0.5rem 0.8rem",
+        minWidth: "330px",  
     },
     price: {
         color: "#fff",

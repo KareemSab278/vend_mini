@@ -29,6 +29,11 @@ fn auth_header() -> String {
     format!("Bearer {}", API_TOKEN)
 }
 
+#[tauri::command]
+async fn kill_app() -> Result<(), String> {
+    std::process::exit(0);
+}
+
 // in order to run this command youll need to first run:
 // sudo apt install python3-flask python3-serial
 #[tauri::command]
@@ -143,6 +148,7 @@ pub fn run() {
             dispense_item,
             get_pay_state,
             initialize_payment_server,
+            kill_app
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
