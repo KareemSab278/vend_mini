@@ -11,6 +11,7 @@ export { App };
 
 function App() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [checkoutActive, setCheckoutActive] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All");
   const [selectedProducts, setSelectedProducts] = useState([]);
 
@@ -40,6 +41,24 @@ function App() {
     : products.filter((prod) => prod.product_category === activeCategory && prod.product_availability == true);
 
   const totalPrice = selectedProducts.reduce((sum, p) => sum + p.product_price * p.count, 0);
+
+  const handleCheckoutCancel = () => {
+    setCheckoutActive(false);
+    // cancel payment logic here
+  }
+
+  const checkoutModal = (
+    <Modal
+      opened={checkoutActive}
+      title="Make Payment"
+      children={
+        <section>
+          Follow card reader instructions to complete payment.
+          <PrimaryButton title="Cancel Payment" onClick={handleCheckoutCancel} />
+        </section>
+      }
+    />
+  );
 
   const selectedProductsModal = (
     <Modal
@@ -93,11 +112,22 @@ function App() {
     </section>
   );
 
+  const priceStatusPill = (
+    <PriceStatusPill
+        onModalOpen={() => setModalOpen(true)}
+        onCheckout={() => setCheckoutActive(true)
+          // initiate check out logic (invoke("initiate_checkout", { price: totalPrice }))
+        }
+        totalPrice={totalPrice}
+      />
+  );
+
   return (
     <main style={styles.body}>
       {categoryIndocator}
       {productsSection}
-      <PriceStatusPill onModalOpen={() => setModalOpen(true)} totalPrice={totalPrice} />
+      {priceStatusPill}
+      {checkoutModal}
       {selectedProductsModal}
     </main>
   );

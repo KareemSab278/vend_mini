@@ -1,16 +1,17 @@
 import { PrimaryButton } from "./Button";
 export { PriceStatusPill };
 
-const PriceStatusPill = ({ onModalOpen = new Function(), totalPrice = 0 }) => {
+const PriceStatusPill = ({ onModalOpen = new Function(), onCheckout = new Function(), totalPrice = 0 }) => {
     return (
         <div style={styles.container}>
             <PrimaryButton
                 onClick={onModalOpen}
                 title="View Cart"
             />
-            <span style={styles.price}>
-                ${totalPrice.toFixed(2)}
-            </span>
+            <PrimaryButton
+                onClick={onCheckout}
+                title={`Checkout ($${totalPrice.toFixed(2)})`}
+            />
         </div>
     );
 };
@@ -25,7 +26,7 @@ const styles = {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: "2rem",
+        // gap: "2rem",
         background: "#181A20",
         boxShadow: "0px 2px 15px rgba(0, 0, 0, 0.52)",
         borderRadius: "50px",
