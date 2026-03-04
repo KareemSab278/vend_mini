@@ -37,6 +37,13 @@ async fn initialize_orders_database() -> Result<(), String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
+async fn initialize_products_database() -> Result<(), String> {
+    database::initialize_products_database().map_err(|e| format!("Products database initialization failed: {}", e))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tauri::command]
 async fn insert_order(product_id: i32, quantity: i32, price: f64) -> Result<(), String> {
     database::insert_order(product_id, quantity, price)
         .map_err(|e| format!("Failed to add order: {}", e))
@@ -100,6 +107,22 @@ async fn initiate_payment(slot: u32, items: Vec<BasketItem>) -> Result<String, S
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
+async fn new_product(product_name: &str, product_category: &str, product_price: f64, product_availability: bool) -> Result<(), String> {
+    database::new_product(product_name, product_category, product_price, product_availability)
+        .map_err(|e| format!("Failed to add new product: {}", e))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tauri::command]
+async fn delete_product(product_id: i32) -> Result<(), String> {
+    database::delete_product(product_id)
+        .map_err(|e| format!("Failed to delete product: {}", e))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tauri::command]
 async fn dispense_item(slot: u32, success: bool) -> Result<String, String> {
     let client = make_client()?;
 
@@ -158,8 +181,12 @@ pub fn run() {
             initialize_payment_server,
             // DB related commands
             initialize_orders_database,
+            initialize_products_database,
             insert_order,
             query_products,
+            // Product management
+            delete_product,
+            new_product,
             // Utility
             kill_app,
         ])

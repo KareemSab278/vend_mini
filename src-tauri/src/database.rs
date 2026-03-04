@@ -3,13 +3,30 @@ use serde::{Serialize};
 use std::path::PathBuf;
 use std::fs;
 
-const PRODUCTS_DATABASE_PATH: &str = concat!(env!("CARGO_MANIFEST_DIR"), "/src/data/products.db");
+const ORDERS_DATABASE_FILE: &str = "ordering_system_data.db";
+const PRODUCTS_FILE: &str = "products.db";
 
-fn orders_db_path() -> PathBuf {
+fn orders_db_path(file: &str) -> PathBuf {
     let home = std::env::var("HOME").unwrap_or_else(|_| "/tmp".to_string());
     let dir = PathBuf::from(home).join("data");
     let _ = fs::create_dir_all(&dir);
-    dir.join("ordering_system_data.db")
+    dir.join(file)
+}
+
+const CREATE_PRODUCTS_SQL: &str =
+"CREATE TABLE IF NOT EXISTS products (
+    product_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    product_name TEXT NOT NULL,
+    product_category TEXT NOT NULL,
+    product_price REAL NOT NULL,
+    product_availability INTEGER NOT NULL DEFAULT 1
+)";
+
+pub fn initialize_products_database() -> Result<()> {
+    let conn = Connection::open(orders_db_path(PRODUCTS_FILE))?;
+    conn.execute(CREATE_PRODUCTS_SQL, [])?;
+    println!("Products database and table created successfully.");
+    Ok(())
 }
 
 const CREATE_ORDERS_SQL: &str =
@@ -22,7 +39,7 @@ const CREATE_ORDERS_SQL: &str =
 )";
 
 pub fn initialize_orders_database() -> Result<()> {
-    let conn = Connection::open(orders_db_path())?;
+    let conn = Connection::open(orders_db_path(ORDERS_DATABASE_FILE))?;
     conn.execute(
         CREATE_ORDERS_SQL,
         [],
@@ -37,17 +54,45 @@ fn check_database_exists(database: &str) -> bool {
 
 
 pub fn insert_order(product_id: i32, quantity: i32, price: f64) -> Result<()> {
-    let db_path = orders_db_path();
+    let db_path = orders_db_path(ORDERS_DATABASE_FILE);
     if !check_database_exists(db_path.to_str().unwrap_or("")) {
         initialize_orders_database()?;
     }
 
-    let conn = Connection::open(orders_db_path())?;
+    let conn = Connection::open(orders_db_path(ORDERS_DATABASE_FILE))?;
     conn.execute(
         "INSERT INTO orders (product_id, quantity, price) VALUES (?1, ?2, ?3)",
         params![product_id, quantity, price],
     )?;
     println!("Order inserted successfully.");
+    Ok(())
+}
+
+pub fn new_product(product_name: &str, product_category: &str, product_price: f64, product_availability: bool) -> Result<()> {
+    let db_path = orders_db_path(PRODUCTS_FILE);
+    if !check_database_exists(db_path.to_str().unwrap_or("")) {
+        initialize_products_database()?;
+    }
+    let conn = Connection::open(orders_db_path(PRODUCTS_FILE))?;
+    conn.execute(
+        "INSERT INTO products (product_name, product_category, product_price, product_availability) VALUES (?1, ?2, ?3, ?4)",
+        params![product_name, product_category, product_price, product_availability],
+    )?;
+    println!("Product inserted successfully.");
+    Ok(())
+}
+
+pub fn delete_product(product_id: i32) -> Result<()> {
+    let db_path = orders_db_path(PRODUCTS_FILE);
+    if !check_database_exists(db_path.to_str().unwrap_or("")) {
+        return Ok(()); // nothing to delete
+    }
+    let conn = Connection::open(orders_db_path(PRODUCTS_FILE))?;
+    conn.execute(
+        "DELETE FROM products WHERE product_id = ?1",
+        params![product_id],
+    )?;
+    println!("Product deleted successfully.");
     Ok(())
 }
 
@@ -61,10 +106,10 @@ pub struct Product {
 }
 
 pub fn query_products() -> Result<Vec<Product>> {
-    if !check_database_exists(PRODUCTS_DATABASE_PATH) {
-        return Err(rusqlite::Error::InvalidQuery);
+    if !check_database_exists(orders_db_path(PRODUCTS_FILE).to_str().unwrap_or("")) {
+        return Ok(vec![]);
     }
-    let conn = Connection::open(PRODUCTS_DATABASE_PATH)?;
+    let conn = Connection::open(orders_db_path(PRODUCTS_FILE))?;
     let mut stmt = conn.prepare("SELECT product_id, product_name, product_category, product_price, product_availability FROM products")?;
     let product_iter = stmt.query_map([], |row| {
         Ok(Product {

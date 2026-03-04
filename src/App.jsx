@@ -5,6 +5,7 @@ import { CategoryIndicator } from "./Components/CategoryIndicator";
 import { ProductCard } from "./Components/ProductCard";
 import { PriceStatusPill } from "./Components/PriceStatusPill";
 import { PrimaryButton } from "./Components/Button";
+import { ProductsEditor } from "./Components/ProductsEditor";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as helpers from "./AppHelpers";
 
@@ -32,6 +33,15 @@ function App() {
     return () => clearTimeout(timer);
   }, []);
 
+  const fetchProducts = async () => {
+    try {
+      const prods = await invoke("query_products");
+      setProducts(prods);
+    } catch (e) {
+      console.error("Error fetching products:", e);
+    }
+  };
+
   useEffect(() => {
     const initializePaymentServer = async () => {
       try {
@@ -40,15 +50,6 @@ function App() {
         setCheckoutActive(true);
         setPayStatus("error");
         setPayMessage(`Failed to start payment server: ${e}`);
-      }
-    };
-
-    const fetchProducts = async () => {
-      try {
-        const prods = await invoke("query_products");
-        setProducts(prods);
-      } catch (e) {
-        console.error("Error fetching products:", e);
       }
     };
 
@@ -204,7 +205,7 @@ function App() {
     });
   };
 
-  const categories = ["All", "Drinks", "Snacks", "Food"];
+  const categories = ["All", "Drinks", "Snacks", "Food", "drugs", "questionable"];
   const filteredProducts =
     activeCategory === "All"
       ? products.filter((prod) => prod.product_availability)
@@ -310,25 +311,22 @@ function App() {
       opened={adminModalOpen}
       closed={() => setAdminModalOpen(false)}
       title="Admin Panel"
+      innerStyle={{ maxWidth: "560px" }}
       children={
         <section>
           <PrimaryButton
             title="Exit Fullscreen"
             onClick={() => getCurrentWindow().setFullscreen(false)}
           />
-
           <PrimaryButton
             title="Enter Fullscreen"
             onClick={() => getCurrentWindow().setFullscreen(true)}
           />
-
           <PrimaryButton
             title="Kill App"
-            style={{ position: "fixed", top: 0, right: 0, width: 60, height: 60, zIndex: 9999 }}
             onDoubleClick={() => invoke("kill_app")}
           />
-
-
+          <ProductsEditor onProductsChanged={fetchProducts} />
         </section>
       }
     />

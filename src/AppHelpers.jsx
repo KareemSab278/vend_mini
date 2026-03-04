@@ -42,6 +42,8 @@ const styles = {
     justifyContent: "center",
     alignItems: "center",
     margin: 0,
+    overflowX: "auto",
+    maxWidth: "500px",
   },
   noProductsMessage: {
     textAlign: "center",

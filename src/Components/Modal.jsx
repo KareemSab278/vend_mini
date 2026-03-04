@@ -1,11 +1,11 @@
 export { Modal };
 
-const Modal = ({ opened, closed, title, children }) => {
+const Modal = ({ opened, closed, title, children, innerStyle }) => {
   if (!opened) return null;
 
   return (
     <div style={styles.mainBody} onClick={closed}>
-      <div style={styles.innerBody} onClick={(e) => e.stopPropagation()}>
+      <div style={{ ...styles.innerBody, ...innerStyle }} onClick={(e) => e.stopPropagation()}>
         <h2 style={styles.title}>{title}</h2>
         {children}
       </div>

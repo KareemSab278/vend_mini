@@ -13,8 +13,8 @@ const ProductCard = ({
 }) => {
   return (
     <div style={styles.card} onClick={() => onClick(product)}>
-      <h3 style={styles.title}>{title || product.product_name}</h3>
-      <p style={styles.price}>${product.product_price.toFixed(2)}</p>
+      <h3 style={styles.title}>{title || (product.product_name.length > 20 ? `${product.product_name.substring(0, 20)}...` : product.product_name)} - £{product.product_price.toFixed(2)}</h3>
+      {/* <p style={styles.price}>£</p> */}
       {selected && <RemoveButton onClick={() => onRemove(product)} />}
       {children}
     </div>
@@ -27,21 +27,18 @@ const styles = {
     fontFamily:
       'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     color: "#fff",
-    padding: "1rem",
-    borderRadius: "0.5rem",
+    padding: "0.5rem",
+    borderRadius: "40px",
     cursor: "pointer",
-    width: "150px",
-    minHeight: "150px",
-    maxHeight: "150px",
+    minWidth: "90%",
     textAlign: "center",
   },
   title: {
-    fontSize: "1rem",
-    fontWeight: "bold",
-    marginBottom: "0.5rem",
+    fontSize: "1.5rem",
+    marginBottom: "1rem",
   },
   price: {
-    fontSize: "0.8rem",
+    fontSize: "2rem",
     fontWeight: "bold",
     marginTop: -5
   },

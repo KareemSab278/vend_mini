@@ -27,6 +27,7 @@ const styles = {
     container: {
         position: "relative",
         display: "flex",
+        overflowX: "auto",
     },
     button: {
         background: "none",
