@@ -1,6 +1,8 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
+use std::thread;
+use std::time::Duration;
 
 // ── MDB bridge connection ──────────────────────────────────────────────────────
 // The Python app_vend.py Flask server runs on :8080 and handles all serial
@@ -137,6 +139,14 @@ async fn get_pay_state() -> Result<String, String> {
         .map_err(|e| format!("Failed to read state response: {}", e))
 }
 
+// #[tauri::command]
+// fn go_fullscreen(window: tauri::Window) {
+//     thread::spawn(move || {
+//         thread::sleep(Duration::from_secs(2));
+//         window.set_fullscreen(true).unwrap();
+//     });
+// }
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -148,7 +158,8 @@ pub fn run() {
             dispense_item,
             get_pay_state,
             initialize_payment_server,
-            kill_app
+            kill_app,
+            // go_fullscreen
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

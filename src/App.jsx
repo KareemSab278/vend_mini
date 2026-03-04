@@ -6,6 +6,7 @@ import { products } from "./TestData/products";
 import { ProductCard } from "./Components/ProductCard";
 import { PriceStatusPill } from "./Components/PriceStatusPill";
 import { PrimaryButton } from "./Components/Button";
+import { appWindow } from "@tauri-apps/api/window";
 
 export { App };
 
@@ -24,6 +25,14 @@ function App() {
 
   const pollRef = useRef(null);
   const cancelledRef = useRef(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      appWindow.setFullscreen(true);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     const initializePaymentServer = async () => { // makes the python server run in the background when the app starts
