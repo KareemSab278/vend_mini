@@ -30,7 +30,7 @@ function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      getCurrentWindow().setFullscreen(false);
+      getCurrentWindow().setFullscreen(true);
     }, 1000);
     return () => clearTimeout(timer);
   }, []);
