@@ -6,7 +6,7 @@ import { products } from "./TestData/products";
 import { ProductCard } from "./Components/ProductCard";
 import { PriceStatusPill } from "./Components/PriceStatusPill";
 import { PrimaryButton } from "./Components/Button";
-import { appWindow } from "@tauri-apps/api/window";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 export { App };
 
@@ -28,7 +28,7 @@ function App() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      appWindow.setFullscreen(true);
+      getCurrentWindow().setFullscreen(true);
     }, 2000);
 
     return () => clearTimeout(timer);

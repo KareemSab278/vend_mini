@@ -1,8 +1,6 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
-use std::thread;
-use std::time::Duration;
 
 // ── MDB bridge connection ──────────────────────────────────────────────────────
 // The Python app_vend.py Flask server runs on :8080 and handles all serial
