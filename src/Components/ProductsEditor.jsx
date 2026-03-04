@@ -5,7 +5,7 @@ import { OnScreenKeyboard } from "./OnScreenKeyboard";
 import { CATEGORIES } from "../App";
 export { ProductsEditor };
 
-const EMPTY_FORM = { name: "", category: CATEGORIES[0], price: "", availability: true };
+const EMPTY_FORM = { name: "", category: 'Drinks', price: "", availability: true };
 
 const ProductsEditor = ({ onProductsChanged }) => {
   const [products, setProducts] = useState([]);
