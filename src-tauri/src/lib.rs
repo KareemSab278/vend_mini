@@ -92,6 +92,8 @@ async fn initialize_payment_server() -> Result<(), String> {
     Ok(())
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+
 #[tauri::command]
 async fn initialize_static_page_server() -> Result<(), String> {
     let mut handle = SERVER_PROCESS.lock().map_err(|e| e.to_string())?;
@@ -109,6 +111,7 @@ async fn initialize_static_page_server() -> Result<(), String> {
     *handle = Some(child);
     Ok(())
 }
+
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -188,6 +191,8 @@ async fn get_pay_state() -> Result<String, String> {
 
     resp.text().await.map_err(|e| format!("Failed to read state response: {}", e))
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
 async fn kill_app() -> Result<(), String> {

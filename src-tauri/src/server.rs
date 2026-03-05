@@ -1,6 +1,3 @@
-// im gonna build a server in rust that is hosted over th network so any device can use it.
-// ill also need a static web page to show the frontend of the rodering system with some basic js too.
-// using axiom for the server and sqlite for the database
 use axum::{
     routing::{get, delete, put, post},
     Json, Router,
