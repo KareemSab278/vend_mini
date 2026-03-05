@@ -1,7 +1,7 @@
 import { Button } from "@mantine/core";
 export { PrimaryButton, RemoveButton };
 
-const PrimaryButton = ({ title, onClick, color, onDoubleClick = new Function() }) => {
+const PrimaryButton = ({ title, onClick, color = 'rgb(99, 99, 99)', onDoubleClick = new Function() }) => {
   return (
     <section style={{ display: "inline-block", margin: "8px" }}>
       <Button

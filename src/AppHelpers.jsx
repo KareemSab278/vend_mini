@@ -65,7 +65,6 @@ const styles = {
     alignItems: "center",
     margin: 0,
     overflowX: "auto",
-    maxWidth: "90%",
   },
   noProductsMessage: {
     textAlign: "center",
