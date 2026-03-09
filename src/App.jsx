@@ -131,7 +131,7 @@ function App() {
     }
 
     setPayStatus("done");
-    setPayMessage("Payment complete! Thank you.");
+    setPayMessage("Payment complete! Please take your items.");
     helpers.unlockDoor();
 
     for (const p of selectedProducts) {
@@ -145,15 +145,29 @@ function App() {
         console.error("Failed to save order for product", p.product_id, e);
       }
     }
-
-    setTimeout(() => {
-      if (!cancelledRef.current) {
-        setCheckoutActive(false);
-        setPayStatus("idle");
-        setPayMessage("");
-        setSelectedProducts([]);
+    setPayStatus("waiting_door");
+    setPayMessage("Please close the door to complete your order.");
+    const doorPollInterval = setInterval(async () => {
+      if (cancelledRef.current) {
+        clearInterval(doorPollInterval);
+        return;
       }
-    }, 3000);
+      const closed = await helpers.isDoorClosed();
+      if (closed) {
+        clearInterval(doorPollInterval);
+        setPayStatus("done");
+        setPayMessage("Thank you! Please come again.");
+        setModalOpen(false);
+        setTimeout(() => {
+          if (!cancelledRef.current) {
+            setCheckoutActive(false);
+            setPayStatus("idle");
+            setPayMessage("");
+            setSelectedProducts([]);
+          }
+        }, 3000);
+      }
+    }, 2000);
   };
 
   const startPolling = () => {
@@ -264,9 +278,9 @@ function App() {
             {helpers.statusIcon(payStatus)}
           </div>
           <p style={helpers.styles.statusMessage}>{payMessage}</p>
-          {(payStatus === "error" || payStatus === "done") && (
+          {payStatus === "error" && (
             <PrimaryButton
-              title={payStatus === "done" ? "Close" : "Dismiss"}
+              title="Dismiss"
               onClick={() => {
                 handleCheckoutCancel();
                 setPayStatus("idle");

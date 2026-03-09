@@ -1,8 +1,11 @@
-export { styles, statusIcon, totalPrice, filteredProducts, unlockDoor };
+export { styles, statusIcon, totalPrice, filteredProducts, unlockDoor, isDoorClosed };
+import { invoke } from "@tauri-apps/api/core";
+const doorApi = "http://10.20.1.252";
+
 
 const statusIcon = (payStatus) => {
   return (
-    { paying: "💳", dispensing: "⚙️", done: "✅", error: "❌" }[payStatus] ??
+    { paying: "💳", dispensing: "⚙️", done: "✅", waiting_door: "🚪", error: "❌" }[payStatus] ??
     "💳"
   );
 };
@@ -15,21 +18,32 @@ const totalPrice = (selectedProducts) => {
 };
 
 const unlockDoor = async () => {
-  const doorApi = "http://10.20.1.252";
   try {
-    await fetch(`${doorApi}/open`, { method: "POST" });
+    const res = await fetch(`${doorApi}/open`, { method: "POST" });
+    console.log("Door unlock response:", res);
+    return res;
   } catch (error) {
     console.error("Failed to unlock door:", error);
   }
 }
 
+const isDoorClosed = async () => {
+  try {
+    const raw = await invoke("get_door_status");
+    const doorStatus = typeof raw === "string" ? JSON.parse(raw) : raw;
+    return doorStatus?.lock_state === "closed";
+  } catch (error) {
+    console.error("Failed to get door status:", error);
+    return false;
+  }
+}
 const filteredProducts = (products, activeCategory) => {
   return activeCategory === "All"
     ? products.filter((prod) => prod.product_availability)
     : products.filter(
-        (prod) =>
-          prod.product_category === activeCategory && prod.product_availability,
-      );
+      (prod) =>
+        prod.product_category === activeCategory && prod.product_availability,
+    );
 };
 
 const styles = {

@@ -181,6 +181,18 @@ async fn get_pay_state() -> Result<String, String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
+async fn get_door_status() -> Result<String, String> { // put here to proxy through cors
+    let client = make_client()?;
+    let resp = client
+        .get(format!("http://10.20.1.252/status"))
+        .send().await
+        .map_err(|e| format!("Failed to get door status: {}", e))?;
+    resp.text().await.map_err(|e| format!("Failed to read door status response: {}", e))
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tauri::command]
 async fn kill_app() -> Result<(), String> {
     std::process::exit(0);
 }
@@ -207,6 +219,8 @@ pub fn run() {
                 // Product management
                 delete_product,
                 new_product,
+                // Door
+                get_door_status,
                 // Utility
                 kill_app,
                 initialize_static_page_server,
