@@ -1,9 +1,6 @@
 use reqwest::Client;
 use serde::{ Deserialize, Serialize };
 use std::process::Command;
-use std::sync::Mutex;
-
-static SERVER_PROCESS: Mutex<Option<std::process::Child>> = Mutex::new(None);
 
 mod database;
 mod server;
@@ -76,6 +73,7 @@ async fn query_products() -> Result<Vec<database::Product>, String> {
 
 #[tauri::command]
 async fn initialize_payment_server() -> Result<(), String> {
+    // must run cargo run --bin server before anything in this folder
     let project_root = std::path::PathBuf
         ::from(env!("CARGO_MANIFEST_DIR"))
         .parent()
@@ -96,19 +94,7 @@ async fn initialize_payment_server() -> Result<(), String> {
 
 #[tauri::command]
 async fn initialize_static_page_server() -> Result<(), String> {
-    let mut handle = SERVER_PROCESS.lock().map_err(|e| e.to_string())?;
-
-    // Kill existing server if running
-    if let Some(mut child) = handle.take() {
-        let _ = child.kill();
-    }
-
-    let child = Command::new("cargo")
-        .args(["run", "--bin", "server"])
-        .spawn()
-        .map_err(|e| e.to_string())?;
-
-    *handle = Some(child);
+    tokio::spawn(server::start());
     Ok(())
 }
 
@@ -196,12 +182,6 @@ async fn get_pay_state() -> Result<String, String> {
 
 #[tauri::command]
 async fn kill_app() -> Result<(), String> {
-    // kills the server and exits the app
-    if let Ok(mut handle) = SERVER_PROCESS.lock() {
-        if let Some(mut child) = handle.take() {
-            let _ = child.kill();
-        }
-    }
     std::process::exit(0);
 }
 
@@ -235,13 +215,5 @@ pub fn run() {
         )
         .build(tauri::generate_context!())
         .expect("error while running tauri application")
-        .run(|_app_handle, event| {
-            if let tauri::RunEvent::Exit = event {
-                if let Ok(mut handle) = SERVER_PROCESS.lock() {
-                    if let Some(mut child) = handle.take() {
-                        let _ = child.kill();
-                    }
-                }
-            }
-        });
+        .run(|_app_handle, _event| {});
 }
