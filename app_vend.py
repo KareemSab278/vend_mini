@@ -474,34 +474,28 @@ def api_basket_dispense():
     item_price = item.get("price", 0)
     item_id    = item.get("id", 1)
     item_no    = item.get("item_no", 1)
-    remaining_after = len(pending) - 1
 
-    # Build VNDSUCC / VNDFAIL command
+    # Always send with remaining=0 to close the entire basket in one shot.
+    # There is no physical per-item dispenser — the user opens the door and takes items.
     if int(BASKET_MODE) == 1:
-        # Basket mode: (item_no, item_price_scaled, remaining, options_price)
         if success:
-            cmd = f"CSLS{x}VNDSUCC({item_no},{item_price},{remaining_after},0)"
+            cmd = f"CSLS{x}VNDSUCC({item_no},{item_price},0,0)"
         else:
-            cmd = f"CSLS{x}VNDFAIL({item_no},{item_price},{remaining_after},0)"
+            cmd = f"CSLS{x}VNDFAIL({item_no},{item_price},0,0)"
     else:
         if success:
-            cmd = f"CSLS{x}VNDSUCC({item_price},{item_id})"
+            cmd = f"CSLS{x}VNDSUCC({item_id},{item_price},0,0)"
         else:
-            cmd = f"CSLS{x}VNDFAIL({item_price},{item_id})"
+            cmd = f"CSLS{x}VNDFAIL({item_id},{item_price},0,0)"
 
     lines = bridge.send_and_wait_any(cmd, timeout_s=2.0)
 
-    # Remove the dispatched item from pending list
+    # Clear all pending items — basket is now closed
     with bridge.state_lock:
-        pending_list = bridge.state["pay"]["pending_items"]
-        if pending_list:
-            pending_list.pop(0)
-        remaining = len(pending_list)
-        done = remaining == 0
-        if done:
-            bridge.state["pay"]["in_progress"] = False
+        bridge.state["pay"]["pending_items"] = []
+        bridge.state["pay"]["in_progress"] = False
 
-    return jsonify({"ok": True, "done": done, "remaining": remaining, "lines": lines})
+    return jsonify({"ok": True, "done": True, "remaining": 0, "lines": lines})
 
 
 # ── Existing endpoints ────────────────────────────────────────────────────────

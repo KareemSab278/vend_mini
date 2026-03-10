@@ -12,7 +12,7 @@ import * as helpers from "./AppHelpers";
 export { App, CATEGORIES };
 
 const CATEGORIES = ["All", "Drinks", "Snacks", "Food", "Questionable"];
-const INITIAL_STATE_FULLSCREEN = true;
+const INITIAL_STATE_FULLSCREEN = false;
 
 function App() {
   const [modalOpen, setModalOpen] = useState(false);
@@ -105,32 +105,24 @@ function App() {
   const doDispenseAll = async () => {
     if (cancelledRef.current) return;
     setPayStatus("dispensing");
-    setPayMessage("Dispensing your items…");
+    setPayMessage("Payment approved! Opening door…");
 
-    let more = true;
-    while (more) {
-      if (cancelledRef.current) return;
-      try {
-        const raw = await invoke("dispense_item", { slot: 1, success: true });
-        const res = JSON.parse(raw);
-        if (!res.ok) {
-          setPayStatus("error");
-          setPayMessage(res.error || "Dispense failed");
-          return;
-        }
-        more = !res.done;
-        if (!res.done)
-          setPayMessage(`Dispensing… ${res.remaining} item(s) remaining`);
-      } catch (e) {
+    try {
+      const raw = await invoke("dispense_item", { slot: 1, success: true });
+      const res = JSON.parse(raw);
+      if (!res.ok) {
         setPayStatus("error");
-        setPayMessage(`Dispense error: ${e}`);
+        setPayMessage(res.error || "Dispense confirmation failed");
         return;
       }
+    } catch (e) {
+      setPayStatus("error");
+      setPayMessage(`Dispense error: ${e}`);
+      return;
     }
 
-    setPayStatus("done");
-    setPayMessage("Payment complete! Please take your items.");
     helpers.unlockDoor();
+    helpers.setLightsColor('green');
 
     for (const p of selectedProducts) {
       try {
@@ -144,7 +136,7 @@ function App() {
       }
     }
     setPayStatus("waiting_door");
-    setPayMessage("Please close the door to complete your order.");
+    setPayMessage("Please take your items and close the door.");
     const doorPollInterval = setInterval(async () => {
       if (cancelledRef.current) {
         clearInterval(doorPollInterval);
@@ -156,6 +148,7 @@ function App() {
         setPayStatus("done");
         setPayMessage("Thank you! Please come again.");
         setModalOpen(false);
+        // send dispense command here
         setTimeout(() => {
           if (!cancelledRef.current) {
             setCheckoutActive(false);
@@ -383,6 +376,9 @@ function App() {
           <PrimaryButton title="Refresh Products" onClick={() => { fetchProducts(); setAdminModalOpen(false); }} />
           <PrimaryButton title="Open Products Editor" onClick={() => { openEditor(); setAdminModalOpen(false); }} />
           <PrimaryButton title="Unlock Door" onClick={() => { helpers.unlockDoor(); setAdminModalOpen(false); }} />
+          <PrimaryButton title="Set Light Green" onClick={() => { helpers.setLightsColor('green'); setAdminModalOpen(false); }} />
+          <PrimaryButton title="Set Light Red" onClick={() => { helpers.setLightsColor('red'); setAdminModalOpen(false); }} />
+          <PrimaryButton title="Set Light Blue" onClick={() => { helpers.setLightsColor('blue'); setAdminModalOpen(false); }} />
           <p>Editor Url Active at: {editorUrl}</p>
         </section>
       }
