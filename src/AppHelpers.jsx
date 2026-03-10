@@ -117,12 +117,12 @@ const styles = {
   adminTrigger: {
     position: "fixed",
     top: 0,
-    right: 0,
+    left: 0,
     width: 60,
     height: 60,
     zIndex: 9999,
     opacity: 0,
-    color: "red",
+    backgroundColor: "red",
   },
   statusIcon: {
     fontSize: "3.5rem",

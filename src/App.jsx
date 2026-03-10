@@ -11,7 +11,7 @@ import * as helpers from "./AppHelpers";
 
 export { App, CATEGORIES };
 
-const CATEGORIES = ["All", "Drinks", "Snacks", "Food", "Drugs", "Questionable"];
+const CATEGORIES = ["All", "Drinks", "Snacks", "Food", "Questionable"];
 const INITIAL_STATE_FULLSCREEN = true;
 
 function App() {
@@ -100,9 +100,7 @@ function App() {
     getCurrentWindow().setFullscreen(newFullScreenState);
   };
 
-  const openEditor = () => {
-    openUrl(editorUrl);
-  };
+  const openEditor = () => { openUrl(editorUrl) };
 
   const doDispenseAll = async () => {
     if (cancelledRef.current) return;
