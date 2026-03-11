@@ -1,8 +1,6 @@
 import { PrimaryButton } from "./Button";
-import { IconShoppingCart, IconCreditCard } from "@tabler/icons-react";
 export { PriceStatusPill };
 
-const iconProps = { size: 22, stroke: 1.5, style: { marginRight: 8, verticalAlign: "middle" } };
 
 const PriceStatusPill = ({
     onModalOpen = new Function(),
@@ -13,21 +11,12 @@ const PriceStatusPill = ({
         <div style={styles.container}>
             <PrimaryButton
                 onClick={onModalOpen}
-                title={
-                    <>
-                        <IconShoppingCart {...iconProps} />
-                        View Cart
-                    </>
-                }
+                title="View Cart"
             />
             <PrimaryButton
                 onClick={onCheckout}
-                title={
-                    <>
-                        <IconCreditCard {...iconProps} />
-                        {`Checkout (£${totalPrice.toFixed(2)})`}
-                    </>
-                }
+                title=
+                {`Checkout (£${totalPrice.toFixed(2)})`}
             />
         </div>
     );
