@@ -31,9 +31,8 @@ fn auth_header() -> String {
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
-async fn initialize_orders_database() -> Result<(), String> {
-    database
-        ::initialize_orders_database()
+async fn initialize_database() -> Result<(), String> {
+    database::initialize_database()
         .map_err(|e| format!("Database initialization failed: {}", e))
 }
 
@@ -42,15 +41,6 @@ async fn initialize_orders_database() -> Result<(), String> {
 #[tauri::command]
 async fn return_editor_url() -> String {
     server::return_editor_url()
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-#[tauri::command]
-async fn initialize_products_database() -> Result<(), String> {
-    database
-        ::initialize_products_database()
-        .map_err(|e| format!("Products database initialization failed: {}", e))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -212,8 +202,7 @@ pub fn run() {
                 get_pay_state,
                 initialize_payment_server,
                 // DB related commands
-                initialize_orders_database,
-                initialize_products_database,
+                initialize_database,
                 insert_order,
                 query_products,
                 // Product management
