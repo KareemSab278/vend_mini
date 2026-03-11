@@ -1,4 +1,5 @@
 import { RemoveButton } from "./Button";
+import { getProductIcon } from "../AppHelpers";
 
 export { ProductCard };
 
@@ -11,10 +12,16 @@ const ProductCard = ({
   selected,
   onRemove = new Function(),
 }) => {
+  const displayTitle = title || (product.product_name.length > 20 ? `${product.product_name.substring(0, 20)}...` : product.product_name);
+
   return (
     <div style={styles.card} onClick={() => onClick(product)}>
-      <h3 style={styles.title}>{title || (product.product_name.length > 20 ? `${product.product_name.substring(0, 20)}...` : product.product_name)} - £{product.product_price.toFixed(2)}</h3>
-      {/* <p style={styles.price}>£</p> */}
+      <div style={styles.titleRow}>
+        <span style={styles.iconWrapper}>
+          {getProductIcon(product.product_name, product.product_category)}
+        </span>
+        <h3 style={styles.title}>{displayTitle} - £{product.product_price.toFixed(2)}</h3>
+      </div>
       {selected && <RemoveButton onClick={() => onRemove(product)} />}
       {children}
     </div>
@@ -33,9 +40,22 @@ const styles = {
     minWidth: "90%",
     textAlign: "center",
   },
+  titleRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.6rem",
+    padding: "0.25rem 0.5rem 0.75rem",
+  },
+  iconWrapper: {
+    display: "flex",
+    alignItems: "center",
+    flexShrink: 0,
+    opacity: 0.85,
+  },
   title: {
     fontSize: "1.5rem",
-    marginBottom: "1rem",
+    margin: 0,
   },
   price: {
     fontSize: "2rem",

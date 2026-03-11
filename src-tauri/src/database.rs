@@ -31,7 +31,7 @@ pub fn initialize_database() -> Result<()> {
             price      REAL    NOT NULL,
             timestamp  DATETIME DEFAULT CURRENT_TIMESTAMP
         );
-        CREATE VIEW IF NOT EXISTS orders_detail AS
+        CREATE VIEW IF NOT EXISTS orders_details AS
             SELECT
                 o.order_id,
                 o.product_id,
@@ -192,7 +192,7 @@ pub fn view_orders_with_products(
 
     let sql = format!(
         "SELECT order_id, product_id, product_name, product_category, quantity, price, timestamp
-         FROM orders_detail{} ORDER BY timestamp DESC",
+         FROM orders_details{} ORDER BY timestamp DESC",
         where_clause
     );
 

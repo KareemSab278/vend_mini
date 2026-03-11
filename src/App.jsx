@@ -34,6 +34,14 @@ function App() {
   const cancelledRef = useRef(false);
 
   useEffect(() => {
+    const getProductsOnMount = async () => {
+      const prods = await invoke("query_products");
+      setProducts(prods);
+    }
+    getProductsOnMount();
+  }, []);
+
+  useEffect(() => {
     const initializePaymentServer = async () => {
       try {
         await invoke("initialize_payment_server");
@@ -75,6 +83,8 @@ function App() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, []);
+
+
 
   const fetchProducts = async () => {
     pollRef.current = setInterval(async () => {

@@ -1,4 +1,5 @@
 import { Button } from "@mantine/core";
+import { IconX } from "@tabler/icons-react";
 export { PrimaryButton, RemoveButton };
 
 const PrimaryButton = ({ title, onClick, color = 'rgb(99, 99, 99)', onDoubleClick = new Function() }) => {
@@ -42,7 +43,7 @@ const RemoveButton = ({ onClick }) => {
         style={styles.removeBtn}
         onClick={onClick}
       >
-        ❌
+        <IconX size={20} stroke={2} />
       </Button>
     </section>
   );

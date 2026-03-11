@@ -1,16 +1,33 @@
 import { PrimaryButton } from "./Button";
+import { IconShoppingCart, IconCreditCard } from "@tabler/icons-react";
 export { PriceStatusPill };
 
-const PriceStatusPill = ({ onModalOpen = new Function(), onCheckout = new Function(), totalPrice = 0 }) => {
+const iconProps = { size: 22, stroke: 1.5, style: { marginRight: 8, verticalAlign: "middle" } };
+
+const PriceStatusPill = ({
+    onModalOpen = new Function(),
+    onCheckout = new Function(),
+    totalPrice = 0,
+}) => {
     return (
         <div style={styles.container}>
             <PrimaryButton
                 onClick={onModalOpen}
-                title="View Cart"
+                title={
+                    <>
+                        <IconShoppingCart {...iconProps} />
+                        View Cart
+                    </>
+                }
             />
             <PrimaryButton
                 onClick={onCheckout}
-                title={`Checkout ($${totalPrice.toFixed(2)})`}
+                title={
+                    <>
+                        <IconCreditCard {...iconProps} />
+                        {`Checkout (£${totalPrice.toFixed(2)})`}
+                    </>
+                }
             />
         </div>
     );
@@ -30,13 +47,14 @@ const styles = {
         boxShadow: "0px 2px 15px rgba(0, 0, 0, 0.52)",
         borderRadius: "50px",
         padding: "0.5rem 0.8rem",
-        minWidth: "420px",  
+        minWidth: "420px",
     },
     price: {
         color: "#fff",
         fontSize: "1.1rem",
         fontWeight: "bold",
-        fontFamily: 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        fontFamily:
+            'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
         paddingRight: "0.5rem",
     },
 };
