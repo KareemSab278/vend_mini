@@ -21,9 +21,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": [
-      "deb"
-    ],
+    "targets": ["deb"],
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -31,5 +29,15 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ]
+  },
+  "plugins": {
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://KareemSab278.github.io/ordering_system/updates.json"
+      ],
+      "dialog": true,
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDBBREVDQkJDNzE5NUJFOEQKUldTTnZwVnh2TXZlQ281dkdqVVFGRXZteXc3aktYUEFZTEg3L3FJenFUd0VhaTZybnIwc3lPcEYK"
+    }
   }
 }

@@ -1,0 +1,11 @@
+{
+  "version": "v1.0.0",
+  "notes": "Initial release",
+  "pub_date": "2024-03-12T12:00:00Z",
+  "platforms": {
+    "linux-aarch64": {
+      "signature": "YOUR_SIGNATURE_HERE",
+      "url": "the url to the update file for operating system linux and architecture aarch64"
+    }
+  }
+}

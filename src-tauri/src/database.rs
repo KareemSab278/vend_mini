@@ -1,7 +1,7 @@
 use rusqlite::{params, Connection, Result};
 use serde::Serialize;
-use std::path::PathBuf;
 use std::fs;
+use std::path::PathBuf;
 
 const DATA_FILE: &str = "ordering_system_data.db";
 
@@ -51,13 +51,12 @@ fn open() -> Result<Connection> {
     Connection::open(db_path())
 }
 
-
 #[derive(Serialize, Debug)]
 pub struct Product {
-    pub product_id:           i32,
-    pub product_name:         String,
-    pub product_category:     String,
-    pub product_price:        f64,
+    pub product_id: i32,
+    pub product_name: String,
+    pub product_category: String,
+    pub product_price: f64,
     pub product_availability: bool,
 }
 
@@ -71,14 +70,22 @@ pub fn new_product(
     conn.execute(
         "INSERT INTO products (product_name, product_category, product_price, product_availability)
          VALUES (?1, ?2, ?3, ?4)",
-        params![product_name, product_category, product_price, product_availability],
+        params![
+            product_name,
+            product_category,
+            product_price,
+            product_availability
+        ],
     )?;
     Ok(())
 }
 
 pub fn delete_product(product_id: i32) -> Result<()> {
     let conn = open()?;
-    conn.execute("DELETE FROM products WHERE product_id = ?1", params![product_id])?;
+    conn.execute(
+        "DELETE FROM products WHERE product_id = ?1",
+        params![product_id],
+    )?;
     Ok(())
 }
 
@@ -95,7 +102,13 @@ pub fn update_product(
          SET product_name = ?1, product_category = ?2,
              product_price = ?3, product_availability = ?4
          WHERE product_id = ?5",
-        params![product_name, product_category, product_price, product_availability, product_id],
+        params![
+            product_name,
+            product_category,
+            product_price,
+            product_availability,
+            product_id
+        ],
     )?;
     Ok(())
 }
@@ -108,24 +121,23 @@ pub fn query_products() -> Result<Vec<Product>> {
     )?;
     let rows = stmt.query_map([], |row| {
         Ok(Product {
-            product_id:           row.get(0)?,
-            product_name:         row.get(1)?,
-            product_category:     row.get(2)?,
-            product_price:        row.get(3)?,
+            product_id: row.get(0)?,
+            product_name: row.get(1)?,
+            product_category: row.get(2)?,
+            product_price: row.get(3)?,
             product_availability: row.get(4)?,
         })
     })?;
     rows.collect()
 }
 
-
 #[derive(Serialize, Debug)]
 pub struct Order {
-    pub order_id:   i32,
+    pub order_id: i32,
     pub product_id: i32,
-    pub quantity:   i32,
-    pub price:      f64,
-    pub timestamp:  String,
+    pub quantity: i32,
+    pub price: f64,
+    pub timestamp: String,
 }
 
 pub fn insert_order(product_id: i32, quantity: i32, price: f64) -> Result<()> {
@@ -139,40 +151,38 @@ pub fn insert_order(product_id: i32, quantity: i32, price: f64) -> Result<()> {
 
 pub fn view_orders() -> Result<Vec<Order>> {
     let conn = open()?;
-    let mut stmt = conn.prepare(
-        "SELECT order_id, product_id, quantity, price, timestamp FROM orders",
-    )?;
+    let mut stmt =
+        conn.prepare("SELECT order_id, product_id, quantity, price, timestamp FROM orders")?;
     let rows = stmt.query_map([], |row| {
         Ok(Order {
-            order_id:   row.get(0)?,
+            order_id: row.get(0)?,
             product_id: row.get(1)?,
-            quantity:   row.get(2)?,
-            price:      row.get(3)?,
-            timestamp:  row.get(4)?,
+            quantity: row.get(2)?,
+            price: row.get(3)?,
+            timestamp: row.get(4)?,
         })
     })?;
     rows.collect()
 }
 
-
 #[derive(Serialize, Debug)]
 pub struct OrderWithProduct {
-    pub order_id:         i32,
-    pub product_id:       i32,
-    pub product_name:     String,
+    pub order_id: i32,
+    pub product_id: i32,
+    pub product_name: String,
     pub product_category: String,
-    pub quantity:         i32,
-    pub price:            f64,
-    pub timestamp:        String,
+    pub quantity: i32,
+    pub price: f64,
+    pub timestamp: String,
 }
 
 pub fn view_orders_with_products(
     start_date: Option<&str>,
-    end_date:   Option<&str>,
+    end_date: Option<&str>,
 ) -> Result<Vec<OrderWithProduct>> {
     let conn = open()?;
 
-    let mut conditions:   Vec<String> = Vec::new();
+    let mut conditions: Vec<String> = Vec::new();
     let mut param_values: Vec<String> = Vec::new();
 
     if let Some(s) = start_date.filter(|s| !s.is_empty()) {
@@ -199,13 +209,13 @@ pub fn view_orders_with_products(
     let mut stmt = conn.prepare(&sql)?;
     let rows = stmt.query_map(rusqlite::params_from_iter(param_values.iter()), |row| {
         Ok(OrderWithProduct {
-            order_id:         row.get(0)?,
-            product_id:       row.get(1)?,
-            product_name:     row.get(2)?,
+            order_id: row.get(0)?,
+            product_id: row.get(1)?,
+            product_name: row.get(2)?,
             product_category: row.get(3)?,
-            quantity:         row.get(4)?,
-            price:            row.get(5)?,
-            timestamp:        row.get(6)?,
+            quantity: row.get(4)?,
+            price: row.get(5)?,
+            timestamp: row.get(6)?,
         })
     })?;
     rows.collect()

@@ -1,13 +1,13 @@
 use axum::{
-    routing::{get, delete, put, post},
-    Json, Router,
     extract::{Path, Query},
-    response::IntoResponse,
     http::StatusCode,
+    response::IntoResponse,
+    routing::{delete, get, post, put},
+    Json, Router,
 };
-use tower_http::services::ServeDir;
 use serde::Deserialize;
 use std::net::{SocketAddr, UdpSocket};
+use tower_http::services::ServeDir;
 
 #[path = "database.rs"]
 mod database;
@@ -26,7 +26,13 @@ async fn get_products() -> Json<Vec<database::Product>> {
 }
 
 async fn create_product(Json(payload): Json<NewProduct>) -> impl IntoResponse {
-    println!("POST /products payload: name='{}' category='{}' price={} avail={}", payload.product_name, payload.product_category, payload.product_price, payload.product_availability);
+    println!(
+        "POST /products payload: name='{}' category='{}' price={} avail={}",
+        payload.product_name,
+        payload.product_category,
+        payload.product_price,
+        payload.product_availability
+    );
     match database::new_product(
         &payload.product_name,
         &payload.product_category,
@@ -63,16 +69,26 @@ struct OrdersQuery {
     end_date: Option<String>,
 }
 
-async fn view_orders_detail(Query(params): Query<OrdersQuery>) -> Json<Vec<database::OrderWithProduct>> {
+async fn view_orders_detail(
+    Query(params): Query<OrdersQuery>,
+) -> Json<Vec<database::OrderWithProduct>> {
     let orders = database::view_orders_with_products(
         params.start_date.as_deref(),
         params.end_date.as_deref(),
-    ).unwrap_or_default();
+    )
+    .unwrap_or_default();
     Json(orders)
 }
 
 async fn edit_product(Path(id): Path<i32>, Json(payload): Json<NewProduct>) -> impl IntoResponse {
-    println!("PUT /products/{} payload: name='{}' category='{}' price={} avail={}", id, payload.product_name, payload.product_category, payload.product_price, payload.product_availability);
+    println!(
+        "PUT /products/{} payload: name='{}' category='{}' price={} avail={}",
+        id,
+        payload.product_name,
+        payload.product_category,
+        payload.product_price,
+        payload.product_availability
+    );
     match database::update_product(
         id,
         &payload.product_name,
@@ -105,17 +121,16 @@ pub async fn start() {
         .route("/products/:id", delete(remove_product).put(edit_product))
         .route("/orders", get(view_orders))
         .route("/orders/detail", get(view_orders_detail))
-        .fallback_service(ServeDir::new(concat!(env!("CARGO_MANIFEST_DIR"), "/src/static")));
+        .fallback_service(ServeDir::new(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/static"
+        )));
     let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
     let local_ip = get_local_ip();
 
     println!("Server running on http://{}:3000", local_ip);
 
-    let listener = tokio::net::TcpListener::bind(addr)
-        .await
-        .unwrap();
+    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
 
-    axum::serve(listener, app)
-        .await
-        .unwrap();
+    axum::serve(listener, app).await.unwrap();
 }

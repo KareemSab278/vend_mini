@@ -1,11 +1,24 @@
-export { styles, statusIcon, totalPrice, filteredProducts, unlockDoor, isDoorClosed, setLightsColor, getProductIcon };
+export {
+  styles,
+  statusIcon,
+  totalPrice,
+  filteredProducts,
+  getProductIcon
+};
 import { invoke } from "@tauri-apps/api/core";
 import {
-  IconCreditCard, IconSettings, IconCircleCheck, IconDoor, IconCircleX,
-  IconBread, IconBottle, IconCandy, IconCup, IconCookie, IconShoppingBag,
+  IconCreditCard,
+  IconSettings,
+  IconCircleCheck,
+  IconDoor,
+  IconCircleX,
+  IconBread,
+  IconBottle,
+  IconCandy,
+  IconCookie,
+  IconShoppingBag,
 } from "@tabler/icons-react";
 const doorApi = import.meta.env.VITE_DOOR_API_URL;
-
 
 const statusIcon = (payStatus) => {
   const iconProps = { size: 56, stroke: 1.5, color: "#fff" };
@@ -27,75 +40,31 @@ const totalPrice = (selectedProducts) => {
   );
 };
 
-const unlockDoor = async () => {
-  try {
-    const res = await fetch(`${doorApi}/open`, { method: "POST" });
-    console.log("Door unlock response:", res);
-    return res;
-  } catch (error) {
-    console.error("Failed to unlock door:", error);
-  }
-}
-
-const setLightsColor = async (color) => {
-  const color_hmap = {
-    "green": { red: 0, green: 255, blue: 0 },
-    "red": { red: 255, green: 0, blue: 0 },
-    "blue": { red: 0, green: 0, blue: 255 },
-  }
-  const authKey = import.meta.env.VITE_LIGHT_AUTHENTICATION_KEY;
-  const lightId = import.meta.env.VITE_LIGHT_ID;
-  const url = `https://shelly-232-eu.shelly.cloud/v2/devices/api/set/light?auth_key=${encodeURIComponent(authKey)}`;
-  const payload = {
-    id: lightId,
-    on: true,
-    mode: 'color',
-    brightness: 100,
-    white: 0,
-    gain: 100,
-    ...color_hmap[color]
-  };
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json; charset=utf-8',
-        'Accept': 'application/json',
-      },
-      body: JSON.stringify(payload),
-    });
-    console.log('Shelly light response:', res.status);
-    return res;
-  } catch (error) {
-    console.error('Failed to set Shelly light:', error);
-  }
-};
-
-const isDoorClosed = async () => {
-  try {
-    const raw = await invoke("get_door_status");
-    const doorStatus = typeof raw === "string" ? JSON.parse(raw) : raw;
-    return doorStatus?.lock_state === "closed";
-  } catch (error) {
-    console.error("Failed to get door status:", error);
-    return false;
-  }
-}
-
 const getProductIcon = (productName, productCategory, size = 26) => {
   const name = (productName || "").toLowerCase();
   const iconProps = { size, stroke: 1.5, style: { flexShrink: 0 } };
 
-  if (/sandwich|sub|wrap|baguette|panini/.test(name)) return <IconBread {...iconProps} />;
-  if (/crisp|chip|pringles|cookie|biscuit|brownie/.test(name)) return <IconCookie {...iconProps} />;
-  if (/chocolate|choc|kit.?kat|twix|snickers|sweet|candy|haribo/.test(name)) return <IconCandy {...iconProps} />;
-  if (/cola|coke|pepsi|soda|lemonade|juice|water|milk|energy|monster|redbull|lucozade/.test(name)) return <IconBottle {...iconProps} />;
+  if (/sandwich|sub|wrap|baguette|panini/.test(name))
+    return <IconBread {...iconProps} />;
+  if (/crisp|chip|pringles|cookie|biscuit|brownie/.test(name))
+    return <IconCookie {...iconProps} />;
+  if (/chocolate|choc|kit.?kat|twix|snickers|sweet|candy|haribo/.test(name))
+    return <IconCandy {...iconProps} />;
+  if (
+    /cola|coke|pepsi|soda|lemonade|juice|water|milk|energy|monster|redbull|lucozade/.test(
+      name,
+    )
+  )
+    return <IconBottle {...iconProps} />;
 
   const category = (productCategory || "").toLowerCase();
   if (category === "sandwich") return <IconBread {...iconProps} />;
-  if (category === "drink" || category === "drinks") return <IconBottle {...iconProps} />;
-  if (category === "snack" || category === "snacks") return <IconCookie {...iconProps} />;
-  if (category === "sweet" || category === "sweets") return <IconCandy {...iconProps} />;
+  if (category === "drink" || category === "drinks")
+    return <IconBottle {...iconProps} />;
+  if (category === "snack" || category === "snacks")
+    return <IconCookie {...iconProps} />;
+  if (category === "sweet" || category === "sweets")
+    return <IconCandy {...iconProps} />;
   return <IconShoppingBag {...iconProps} />;
 };
 
@@ -103,9 +72,9 @@ const filteredProducts = (products, activeCategory) => {
   return activeCategory === "All"
     ? products.filter((prod) => prod.product_availability)
     : products.filter(
-      (prod) =>
-        prod.product_category === activeCategory && prod.product_availability,
-    );
+        (prod) =>
+          prod.product_category === activeCategory && prod.product_availability,
+      );
 };
 
 const styles = {

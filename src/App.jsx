@@ -8,6 +8,8 @@ import { PrimaryButton } from "./Components/Button";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as helpers from "./AppHelpers";
+import * as hardware from "./hardwareHelpers"
+import { updateHandler } from "./updateHandler";
 
 export { App, CATEGORIES };
 
@@ -31,17 +33,14 @@ function App() {
   const [editorUrl, setEditorUrl] = useState("");
 
   const pollRef = useRef(null);
-  const cancelledRef = useRef(false); 
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
     const getProductsOnMount = async () => {
       const prods = await invoke("query_products");
       setProducts(prods);
-    }
-    getProductsOnMount();
-  }, []);
+    };
 
-  useEffect(() => {
     const initializePaymentServer = async () => {
       try {
         await invoke("initialize_payment_server");
@@ -69,6 +68,18 @@ function App() {
       }
     };
 
+    const getUpdates = async () => {
+      pollRef.current = setInterval(async () => {
+        try {
+          await updateHandler();
+        } catch (e) {
+          console.error("Failed to check for updates:", e);
+        }
+      }, 3600000);
+    };
+
+    getUpdates();
+    getProductsOnMount();
     fetchEditorUrl();
     initializeStaticServer();
     fetchProducts();
@@ -83,8 +94,6 @@ function App() {
       if (pollRef.current) clearInterval(pollRef.current);
     };
   }, []);
-
-
 
   const fetchProducts = async () => {
     pollRef.current = setInterval(async () => {
@@ -110,7 +119,9 @@ function App() {
     getCurrentWindow().setFullscreen(newFullScreenState);
   };
 
-  const openEditor = () => { openUrl(editorUrl) };
+  const openEditor = () => {
+    openUrl(editorUrl);
+  };
 
   const doDispenseAll = async () => {
     if (cancelledRef.current) return;
@@ -131,8 +142,8 @@ function App() {
       return;
     }
 
-    helpers.unlockDoor();
-    helpers.setLightsColor('green');
+    hardware.unlockDoor();
+    hardware.setLightsColor("green");
 
     for (const p of selectedProducts) {
       try {
@@ -152,7 +163,7 @@ function App() {
         clearInterval(doorPollInterval);
         return;
       }
-      const closed = await helpers.isDoorClosed();
+      const closed = await hardware.isDoorClosed();
       if (closed) {
         clearInterval(doorPollInterval);
         setPayStatus("done");
@@ -264,10 +275,10 @@ function App() {
     activeCategory === "All"
       ? products.filter((prod) => prod.product_availability)
       : products.filter(
-        (prod) =>
-          prod.product_category === activeCategory &&
-          prod.product_availability,
-      );
+          (prod) =>
+            prod.product_category === activeCategory &&
+            prod.product_availability,
+        );
 
   const checkoutModal = (
     <Modal
@@ -377,18 +388,57 @@ function App() {
         <section>
           <PrimaryButton
             title={fullScreenState ? "Exit Full Screen" : "Enter Full Screen"}
-            onClick={() => { toggleFullScreen(); setAdminModalOpen(false); }}
+            onClick={() => {
+              toggleFullScreen();
+              setAdminModalOpen(false);
+            }}
           />
           <PrimaryButton
             title="Kill App (Double Click)"
             onDoubleClick={() => invoke("kill_app")}
           />
-          <PrimaryButton title="Refresh Products" onClick={() => { fetchProducts(); setAdminModalOpen(false); }} />
-          <PrimaryButton title="Open Products Editor" onClick={() => { openEditor(); setAdminModalOpen(false); }} />
-          <PrimaryButton title="Unlock Door" onClick={() => { helpers.unlockDoor(); setAdminModalOpen(false); }} />
-          <PrimaryButton title="Set Light Green" onClick={() => { helpers.setLightsColor('green'); setAdminModalOpen(false); }} />
-          <PrimaryButton title="Set Light Red" onClick={() => { helpers.setLightsColor('red'); setAdminModalOpen(false); }} />
-          <PrimaryButton title="Set Light Blue" onClick={() => { helpers.setLightsColor('blue'); setAdminModalOpen(false); }} />
+          <PrimaryButton
+            title="Refresh Products"
+            onClick={() => {
+              fetchProducts();
+              setAdminModalOpen(false);
+            }}
+          />
+          <PrimaryButton
+            title="Open Products Editor"
+            onClick={() => {
+              openEditor();
+              setAdminModalOpen(false);
+            }}
+          />
+          <PrimaryButton
+            title="Unlock Door"
+            onClick={() => {
+              helpers.unlockDoor();
+              setAdminModalOpen(false);
+            }}
+          />
+          <PrimaryButton
+            title="Set Light Green"
+            onClick={() => {
+              hardware.setLightsColor("green");
+              setAdminModalOpen(false);
+            }}
+          />
+          <PrimaryButton
+            title="Set Light Red"
+            onClick={() => {
+              hardware.setLightsColor("red");
+              setAdminModalOpen(false);
+            }}
+          />
+          <PrimaryButton
+            title="Set Light Blue"
+            onClick={() => {
+              hardware.setLightsColor("blue");
+              setAdminModalOpen(false);
+            }}
+          />
           <p>Editor Url Active at: {editorUrl}</p>
         </section>
       }
