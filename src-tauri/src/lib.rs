@@ -209,6 +209,19 @@ async fn kill_app() -> Result<(), String> {
 
 // ─────────────────────────────────────────────────────────────────────────────
 
+#[tauri::command]
+async fn install_deb(path: String) -> Result<(), String> {
+    Command::new("pkexec")
+        .args(["dpkg", "-i", &path])
+        .spawn()
+        .map_err(|e| format!("Failed to run dpkg: {}", e))?
+        .wait()
+        .map_err(|e| format!("dpkg failed: {}", e))?;
+    Ok(())
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -234,7 +247,8 @@ pub fn run() {
             // Utility
             kill_app,
             initialize_static_page_server,
-            return_editor_url
+            return_editor_url,
+            install_deb
         ])
         .setup(|app| {
             #[cfg(desktop)]
