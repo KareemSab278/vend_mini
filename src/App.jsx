@@ -75,7 +75,7 @@ function App() {
         } catch (e) {
           console.error("Failed to check for updates:", e);
         }
-      }, 3600000);
+      }, 86400000); // 24 hours now
     };
 
     getUpdates();

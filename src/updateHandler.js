@@ -9,7 +9,7 @@ const updateHandler = async () => {
     const update = await check();
     if (update) {
       const yes = await ask(
-        `A new version (${update.version}) is available. Install now?`,
+        `A new version (${update.version}) is available. Details: ${update.notes} Install now?`,
         { title: "Update Available", type: "info" }
       );
       if (yes) {
