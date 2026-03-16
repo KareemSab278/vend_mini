@@ -29,5 +29,7 @@ dist-ssr
 
 updater-key.pem
 updater_private.pem
+tauri-signing.key
+tauri-signing.key.pub
 
 signature.b64

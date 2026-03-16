@@ -35,6 +35,14 @@ A contactless card payment system for PicoVend EZ Bridge vending machines. Built
     - [Cross-Compilation for Raspberry Pi](#cross-compilation-for-raspberry-pi)
 11. [Troubleshooting](#troubleshooting)
 12. [Development Notes](#development-notes)
+13. [Over-the-Air Updates](#over-the-air-updates)
+    - [How It Works](#how-it-works)
+    - [Signing Format](#signing-format)
+    - [Key Files](#key-files)
+    - [Build Requirements — Dedicated Build Pi](#build-requirements--dedicated-build-pi)
+    - [Release Process (Step by Step)](#release-process-step-by-step)
+    - [Generating the Keypair (First Time Only)](#generating-the-keypair-first-time-only)
+    - [Troubleshooting Updates](#troubleshooting-updates)
 
 ---
 
@@ -1284,3 +1292,173 @@ The application uses two different polling mechanisms:
 3. The `pollRef` is shared between product refresh polling and payment state polling. Starting a payment will stop product refresh polling, and it is only resumed if `fetchProducts` is called explicitly.
 4. The `categoryIndocator` variable in `App.jsx` contains a typo (should be `categoryIndicator`).
 5. The Flask server process is spawned but its handle is not stored, so it cannot be cleanly killed on application exit. Only the Axum server process is tracked and killed unless the application is running.
+
+---
+
+## Over-the-Air Updates
+
+The application uses the [Tauri updater plugin](https://tauri.app/plugin/updater/) for OTA (over-the-air) updates. When the app starts, it checks a hosted `updates.json` file. If a newer version is available, the user is prompted to install it.
+
+### How It Works
+
+1. On startup, the Tauri updater fetches `updates.json` from the configured endpoint (`plugins.updater.endpoints` in `tauri.conf.json`).
+2. It compares the `version` field in `updates.json` against the version compiled into the running binary (`version` in `tauri.conf.json`).
+3. If the remote version is newer, the updater downloads the `.deb` file from the `url` field.
+4. Before installing, the updater **verifies the signature** of the downloaded file against the `pubkey` in `tauri.conf.json`. If the signature does not match, the update is rejected.
+5. On success, the app relaunches into the new version.
+
+### Signing Format
+
+The Tauri updater uses **minisign** format, not raw OpenSSL Ed25519. The signature placed in `updates.json` must be the **full contents of the `.sig` file** produced by `npx tauri signer sign`. Raw OpenSSL-produced signatures will be rejected with "signature could not be decoded".
+
+The `pubkey` in `tauri.conf.json` is also in minisign format, not a DER-encoded OpenSSL public key.
+
+### Key Files
+
+| File | Location | Purpose |
+|------|----------|---------|
+| `tauri-signing.key` | Repo root (keep secret, do not commit) | Minisign private key used to sign each release |
+| `tauri-signing.key.pub` | Repo root | Minisign public key (safe to commit) |
+| `signature.b64` | Repo root | Base64 signature of the latest `.deb` (auto-generated, commit this) |
+| `updates.json` | Repo root | Update manifest served via GitHub Pages |
+| `builds/` | Repo root | Directory containing the latest `.deb` for each architecture |
+
+> **IMPORTANT:** Never regenerate the keypair once machines are deployed. If `tauri-signing.key` is lost, deployed machines will no longer be able to verify updates and OTA updates will stop working permanently. Store the private key securely (e.g. a password manager or encrypted USB).
+
+### Build Requirements — Dedicated Build Pi
+
+**All production builds must be compiled directly on a Raspberry Pi.** The Tauri `.deb` binary must target the exact ARM64 architecture of the deployed machines. Cross-compilation from an x86 machine produces binaries that may not run correctly on the Pi hardware.
+
+One Raspberry Pi should be designated as the **build machine** and used for all releases across all deployed units. This ensures binary compatibility across every machine in the field.
+
+### Release Process (Step by Step)
+
+Follow these steps every time you release a new version:
+
+#### Step 1 — Bump the version
+
+In `src-tauri/tauri.conf.json`, increment the `version` field:
+
+```json
+"version": "0.1.1"
+```
+
+Also update `updates.json` to match:
+
+```json
+"version": "v0.1.1"
+```
+
+The version in `updates.json` must have a `v` prefix. The version in `tauri.conf.json` must not.
+
+#### Step 2 — Build on the Raspberry Pi
+
+SSH into the dedicated build Pi, pull the latest code, and build:
+
+```bash
+git pull
+npm install
+npm run tauri build
+```
+
+The output `.deb` file will be at:
+
+```
+src-tauri/target/release/bundle/deb/ordering_system_<version>_arm64.deb
+```
+
+#### Step 3 — Copy the `.deb` back to your dev machine
+
+From your dev machine:
+
+```bash
+scp pi@<build-pi-ip>:~/ordering_system/src-tauri/target/release/bundle/deb/ordering_system_<version>_arm64.deb builds/
+```
+
+Replace `<build-pi-ip>` with the IP address of the build Pi and `<version>` with the version you built.
+
+#### Step 4 — Sign the build
+
+On your dev machine, from the repo root:
+
+```bash
+TAURI_SIGNING_PRIVATE_KEY_PATH=tauri-signing.key npx tauri signer sign builds/ordering_system_<version>_arm64.deb
+```
+
+You will be prompted for the private key password. This produces two files:
+
+| Generated file | Location | What it is |
+|----------------|----------|------------|
+| `ordering_system_<version>_arm64.deb.sig` | `builds/` | The minisign signature file for this build. This is what goes into `updates.json` |
+| (the `.deb` itself is unchanged) | `builds/` | The binary you copied from the Pi — signing does not modify it |
+
+Now copy the `.sig` contents into `signature.b64` at the repo root:
+
+```bash
+cp builds/ordering_system_<version>_arm64.deb.sig signature.b64
+```
+
+`signature.b64` is a convenience copy of the latest signature kept at the repo root for reference. The actual value that matters is what you paste into `updates.json` in the next step.
+
+> **Important:** The `.sig` file contains multiple lines (a comment header + the signature). When pasting into `updates.json`, the entire multi-line content must be base64-encoded as a single unbroken string — this is exactly what `npx tauri signer sign` outputs and what the `.sig` file contains. Do not manually strip lines or re-encode it.
+
+#### Step 5 — Update `updates.json`
+
+Edit `updates.json` to point to the new build:
+
+```json
+{
+  "version": "v<version>",
+  "notes": "Short description of what changed.",
+  "pub_date": "<YYYY-MM-DDTHH:MM:SSZ>",
+  "platforms": {
+    "linux-aarch64": {
+      "signature": "<full contents of signature.b64 — one line, no newlines>",
+      "url": "https://raw.githubusercontent.com/KareemSab278/ordering_system/main/builds/ordering_system_<version>_arm64.deb"
+    }
+  }
+}
+```
+
+> **Critical:** The `signature` value must be a single uninterrupted line with no embedded newlines or spaces inside the string. Any line break inside the base64 string will cause "signature could not be decoded" on all machines.
+
+#### Step 6 — Commit and push
+
+```bash
+git add builds/ordering_system_<version>_arm64.deb signature.b64 updates.json src-tauri/tauri.conf.json
+git commit -m "Release v<version>"
+git push
+```
+
+GitHub Pages will automatically serve the updated `updates.json` within a minute. Deployed machines will pick up the update the next time they check (on app startup).
+
+#### Step 7 — Verify
+
+To confirm the hosted `updates.json` is correct and the signature string contains no hidden newlines, run:
+
+```bash
+curl -sS https://KareemSab278.github.io/ordering_system/updates.json | \
+  python3 -c "import json,sys; d=json.load(sys.stdin); s=d['platforms']['linux-aarch64']['signature']; print(repr(s))"
+```
+
+The output must be a single quoted string with no `\n` characters inside it.
+
+### Generating the Keypair (First Time Only)
+
+This only needs to be done once. If you already have `tauri-signing.key` and `tauri-signing.key.pub`, skip this.
+
+```bash
+npx tauri signer generate -w tauri-signing.key
+```
+
+Take the public key from `tauri-signing.key.pub` and put it in `plugins.updater.pubkey` in `src-tauri/tauri.conf.json`. Rebuild and redeploy all machines for the new key to take effect.
+
+### Troubleshooting Updates
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `signature could not be decoded` | The signature string in `updates.json` contains embedded newlines or is in the wrong format (raw OpenSSL instead of minisign) | Re-sign using `npx tauri signer sign` and ensure the signature is one unbroken line |
+| `Download request failed with status 404` | The `.deb` URL in `updates.json` points to a page that does not exist | Verify the file exists at the URL by pasting it into a browser. Ensure the filename in the URL exactly matches the uploaded file |
+| `public key mismatch` or silent failure | The `pubkey` in `tauri.conf.json` was generated from a different keypair than the one used to sign the `.deb` | Use `tauri-signing.key.pub` to derive the pubkey: `cat tauri-signing.key.pub` and copy the full content into `tauri.conf.json` |
+| Update prompt appears but nothing installs | The updater downloaded the file but `downloadedPath` is null on Linux ARM | The `updateHandler.js` fallback to `downloadAndInstall()` handles this case automatically |
+| Update not offered despite newer version in `updates.json` | App is running in dev mode (`npm run tauri dev`) | The updater only works in installed release builds. Install the `.deb` with a lower version to test |
