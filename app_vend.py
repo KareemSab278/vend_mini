@@ -479,12 +479,12 @@ def api_basket_dispense():
     # There is no physical per-item dispenser — the user opens the door and takes items.
     if int(BASKET_MODE) == 1:
         if success:
-            cmd = f"CSLS{x}VNDSUCC({item_no},{item_price},0,0)"
+            cmd = f"CSLS{x}SESSCOMPLETE?({item_no},{item_price},0,0)"
         else:
             cmd = f"CSLS{x}VNDFAIL({item_no},{item_price},0,0)"
     else:
         if success:
-            cmd = f"CSLS{x}VNDSUCC({item_id},{item_price},0,0)"
+            cmd = f"CSLS{x}SESSCOMPLETE?({item_id},{item_price},0,0)"
         else:
             cmd = f"CSLS{x}VNDFAIL({item_id},{item_price},0,0)"
 

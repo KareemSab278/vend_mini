@@ -169,17 +169,14 @@ function App() {
         setPayStatus("done");
         setPayMessage("Thank you! Please come again.");
         setModalOpen(false);
-        // send dispense command here
+        // close checkout modal after a short pause
         setTimeout(() => {
           if (!cancelledRef.current) {
-            setCheckoutActive(false);
-            setPayStatus("idle");
-            setPayMessage("");
-            setSelectedProducts([]);
+            resetCheckoutState();
           }
-        }, 3000);
+        }, 500);
       }
-    }, 2000);
+    }, 500);
   };
 
   const startPolling = () => {
@@ -250,6 +247,15 @@ function App() {
     setPayMessage("");
   };
 
+  const resetCheckoutState = () => {
+    cancelledRef.current = false;
+    stopPolling();
+    setCheckoutActive(false);
+    setPayStatus("idle");
+    setPayMessage("");
+    setSelectedProducts([]);
+  };
+
   const appendProduct = (product, action) => {
     setSelectedProducts((prev) => {
       const found = prev.find((p) => p.product_id === product.product_id);
@@ -290,17 +296,11 @@ function App() {
             {helpers.statusIcon(payStatus)}
           </div>
           <p style={helpers.styles.statusMessage}>{payMessage}</p>
-          {payStatus === "error" && (
-            <PrimaryButton
-              title="Dismiss"
-              onClick={() => {
-                handleCheckoutCancel();
-                setPayStatus("idle");
-                setPayMessage("");
-                setSelectedProducts([]);
-              }}
-            />
+
+          {(payStatus === "error" || payStatus === "done") && (
+            <PrimaryButton title="Dismiss" onClick={resetCheckoutState} />
           )}
+
           {payStatus === "paying" && (
             <PrimaryButton title="Cancel" onClick={handleCheckoutCancel} />
           )}

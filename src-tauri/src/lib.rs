@@ -189,7 +189,6 @@ async fn get_pay_state() -> Result<String, String> {
 
 #[tauri::command]
 async fn get_door_status() -> Result<String, String> {
-    // put here to proxy through cors
     let client = make_client()?;
     let resp = client
         .get(format!("http://10.20.1.252/status"))

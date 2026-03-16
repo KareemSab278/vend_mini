@@ -1,5 +1,7 @@
 export { unlockDoor, isDoorClosed, setLightsColor };
 
+import { invoke } from "@tauri-apps/api/core";
+
 const doorApi = import.meta.env.VITE_DOOR_API_URL;
 
 const unlockDoor = async () => {
