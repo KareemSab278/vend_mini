@@ -1,5 +1,5 @@
 {
-  "version": "v0.1.0",
+  "version": "v0.1.1",
   "notes": "Checks for updates every 24 hours.",
   "pub_date": "2026-03-16T00:00:00Z",
   "platforms": {
