@@ -4,7 +4,7 @@
   "pub_date": "2026-03-13T08:21:33Z",
   "platforms": {
     "linux-aarch64": {
-      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSU0FSK1ArYzZPS013Zk9uZDRIWWZMdkM0OEcrTC9IZm5Kdnk3Q2Q2U0xBbGdPaDdqNlRTQ2ZnMlVCUlpSamVIZ244aWVOUUIrZWlvaGUxbWFMUHRjUFRJME5NK0lqVUEwPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczMzkwMDkzCWZpbGU6b3JkZXJpbmdfc3lzdGVtXzAuMS41X2FybTY0LmRlYgpBMWZtaXVmK2Jtb0RmaHIwL0ZiamlrZzQySTJsVDg1djNjZHlZWUdQSnFBRFVYS0pJTzNTVGt5VGc4OXdySFJjclhpNnBKVGNxcDRaMUhnQ3ZHOTNBQT09Cg==",
+      "signature": "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVSU0FSK1ArYzZPS0IvY1hpcnlhTlpJTmFOa2FyV1l3QmJYUUdLZWRwYUhlY0tOdmdEWDliOHdwZ3FudkFXNXBJMmoyM2dnSEFyc3ozK1ZmT1Z3NDNIbjhLZTZNdlN2T2dRPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzczNzQyODM5CWZpbGU6b3JkZXJpbmdfc3lzdGVtXzAuMS4zX2FtZDY0LmRlYgo3bUtSN1pqajFuTXF0eTQ5QThXaWUwbCtieDBUVjZaOFhmczdKSEJ2am5ybFdHQ2g5QVowUTFtd0cvaHF3ZmNTczU3Y2pmUEYzaXV3czc4U2pHNmpEdz09Cg==",
       "url": "https://raw.githubusercontent.com/KareemSab278/ordering_system/main/OTA/ordering_system_0.1.5_arm64.deb"
     }
   }

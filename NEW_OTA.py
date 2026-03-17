@@ -155,7 +155,12 @@ def main():
 
     OTA_DIR.mkdir(exist_ok=True)
     shutil.copy2(deb, OTA_DIR / deb.name)
-    print(f"\nCopied {deb.name} → OTA/")
+    sig_path = Path(str(deb) + ".sig")
+    if sig_path.exists():
+        shutil.copy2(sig_path, OTA_DIR / (deb.name + ".sig"))
+        print(f"\nCopied {deb.name} and {deb.name}.sig → OTA/")
+    else:
+        print(f"\nCopied {deb.name} → OTA/ (no .sig found)")
 
     data = {
         "version": f"v{new}",
@@ -172,11 +177,15 @@ def main():
     print("+ updates.json updated")
 
     print(f"""
-Build complete: v{new}
-   .deb  : OTA/{deb.name}
-   JSON  : updates.json
-Push to GitHub when ready.
-""")
+    Build complete: v{new}
+    .deb      : OTA/{deb.name}
+    .deb.sig  : OTA/{deb.name}.sig
+    JSON      : updates.json
+
+    Next steps:
+    1. Push OTA/{deb.name}, OTA/{deb.name}.sig, and updates.json to GitHub.
+    2. Make sure the URLs in updates.json match the files on GitHub.
+    """)
 
 
 if __name__ == "__main__":
