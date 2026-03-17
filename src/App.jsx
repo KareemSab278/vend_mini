@@ -10,6 +10,7 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as helpers from "./AppHelpers";
 import * as hardware from "./hardwareHelpers"
 import { updateHandler } from "./updateHandler";
+import { ScreenSaver } from "./Components/ScreenSaver";
 
 export { App, CATEGORIES };
 
@@ -18,6 +19,7 @@ const INITIAL_STATE_FULLSCREEN = true;
 
 function App() {
   const [modalOpen, setModalOpen] = useState(false);
+  const [screenSaverActive, setScreenSaverActive] = useState(false);
   const [checkoutActive, setCheckoutActive] = useState(false);
   const [adminModalOpen, setAdminModalOpen] = useState(false);
   const [fullScreenState, setFullScreenState] = useState(
@@ -33,7 +35,30 @@ function App() {
   const [editorUrl, setEditorUrl] = useState("");
 
   const unlistenMotionRef = useRef(null);
-  const pollRef = useRef(null); 
+  const pollRef = useRef(null);
+  const inactivityTimerRef = useRef(null);
+  const cancelledRef = useRef(false);
+
+  const clearInactivityTimer = () => {
+    if (inactivityTimerRef.current) {
+      clearTimeout(inactivityTimerRef.current);
+      inactivityTimerRef.current = null;
+    }
+  };
+
+  const startInactivityTimer = () => {
+    if (checkoutActive) return;
+    clearInactivityTimer();
+
+    inactivityTimerRef.current = setTimeout(() => {
+      setScreenSaverActive(true);
+    }, 0.1 * 60 * 1000);
+  };
+
+  const resetInactivityTimer = () => {
+    setScreenSaverActive(false);
+    startInactivityTimer();
+  };
 
   useEffect(() => {
     const getProductsOnMount = async () => {
@@ -44,7 +69,7 @@ function App() {
     const listenToMotionSensor = async () => {
       unlistenMotionRef.current = await hardware.listenToMotionSensor(() => {
         console.log("[App] Motion event received");
-        // add any wake-up / UI logic here
+        resetInactivityTimer();
       });
     };
 
@@ -92,6 +117,14 @@ function App() {
     fetchProducts();
     initializePaymentServer();
     listenToMotionSensor();
+    startInactivityTimer();
+
+    const handleUserActivity = () => {
+      resetInactivityTimer();
+    };
+
+    window.addEventListener("pointerdown", handleUserActivity);
+    window.addEventListener("keydown", handleUserActivity);
 
     const timer = setTimeout(() => {
       getCurrentWindow().setFullscreen(INITIAL_STATE_FULLSCREEN);
@@ -99,10 +132,21 @@ function App() {
 
     return () => {
       clearTimeout(timer);
+      clearInactivityTimer();
+      window.removeEventListener("pointerdown", handleUserActivity);
+      window.removeEventListener("keydown", handleUserActivity);
       if (pollRef.current) clearInterval(pollRef.current);
       if (unlistenMotionRef.current) unlistenMotionRef.current();
     };
   }, []);
+
+  useEffect(() => {
+    if (checkoutActive) {
+      clearInactivityTimer();
+    } else {
+      startInactivityTimer();
+    }
+  }, [checkoutActive]);
 
   const fetchProducts = async () => {
     pollRef.current = setInterval(async () => {
@@ -444,6 +488,7 @@ function App() {
       {priceStatusPill}
       {checkoutModal}
       {selectedProductsModal}
+      {screenSaverActive && <ScreenSaver onClose={resetInactivityTimer} />}
       <div
         style={helpers.styles.adminTrigger}
         onDoubleClick={() => setAdminModalOpen(true)}
