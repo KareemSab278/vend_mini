@@ -1,12 +1,15 @@
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
 mod database;
 mod server;
 pub mod motion_sensor;
 
 const FLASK_BASE: &str = "http://127.0.0.1:8080";
 const API_TOKEN: &str = "supersecret";
+
+static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 struct BasketItem {
@@ -100,7 +103,12 @@ async fn terminate_payment() -> Result<(), String> {
 
 #[tauri::command]
 async fn initialize_static_page_server() -> Result<(), String> {
-    tokio::spawn(server::start());
+    if SERVER_STARTED
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_ok()
+    {
+        tokio::spawn(server::start());
+    }
     Ok(())
 }
 

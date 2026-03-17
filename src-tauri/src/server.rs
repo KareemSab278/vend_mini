@@ -130,7 +130,13 @@ pub async fn start() {
 
     println!("Server running on http://{}:3000", local_ip);
 
-    let listener = tokio::net::TcpListener::bind(addr).await.unwrap();
+    let listener = match tokio::net::TcpListener::bind(addr).await {
+        Ok(l) => l,
+        Err(e) => {
+            eprintln!("Server already running or port in use: {}", e);
+            return;
+        }
+    };
 
     axum::serve(listener, app).await.unwrap();
 }

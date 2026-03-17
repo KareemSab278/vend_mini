@@ -33,6 +33,7 @@ function App() {
   const [editorUrl, setEditorUrl] = useState("");
 
   const unlistenMotionRef = useRef(null);
+  const pollRef = useRef(null); 
 
   useEffect(() => {
     const getProductsOnMount = async () => {
