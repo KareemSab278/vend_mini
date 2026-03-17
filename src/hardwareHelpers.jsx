@@ -62,10 +62,12 @@ const isDoorClosed = async () => {
 const getMotionEvent = async () => {
   try {
     const motionDetected = await invoke("get_motion_event");
-    console.log("Motion event response:", motionDetected);
-    return motionDetected;
+    if (motionDetected === true) {
+      console.log("[Motion] Motion detected!");
+      return true;
+    }
   } catch (error) {
-    console.error("Failed to get motion event:", error);
-    return false;
+    console.error("[Motion] Error:", error);
   }
+  return false;
 };
