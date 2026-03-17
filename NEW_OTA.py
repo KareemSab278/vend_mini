@@ -1,6 +1,7 @@
 import os, sys, json, shutil, subprocess, re
 from datetime import datetime, timezone
 from pathlib import Path
+import base64
 
 WORKSPACE       = Path(__file__).parent.resolve()
 TAURI_CONF      = WORKSPACE /"src-tauri"/"tauri.conf.json"
@@ -130,7 +131,8 @@ def read_sig(deb):
     if not s.exists():
         print(f"  ! No signature found, generating one...")
         _generate_sig(deb)
-    return s.read_text().strip()
+    sig_bytes = s.read_bytes()
+    return base64.b64encode(sig_bytes).decode("ascii")
 
 
 def main():
