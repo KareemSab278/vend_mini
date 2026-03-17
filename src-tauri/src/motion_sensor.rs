@@ -1,4 +1,4 @@
-use rppal::gpio::{Gpio};
+use rppal::gpio::Gpio;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::thread;
@@ -15,7 +15,7 @@ pub fn start(running: Arc<AtomicBool>) -> Result<bool, bool> {
         }
     };
 
-    let mut pin = match gpio.get(PIR_PIN) {
+    let pin = match gpio.get(PIR_PIN) {
         Ok(p) => p.into_input(),
         Err(e) => {
             eprintln!("Failed to get GPIO pin {}: {}", PIR_PIN, e);
@@ -24,23 +24,40 @@ pub fn start(running: Arc<AtomicBool>) -> Result<bool, bool> {
     };
 
     println!("Sensor initialised . . .");
-
-    thread::sleep(Duration::from_secs(5));
-   
+    thread::sleep(Duration::from_secs(2));
     println!("Active");
 
+    let mut motion_detected = false;
+
     while running.load(Ordering::SeqCst) {
-        match pin.poll_interrupt(true, Some(Duration::from_millis(100))) {
-            Ok(Some(_)) => {
-                println!("Motion detected!");
-                return Ok(true);
-            },
-            Ok(None) => {}
-            Err(e) => {
-                eprintln!("Error polling GPIO pin: {}", e);
-                return Err(false);
-            }
+        let output_value = pin.is_high();
+
+        if output_value {
+            println!("Object detected!");
+            motion_detected = true;
+            thread::sleep(Duration::from_millis(300));
+        }
+
+        if motion_detected {
+            thread::sleep(Duration::from_millis(800));
+            motion_detected = false;
         }
     }
+    
     Ok(true)
 }
+
+
+// mod motion_sensor;
+
+// use std::sync::atomic::{AtomicBool, Ordering};
+// use std::sync::Arc;
+
+// fn main() {
+//     let running = Arc::new(AtomicBool::new(true));
+//     let r = running.clone();
+
+//     if let Err(_) = motion_sensor::start(running) {
+//         eprintln!("PIR sensor failed.");
+//     }
+// }

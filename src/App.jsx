@@ -14,7 +14,7 @@ import { updateHandler } from "./updateHandler";
 export { App, CATEGORIES };
 
 const CATEGORIES = ["All", "Drinks", "Snacks", "Food", "Questionable"];
-const INITIAL_STATE_FULLSCREEN = false;
+const INITIAL_STATE_FULLSCREEN = true;
 
 function App() {
   const [modalOpen, setModalOpen] = useState(false);
