@@ -1,4 +1,0 @@
-untrusted comment: signature from tauri secret key
-RUR8xRaB9RUC0GxhhwT2OHqHCk9ftuN1iopwpxfhT0GdDut3Ubd4Mqp7F/EcpBVeC1w5bSf2BAbGjDNEo717ITOECwT4IT9kNAU=
-trusted comment: timestamp:1773829236	file:ordering_system_0.1.6_amd64.deb
-an2iCbw8DM+p6rHMI/UNlds6AFSH7BnudNBq4afQAXQXo9X7G2YaeGH7M6ntl/3W52XIQQ2H57j4DDSRUnkPCg==

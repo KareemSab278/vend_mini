@@ -114,17 +114,24 @@ def main():
     shutil.move(str(deb), str(OTA_DIR / deb.name))
     (OTA_DIR / f"{deb.name}.sig").write_text(sig_content)
 
+    sig_lines = [l for l in sig_content.splitlines() if l.strip()]
+    if len(sig_lines) >= 2:
+        json_signature = sig_lines[1]
+    else:
+        json_signature = sig_content
+
     data = {
         "version": f"v{new}",
         "notes": notes,
         "pub_date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "platforms": {
             arch_key: {
-                "signature": sig_content,
+                "signature": json_signature,
                 "url": f"{GITHUB_RAW_BASE}/{deb.name}"
             }
         }
     }
+    
     UPDATES_JSON.write_text(json.dumps(data, indent=2))
     print(f"\nSUCCESS: v{new} ready in OTA/ folder.")
 

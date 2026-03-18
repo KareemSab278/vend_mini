@@ -1,11 +1,11 @@
 {
-  "version": "v0.1.6",
-  "notes": "Version 0.1.6 release.",
-  "pub_date": "2026-03-18T10:20:36Z",
+  "version": "v0.1.7",
+  "notes": "Version 0.1.7 release.",
+  "pub_date": "2026-03-18T10:29:14Z",
   "platforms": {
     "linux-x86_64": {
-      "signature": "untrusted comment: signature from tauri secret key\nRUR8xRaB9RUC0GxhhwT2OHqHCk9ftuN1iopwpxfhT0GdDut3Ubd4Mqp7F/EcpBVeC1w5bSf2BAbGjDNEo717ITOECwT4IT9kNAU=\ntrusted comment: timestamp:1773829236\tfile:ordering_system_0.1.6_amd64.deb\nan2iCbw8DM+p6rHMI/UNlds6AFSH7BnudNBq4afQAXQXo9X7G2YaeGH7M6ntl/3W52XIQQ2H57j4DDSRUnkPCg==",
-      "url": "https://raw.githubusercontent.com/KareemSab278/ordering_system/main/OTA/ordering_system_0.1.6_amd64.deb"
+      "signature": "RUR8xRaB9RUC0Ij5KF5vEOAAFHEFez3OTRdf7MdnBPYdBhBF6CaXeV2xqQDtD68Sbgco1auxaT4b9bcm8o6Hkn9UzjOFQIglHQU=",
+      "url": "https://raw.githubusercontent.com/KareemSab278/ordering_system/main/OTA/ordering_system_0.1.7_amd64.deb"
     }
   }
 }
