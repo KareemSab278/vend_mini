@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 mod database;
-mod server;
 pub mod motion_sensor;
+mod server;
 
 const FLASK_BASE: &str = "http://127.0.0.1:8080";
 const API_TOKEN: &str = "supersecret";
@@ -90,7 +90,7 @@ async fn initialize_payment_server() -> Result<(), String> {
 async fn terminate_payment() -> Result<(), String> {
     // comminucate with the Flask server to tell the nayax reader to stop waiting for payments
     let client = make_client()?;
-    let _= client
+    let _ = client
         .post(format!("{}/api/state/terminate", FLASK_BASE))
         .header("Authorization", auth_header())
         .send()
@@ -248,6 +248,7 @@ async fn install_deb(path: String) -> Result<(), String> {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_opener::init())

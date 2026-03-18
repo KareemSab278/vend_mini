@@ -1,11 +1,13 @@
 {
-  "version": "v0.1.8",
-  "notes": "Version 0.1.8 release.",
-  "pub_date": "2026-03-18T10:36:58Z",
-  "platforms": {
-    "linux-x86_64": {
-      "signature": "RUR8xRaB9RUC0Os5mfsOJdd1F8zjeI6H/GBz1v7V0ymtzZ/KYOxWU+BVFomj5bPHZAv7iGLy7f9RV6TUVbio1m7gCrLhTfAGrgk=",
-      "url": "https://raw.githubusercontent.com/KareemSab278/ordering_system/main/OTA/ordering_system_0.1.8_amd64.deb"
+    "version": "0.1.2",
+    "notes": "Bug fixes",
+    "pub_date": "2026-03-18T00:00:00Z",
+    "platforms": {
+        "linux-x86_64": { 
+            "url": "https://raw.githubusercontent.com/KareemSab278/ordering_system/main/OTA/ordering_system_0.1.2_amd64.deb"
+        },
+        "linux-aarch64": {
+            "url": "https://raw.githubusercontent.com/KareemSab278/ordering_system/main/OTA/ordering_system_0.1.2_aarch64.deb"
+        }
     }
-  }
 }

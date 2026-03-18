@@ -1,56 +1,86 @@
 import { check } from "@tauri-apps/plugin-updater";
-import { relaunch } from '@tauri-apps/plugin-process';
-import { ask } from '@tauri-apps/plugin-dialog';
+import { relaunch } from "@tauri-apps/plugin-process";
 import { invoke } from "@tauri-apps/api/core";
+import { tempDir } from "@tauri-apps/api/path";
+import { writeFile } from "@tauri-apps/plugin-fs";
 
-export { updateHandler };
+const PLATFORM_KEY = "linux-aarch64";
 
-const updateHandler = async () => {
-    console.log("Attempting to find updates");
-  try {
-    const update = await check();
-    console.log("update found", update);
-    if (update) {
-      const yes = await ask(
-        `A new version (${update.version}) is available.\n${update.notes}\n\nInstall now?`,
-        { title: "Update Available", type: "info" }
-      );
-      if (yes) {
-        let downloadedPath = null;
-        console.log("Downloading update...")
-        await update.download((event) => {
-          if (event.event === "Finished") {
-            downloadedPath = event.data?.path;
-          }
-        });
+const log = (...args) => {
+  console.debug("[updateHandler]", ...args);
+}
 
-        if (downloadedPath) {
-          console.log("installing from downloadpath");
-          try {
-            await invoke("install_deb", { path: downloadedPath });
-            console.log("install_deb succeeded");
-          } catch (err) {
-            console.error("install_deb failed:", err);
-            await ask(`Failed to install update: ${err}`, { title: "Install Error", type: "error" });
-            return;
-          }
-        } else {
-          console.log("Download and install triggered");
-          try {
-            await update.downloadAndInstall();
-            console.log("downloadAndInstall succeeded");
-          } catch (err) {
-            console.error("downloadAndInstall failed:", err);
-            await ask(`Failed to install update: ${err}`, { title: "Install Error", type: "error" });
-            return;
-          }
-        }
-        await relaunch();
-      }
-    } else if (update == null || !update){
-      await ask ("You are already running the latest version.", { title: "No Update Available", type: "info" });
-    }
-  } catch (e) {
-    console.error("Update check failed:", e);
+const getFallbackUpdateUrl = (rawJson) => {
+  const platform = PLATFORM_KEY;
+  return (
+    rawJson?.platforms?.[platform]?.url ||
+    Object.values(rawJson?.platforms || {})?.[0]?.url
+  );
+}
+
+const writeTempFile = async (fileName, bytes) => {
+  const dir = await tempDir();
+  const filePath = `${dir.replace(/\\$/u, "")}/${fileName}`;
+  await writeFile({ path: filePath, contents: bytes });
+  return filePath;
+}
+
+const downloadAndInstallFromUrl = async (url) => {
+  log("fallback download from", url);
+
+  const res = await fetch(url);
+  if (!res.ok) {
+    throw new Error(`Failed to download update: ${res.status} ${res.statusText}`);
   }
-};
+
+  const buffer = await res.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  const fileName = `ordering_system_update_${Date.now()}.deb`;
+  const filePath = await writeTempFile(fileName, bytes);
+
+  log("downloaded update to", filePath);
+  await invoke("install_deb", filePath);
+
+  await relaunch();
+}
+
+export const updateHandler = async () => {
+  if (import.meta.env.DEV) {
+    log("dev mode; skipping update check");
+    return;
+  }
+
+  let update;
+  try {
+    update = await check();
+  } catch (e) {
+    log("check() failed", e);
+    return;
+  }
+
+  if (!update) {
+    log("no update available");
+    return;
+  }
+
+  log("update available", update.version);
+
+  try {
+    await update.downloadAndInstall((event) => {
+      log("updater event", event);
+    });
+
+    await relaunch();
+    return;
+  } catch (e) {
+    log("downloadAndInstall failed", e);
+  }
+
+  try {
+    const url = getFallbackUpdateUrl(update.rawJson);
+    if (!url) throw new Error("No update URL found in manifest");
+    await downloadAndInstallFromUrl(url);
+  } catch (e) {
+    log("fallback update failed", e);
+  }
+}
