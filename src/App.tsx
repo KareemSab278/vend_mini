@@ -8,7 +8,7 @@ import { ScreenSaver } from "./Components/ScreenSaver";
 
 export { App };
 
-const INITIAL_STATE_FULLSCREEN: boolean = false;
+const INITIAL_STATE_FULLSCREEN: boolean = true;
 const SCREENSAVER_TIMEOUT_MINUTES: number = 1;
 const FETCH_PRODUCTS_INTERVAL: number = 6000;
 
