@@ -1,6 +1,9 @@
 export { QuantityBadge };
 
-const QuantityBadge = ({ count = 0, color = "#e53935" }) => {
+const QuantityBadge = ({ count = 0, color = "#e53935" }: {
+  count?: number;
+  color?: string;
+}) => {
   if (!count || count <= 0) return null;
 
   return (
@@ -13,7 +16,7 @@ const QuantityBadge = ({ count = 0, color = "#e53935" }) => {
   );
 };
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties } = {
   badge: {
     display: "inline-flex",
     alignItems: "center",

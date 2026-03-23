@@ -17,7 +17,7 @@ import {
   IconShoppingBag,
 } from "@tabler/icons-react";
 
-const statusIcon = (payStatus) => {
+const statusIcon = (payStatus: "paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle") => {
   const iconProps = { size: 56, stroke: 1.5, color: "#fff" };
   return (
     {
@@ -26,18 +26,19 @@ const statusIcon = (payStatus) => {
       done: <IconCircleCheck {...iconProps} color="#4caf50" />,
       waiting_door: <IconDoor {...iconProps} />,
       error: <IconCircleX {...iconProps} color="#f44336" />,
+      idle: null,
     }[payStatus] ?? <IconCreditCard {...iconProps} />
   );
 };
 
-const totalPrice = (selectedProducts) => {
+const totalPrice = (selectedProducts: { product_price: number; count: number }[]) => {
   return selectedProducts.reduce(
     (sum, p) => sum + p.product_price * p.count,
     0,
   );
 };
 
-const getProductIcon = (productName, productCategory, size = 26) => {
+const getProductIcon = (productName: string, productCategory: string, size = 26) => {
   const name = (productName || "").toLowerCase();
   const iconProps = { size, stroke: 1.5, style: { flexShrink: 0 } };
 
@@ -65,7 +66,7 @@ const getProductIcon = (productName, productCategory, size = 26) => {
   return <IconShoppingBag {...iconProps} />;
 };
 
-const filteredProducts = (products, activeCategory) => {
+const filteredProducts = (products: any[], activeCategory: string) => {
   return activeCategory === "All"
     ? products.filter((prod) => prod.product_availability)
     : products.filter(

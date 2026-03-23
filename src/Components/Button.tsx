@@ -2,7 +2,8 @@ import { Button } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 export { PrimaryButton, RemoveButton };
 
-const PrimaryButton = ({ title, onClick, color = 'rgb(99, 99, 99)', onDoubleClick = new Function() }) => {
+const PrimaryButton = ({ title, onClick, color = 'rgb(99, 99, 99)', onDoubleClick }:
+{ title: string; onClick: () => void; color?: string; onDoubleClick?: () => void }) => {
   return (
     <section style={{ display: "inline-block", margin: "8px" }}>
       <Button
@@ -33,7 +34,7 @@ const PrimaryButton = ({ title, onClick, color = 'rgb(99, 99, 99)', onDoubleClic
   );
 };
 
-const RemoveButton = ({ onClick }) => {
+const RemoveButton = ({ onClick }: { onClick: () => void }) => {
   return (
     <section >
       <Button

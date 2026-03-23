@@ -1,6 +1,13 @@
 export { Modal };
 
-const Modal = ({ opened, closed, title, children, innerStyle }) => {
+const Modal = ({ opened, closed, title, children, innerStyle }:
+  { opened: boolean;
+    closed: () => void;
+    title: string;
+    children: React.ReactNode;
+    innerStyle?: React.CSSProperties;
+  }
+) => {
   if (!opened) return null;
 
   return (
@@ -13,7 +20,7 @@ const Modal = ({ opened, closed, title, children, innerStyle }) => {
   );
 };
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties } = {
   mainBody: {
     position: "fixed",
     top: 0,

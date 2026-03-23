@@ -3,9 +3,13 @@ export { PriceStatusPill };
 
 
 const PriceStatusPill = ({
-    onModalOpen = new Function(),
-    onCheckout = new Function(),
+    onModalOpen,
+    onCheckout,
     totalPrice = 0,
+}: {
+    onModalOpen: () => void;
+    onCheckout: () => void;
+    totalPrice?: number;
 }) => {
     return (
         <div style={styles.container}>
@@ -22,7 +26,7 @@ const PriceStatusPill = ({
     );
 };
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties } = {
     container: {
         position: "fixed",
         bottom: "1.5rem",

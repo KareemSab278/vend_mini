@@ -3,7 +3,7 @@ export { unlockDoor, isDoorClosed, setLightsColor, listenToMotionSensor };
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
-const doorApi = import.meta.env.VITE_DOOR_API_URL;
+const doorApi: string = import.meta.env.VITE_DOOR_API_URL;
 
 const unlockDoor = async () => {
   try {
@@ -15,7 +15,7 @@ const unlockDoor = async () => {
   }
 };
 
-const setLightsColor = async (color) => {
+const setLightsColor = async (color: "green" | "red" | "blue") => {
   const color_hmap = {
     green: { red: 0, green: 255, blue: 0 },
     red: { red: 255, green: 0, blue: 0 },
@@ -60,7 +60,7 @@ const isDoorClosed = async () => {
   }
 };
 
-const listenToMotionSensor = async (onMotion) => {
+const listenToMotionSensor = async (onMotion: () => void) => {
   const unlisten = await listen("motion-detected", () => {
     console.log("[Motion] Motion detected!");
     onMotion();

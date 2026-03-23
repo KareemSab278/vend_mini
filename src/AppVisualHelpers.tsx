@@ -12,7 +12,46 @@ export { styles, SelectedProductsModal, CheckoutModal, PriceStatusPillComponent,
 
 const CATEGORIES = ["All", "Drinks", "Snacks", "Food", "Questionable"];
 
-const SelectedProductsModal = ({ opened, onClose, selectedProducts, onRemove, onClearAll }) => (
+type SelectedProductsModalProps = {
+    opened: boolean;
+    onClose: () => void;
+    selectedProducts: any[];
+    onRemove: (product: any, action: string) => void;
+    onClearAll: () => void;
+};
+
+type CheckoutModalProps = {
+    opened: boolean;
+    payMessage: string;
+    payStatus: "paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle";
+    onDismiss: () => void;
+    onCancel: () => void;
+};
+
+type PriceStatusPillProps = {
+    onModalOpen: () => void;
+    onCheckout: () => void;
+    totalPrice: number;
+};
+
+type AdminModalProps = {
+    opened: boolean;
+    onClose: () => void;
+    onAction: (opt: { onClick: () => void }) => void;
+    editorUrl: string;
+    onToggleFullScreen: () => void;
+    fullScreenState: boolean;
+};
+
+type ProductsSectionProps = {
+    products: any[];
+    appendProduct: ({ product, action }: { product: any; action: string }) => void;
+    selectedProducts: any[];
+    activeCategory: string;
+};
+
+
+const SelectedProductsModal = ({ opened, onClose, selectedProducts, onRemove, onClearAll }: SelectedProductsModalProps) => (
     <Modal
         opened={opened}
         onClose={onClose}
@@ -32,6 +71,7 @@ const SelectedProductsModal = ({ opened, onClose, selectedProducts, onRemove, on
                         selected
                         showRemoveButton
                         onRemove={() => onRemove(prod, "-")}
+                        onClick={null}
                     />
                 ))}
                 <PrimaryButton title="Clear All" onClick={onClearAll} />
@@ -40,7 +80,7 @@ const SelectedProductsModal = ({ opened, onClose, selectedProducts, onRemove, on
     </Modal>
 );
 
-const CheckoutModal = ({ opened, payMessage, payStatus, onDismiss, onCancel }) => (
+const CheckoutModal = ({ opened, payMessage, payStatus, onDismiss, onCancel }: CheckoutModalProps) => (
     <Modal opened={opened} onClose={onDismiss} title="Contactless Payment">
         <section style={styles.paymentSection}>
             <div style={styles.statusIcon}>{helpers.statusIcon(payStatus)}</div>
@@ -55,7 +95,9 @@ const CheckoutModal = ({ opened, payMessage, payStatus, onDismiss, onCancel }) =
     </Modal>
 );
 
-const PriceStatusPillComponent = ({ onModalOpen, onCheckout, totalPrice }) => (
+
+
+const PriceStatusPillComponent = ({ onModalOpen, onCheckout, totalPrice }: PriceStatusPillProps) => (
     <PriceStatusPill
         onModalOpen={onModalOpen}
         onCheckout={onCheckout}
@@ -63,7 +105,9 @@ const PriceStatusPillComponent = ({ onModalOpen, onCheckout, totalPrice }) => (
     />
 );
 
-const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, fullScreenState }) => {
+
+
+const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, fullScreenState }: AdminModalProps) => {
     const adminOptions = [
         {
             title: fullScreenState ? "Exit Full Screen" : "Enter Full Screen",
@@ -92,7 +136,7 @@ const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, 
                         key={idx}
                         title={opt.title}
                         onClick={() => onAction(opt)}
-                        doubleClick={opt.doubleClick}
+                        onDoubleClick={opt.doubleClick ? () => onAction(opt) : undefined}
                     />
                 ))}
                 <p>Editor Url Active at: {editorUrl}</p>
@@ -102,9 +146,7 @@ const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, 
 };
 
 
-
-
-const CategoryIndicatorComponent = ({ activeCategory, setActiveCategory }) => (
+const CategoryIndicatorComponent = ({ activeCategory, setActiveCategory }: { activeCategory: string; setActiveCategory: (category: string) => void }) => (
     <div style={styles.topContainer}>
         <section style={styles.categoryIndicatorContainer}>
             <CategoryIndicator
@@ -116,7 +158,8 @@ const CategoryIndicatorComponent = ({ activeCategory, setActiveCategory }) => (
     </div>
 );
 
-const ProductsSection = ({ products, appendProduct, selectedProducts, activeCategory }) => {
+
+const ProductsSection = ({ products, appendProduct, selectedProducts, activeCategory }: ProductsSectionProps) => {
     const filteredProducts =
         activeCategory === "All"
             ? products.filter((prod) => prod.product_availability)
@@ -137,10 +180,11 @@ const ProductsSection = ({ products, appendProduct, selectedProducts, activeCate
                         <ProductCard
                             key={product.product_id}
                             product={product}
-                            onClick={() => appendProduct(product, "+")}
+                            onClick={() => appendProduct({ product: product, action: "+" })}
                             selected={!!inBasket}
                             count={inBasket?.count || 0}
                             showRemoveButton={false}
+                            onRemove={null}
                         />
                     );
                 })
@@ -153,7 +197,7 @@ const ProductsSection = ({ products, appendProduct, selectedProducts, activeCate
     );
 };
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties } = {
   body: {
     background: "#1b2136",
     color: "#fff",

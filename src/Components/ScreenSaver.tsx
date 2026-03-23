@@ -3,14 +3,14 @@ import importedImages from '../imageImporter';
 
 export { ScreenSaver };
 
-const INTERVAL = 8; // seconds
+const INTERVAL: number = 8; // seconds
 
-const ScreenSaver = ({ images, onClose }) => {
+const ScreenSaver = ({ images, onClose }: { images?: string[]; onClose: () => void }) => {
   const defaultImages = useMemo(() => Object.values(importedImages), []);
   const slides = images ?? defaultImages;
 
   const [currentIndex, setCurrentIndex] = useState(0);
-  const pollRef = useRef(null);
+  const pollRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!slides.length) return;

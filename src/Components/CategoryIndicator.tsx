@@ -2,7 +2,11 @@ import { FloatingIndicator } from "@mantine/core";
 import { PrimaryButton } from "./Button";
 export { CategoryIndicator };
 
-const CategoryIndicator = ({ categories, activeCategory, onCategoryClick }) => {
+const CategoryIndicator = ({ categories, activeCategory, onCategoryClick }: {
+  categories: string[];
+  activeCategory: string;
+  onCategoryClick: (category: string) => void;
+}) => {
   return (
     <div style={styles.container}>
       {categories.map((category) => (
@@ -14,6 +18,8 @@ const CategoryIndicator = ({ categories, activeCategory, onCategoryClick }) => {
         />
       ))}
       <FloatingIndicator
+        target={null}
+        parent={null}
         style={{
           ...styles.indicator,
           left: `${categories.indexOf(activeCategory) * 100}%`,
@@ -23,13 +29,12 @@ const CategoryIndicator = ({ categories, activeCategory, onCategoryClick }) => {
   );
 };
 
-const styles = {
+const styles: { [key: string]: React.CSSProperties } = {
   container: {
     position: "relative",
     display: "flex",
     overflowX: "auto",
     borderRadius: "50px",
-    overFlowStyle: "none",
     scrollbarWidth: "none",
     msOverflowStyle: "none",
   },

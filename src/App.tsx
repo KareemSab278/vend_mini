@@ -8,30 +8,29 @@ import { ScreenSaver } from "./Components/ScreenSaver";
 
 export { App };
 
-const INITIAL_STATE_FULLSCREEN = false;
-const SCREENSAVER_TIMEOUT_MINUTES = 1;
-const FETCH_PRODUCTS_INTERVAL = 6000;
+const INITIAL_STATE_FULLSCREEN: boolean = false;
+const SCREENSAVER_TIMEOUT_MINUTES: number = 1;
+const FETCH_PRODUCTS_INTERVAL: number = 6000;
 
 
 function App() {
-  const [modalOpen, setModalOpen] = useState(false);
-  const [screenSaverActive, setScreenSaverActive] = useState(false);
-  const [checkoutActive, setCheckoutActive] = useState(false);
-  const [adminModalOpen, setAdminModalOpen] = useState(false);
-  const [fullScreenState, setFullScreenState] = useState(INITIAL_STATE_FULLSCREEN);
+  const [modalOpen, setModalOpen] = useState<boolean>(false);
+  const [screenSaverActive, setScreenSaverActive] = useState<boolean>(false);
+  const [checkoutActive, setCheckoutActive] = useState<boolean>(false);
+  const [adminModalOpen, setAdminModalOpen] = useState<boolean>(false);
+  const [fullScreenState, setFullScreenState] = useState<boolean>(INITIAL_STATE_FULLSCREEN);
+  const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
+  const [products, setProducts] = useState<any[]>([]);
 
-  const [activeCategory, setActiveCategory] = useState("All");
-  const [selectedProducts, setSelectedProducts] = useState([]);
-  const [products, setProducts] = useState([]);
+  const [payStatus, setPayStatus] = useState<"paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle">("idle");
+  const [payMessage, setPayMessage] = useState<string>("");
+  const [editorUrl, setEditorUrl] = useState<string>("");
 
-  const [payStatus, setPayStatus] = useState("idle");
-  const [payMessage, setPayMessage] = useState("");
-  const [editorUrl, setEditorUrl] = useState("");
-
-  const unlistenMotionRef = useRef(null);
-  const pollRef = useRef(null);
-  const inactivityTimerRef = useRef(null);
-  const cancelledRef = useRef(false);
+  const unlistenMotionRef = useRef<() => void | null>(null);
+  const pollRef = useRef<number | null>(null);
+  const inactivityTimerRef = useRef<number | null>(null);
+  const cancelledRef = useRef<boolean>(false);
 
   const clearInactivityTimer = () => {
     if (inactivityTimerRef.current) {
@@ -56,7 +55,7 @@ function App() {
 
   useEffect(() => {
     const getProductsOnMount = async () => {
-      const prods = await invoke("query_products");
+      const prods: any[] = await invoke("query_products");
       setProducts(prods);
     };
 
@@ -87,8 +86,8 @@ function App() {
 
     const fetchEditorUrl = async () => {
       try {
-        const editorUrlRaw = await invoke("return_editor_url");
-        setEditorUrl(editorUrlRaw);
+        const editorUrlRaw: string | null = await invoke("return_editor_url");
+        setEditorUrl(editorUrlRaw ?? "");
       } catch (e) {
         console.error("Failed to fetch editor URL:", e);
       }
@@ -109,12 +108,12 @@ function App() {
     window.addEventListener("pointerdown", handleUserActivity);
     window.addEventListener("keydown", handleUserActivity);
 
-    const timer = setTimeout(() => {
+    const timer: number | null = setTimeout(() => {
       getCurrentWindow().setFullscreen(INITIAL_STATE_FULLSCREEN);
     }, 1000);
 
     return () => {
-      clearTimeout(timer);
+      if (timer) clearTimeout(timer);
       clearInactivityTimer();
       window.removeEventListener("pointerdown", handleUserActivity);
       window.removeEventListener("keydown", handleUserActivity);
@@ -134,7 +133,7 @@ function App() {
   const fetchProducts = async () => {
     pollRef.current = setInterval(async () => {
       try {
-        const prods = await invoke("query_products");
+        const prods: any[] = await invoke("query_products");
         setProducts(prods);
       } catch (e) {
         console.error("Failed to fetch products:", e);
@@ -149,7 +148,7 @@ function App() {
         return;
       }
       try {
-        const raw = await invoke("get_pay_state");
+        const raw: string = await invoke("get_pay_state");
         const state = JSON.parse(raw);
         const pay = state.pay;
 
@@ -183,7 +182,7 @@ function App() {
     setPayMessage("Payment approved! Opening door…");
 
     try {
-      const raw = await invoke("dispense_item", { slot: 1, success: true });
+      const raw: string = await invoke("dispense_item", { slot: 1, success: true });
       const res = JSON.parse(raw);
       if (!res.ok) {
         setPayStatus("error");
@@ -249,7 +248,7 @@ function App() {
     }));
 
     try {
-      const raw = await invoke("initiate_payment", { slot: 1, items });
+      const raw: string = await invoke("initiate_payment", { slot: 1, items });
       const res = JSON.parse(raw);
       console.log("Payment initiation response:", res);
       if (!res.ok) {
@@ -283,25 +282,39 @@ function App() {
     setSelectedProducts([]);
   };
 
-  const appendProduct = (product, action) => {
+  type Product = { product_id: number | string; product_name?: string; product_price?: number; count?: number; [key: string]: any };
+
+  const appendProduct = ({ product, action }: { product: Product | null | undefined; action: string }) => {
+    if (!product || product.product_id == null) {
+      console.warn("[App] appendProduct: invalid product", product, action);
+      return;
+    }
+
+    if (action !== "+" && action !== "-") {
+      console.warn("[App] appendProduct: invalid action", action);
+      return;
+    }
+
+    const isAdd = action === "+";
     setSelectedProducts((prev) => {
       const found = prev.find((p) => p.product_id === product.product_id);
-      const isAdd = action === "+";
       const countChange = isAdd ? 1 : -1;
-      const condition = isAdd ? found : found && found.count > 1;
 
-      if (condition) {
-        return prev.map((prod) =>
-          prod.product_id === product.product_id
-            ? { ...prod, count: prod.count + countChange }
-            : prod,
+      if (found) {
+        const newCount = found.count + countChange;
+        if (!isAdd && newCount <= 0) return prev.filter((p) => p.product_id !== product.product_id);
+        return prev.map((p) =>
+          p.product_id === product.product_id ? { ...p, count: newCount } : p,
         );
       }
 
-      return isAdd
-        ? [...prev, { ...product, count: 1 }]
-        : prev.filter((prod) => prod.product_id !== product.product_id);
+      return isAdd ? [...prev, { ...product, count: 1 }] : prev;
     });
+  };
+
+  const removeProduct = (product: Product | null | undefined) => {
+    if (!product || product.product_id == null) return;
+    appendProduct({ product, action: "-" });
   };
 
   const toggleFullScreen = () => {
@@ -314,7 +327,6 @@ function App() {
     <main style={visuals.styles.body}>
       <div
         style={visuals.styles.adminTrigger}
-        onClick={() => setAdminModalOpen(true)}
         onDoubleClick={() => {
           setAdminModalOpen(true);
         }}
@@ -323,7 +335,7 @@ function App() {
       <visuals.AdminModal
         opened={adminModalOpen}
         onClose={() => setAdminModalOpen(false)}
-        onAction={(opt) => {
+        onAction={(opt: { onClick: () => void }) => {
           opt.onClick();
           setAdminModalOpen(false);
         }}
@@ -360,7 +372,7 @@ function App() {
         opened={modalOpen}
         onClose={() => setModalOpen(false)}
         selectedProducts={selectedProducts}
-        onRemove={appendProduct}
+        onRemove={removeProduct}
         onClearAll={() => setSelectedProducts([])}
       />
 
