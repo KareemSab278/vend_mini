@@ -1,6 +1,3 @@
-// Manually import each image so the bundler can include them.
-// Add new images here as needed.
-
 import archbtw from './images/archbtw.jpg';
 import linux from './images/linux.jpg';
 import win7 from './images/win7.jpg';

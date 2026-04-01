@@ -155,7 +155,7 @@ const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, 
                     <PrimaryButton
                         key={idx}
                         title={opt.title}
-                        onClick={() => onAction(opt)}
+                        onClick={opt.doubleClick ? () => {} : () => onAction(opt)}
                         onDoubleClick={opt.doubleClick ? () => onAction(opt) : undefined}
                     />
                 ))}
