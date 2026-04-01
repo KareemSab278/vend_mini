@@ -281,8 +281,8 @@ pub fn run() {
                 .handle()
                 .plugin(tauri_plugin_updater::Builder::new().build());
 
-            // Start the persistent motion sensor listener
-            motion_sensor::start_motion_listener(app.handle().clone());
+                motion_sensor::is_motion_sensor_working(); // returns bool
+                motion_sensor::start_motion_listener(app.handle().clone());
 
             Ok(())
         })

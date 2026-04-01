@@ -5,6 +5,7 @@ import * as helpers from "./AppHelpers";
 import * as visuals from "./AppVisualHelpers";
 import * as hardware from "./hardwareHelpers";
 import { ScreenSaver } from "./Components/ScreenSaver";
+import { useTimeout } from "@mantine/hooks";
 
 export { App };
 
@@ -19,6 +20,8 @@ function App() {
   const [checkoutActive, setCheckoutActive] = useState<boolean>(false);
   const [adminModalOpen, setAdminModalOpen] = useState<boolean>(false);
   const [fullScreenState, setFullScreenState] = useState<boolean>(INITIAL_STATE_FULLSCREEN);
+  const [motionSensorFailed, setMotionSensorFailed] = useState<boolean>(false);
+
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
   const [products, setProducts] = useState<any[]>([]);
@@ -53,53 +56,66 @@ function App() {
     startInactivityTimer();
   };
 
+  const listenToMotionSensor = async () => {
+    unlistenMotionRef.current = await hardware.listenToMotionSensor(() => {
+      console.log("[App] Motion event received");
+      resetInactivityTimer();
+    });
+  };
+
+  const getProductsOnMount = async () => {
+    const prods: any[] = await invoke("query_products");
+    setProducts(prods);
+  };
+
+  const initializePaymentServer = async () => {
+    try {
+      await invoke("initialize_payment_server");
+    } catch (e) {
+      setCheckoutActive(true);
+      setPayStatus("error");
+      setPayMessage(`Failed to start payment server: ${e}`);
+    }
+  };
+
+  const initializeStaticServer = async () => {
+    try {
+      await invoke("initialize_static_page_server");
+    } catch (e) {
+      console.error("Failed to start static page server:", e);
+    }
+  };
+
+  const fetchEditorUrl = async () => {
+    try {
+      const editorUrlRaw: string | null = await invoke("return_editor_url");
+      setEditorUrl(editorUrlRaw ?? "");
+    } catch (e) {
+      console.error("Failed to fetch editor URL:", e);
+    }
+  };
+
+  const isMotionSensorWorking = async () => {
+    try {
+      const working = await hardware.isMotionSensorWorking();
+      if (!working) {
+        setMotionSensorFailed(true);
+      }
+    }
+    catch (e) {
+      console.error("Failed to check motion sensor status:", e);
+      setMotionSensorFailed(true);
+    }
+  };
+
   useEffect(() => {
-    const getProductsOnMount = async () => {
-      const prods: any[] = await invoke("query_products");
-      setProducts(prods);
-    };
-
-    const listenToMotionSensor = async () => {
-      unlistenMotionRef.current = await hardware.listenToMotionSensor(() => {
-        console.log("[App] Motion event received");
-        resetInactivityTimer();
-      });
-    };
-
-    const initializePaymentServer = async () => {
-      try {
-        await invoke("initialize_payment_server");
-      } catch (e) {
-        setCheckoutActive(true);
-        setPayStatus("error");
-        setPayMessage(`Failed to start payment server: ${e}`);
-      }
-    };
-
-    const initializeStaticServer = async () => {
-      try {
-        await invoke("initialize_static_page_server");
-      } catch (e) {
-        console.error("Failed to start static page server:", e);
-      }
-    };
-
-    const fetchEditorUrl = async () => {
-      try {
-        const editorUrlRaw: string | null = await invoke("return_editor_url");
-        setEditorUrl(editorUrlRaw ?? "");
-      } catch (e) {
-        console.error("Failed to fetch editor URL:", e);
-      }
-    };
-
     getProductsOnMount();
     fetchEditorUrl();
     initializeStaticServer();
     fetchProducts();
     initializePaymentServer();
-    listenToMotionSensor();
     startInactivityTimer();
+    isMotionSensorWorking();
 
     const handleUserActivity = () => {
       resetInactivityTimer();
@@ -121,6 +137,8 @@ function App() {
       if (unlistenMotionRef.current) unlistenMotionRef.current();
     };
   }, []);
+
+  useTimeout(() => listenToMotionSensor(), 2000);
 
   useEffect(() => {
     if (checkoutActive) {
@@ -282,7 +300,7 @@ function App() {
     setSelectedProducts([]);
   };
 
-  type Product = { product_id: number | string; product_name?: string; product_price?: number; count?: number; [key: string]: any };
+  type Product = { product_id: number | string; product_name?: string; product_price?: number; count?: number;[key: string]: any };
 
   const appendProduct = ({ product, action }: { product: Product | null | undefined; action: string }) => {
     if (!product || product.product_id == null) {
@@ -323,6 +341,8 @@ function App() {
     getCurrentWindow().setFullscreen(newFullScreenState);
   };
 
+  const hideVisual = !adminModalOpen && !checkoutActive && !motionSensorFailed;
+
   return (
     <main style={visuals.styles.body}>
       <div
@@ -344,19 +364,19 @@ function App() {
         fullScreenState={fullScreenState}
       />
 
-      {!adminModalOpen && !checkoutActive && !modalOpen && <visuals.CategoryIndicatorComponent
+      {hideVisual && !modalOpen && <visuals.CategoryIndicatorComponent
         activeCategory={activeCategory}
         setActiveCategory={setActiveCategory}
       />}
 
-      {!adminModalOpen && !checkoutActive && <visuals.ProductsSection
+      {hideVisual && <visuals.ProductsSection
         products={products}
         appendProduct={appendProduct}
         selectedProducts={selectedProducts}
         activeCategory={activeCategory}
       />}
 
-      {!adminModalOpen && !checkoutActive && <visuals.PriceStatusPillComponent
+      {hideVisual && <visuals.PriceStatusPillComponent
         onModalOpen={() => {
           setScreenSaverActive(false);
           setModalOpen(true);
@@ -367,6 +387,11 @@ function App() {
         }}
         totalPrice={helpers.totalPrice(selectedProducts)}
       />}
+
+      <visuals.MotionSensorStatusModal
+        opened={motionSensorFailed}
+        onClose={() => setMotionSensorFailed(false)}
+      />
 
       <visuals.SelectedProductsModal
         opened={modalOpen}

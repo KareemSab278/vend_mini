@@ -1,4 +1,4 @@
-export { unlockDoor, isDoorClosed, setLightsColor, listenToMotionSensor };
+export { unlockDoor, isDoorClosed, setLightsColor, listenToMotionSensor, isMotionSensorWorking };
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -66,4 +66,15 @@ const listenToMotionSensor = async (onMotion: () => void) => {
     onMotion();
   });
   return unlisten; // call this to stop listening
+};
+
+const isMotionSensorWorking = async (): Promise<boolean> => {
+  try {
+    const result = await invoke("is_motion_sensor_working");
+    return result as boolean;
+  }
+  catch (error) {
+    console.error("Failed to check motion sensor status:", error);
+    return false;
+  }
 };
