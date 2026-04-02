@@ -1155,6 +1155,22 @@ Expected output:
 
 ## Troubleshooting
 
+### PIR Motion Sensor (Wiring & Notes)
+
+- The ordering system's motion sensor is wired to physical pin **26** (BOARD numbering), which corresponds to **GPIO7** (BCM numbering). Confirm which numbering scheme you are using when running tests or editing code.
+- The PIR module used on this project is powered from **5V** (connect VCC to Pi physical pin 2) and GND to Pi GND (for example physical pin 6). The PIR module OUT pin is connected to the Pi input pin (physical pin 26 in this setup).
+- Many common PIR modules provide a 3.3–3.5V output on the OUT pin even when the module is powered from 5V, but you must verify this with a multimeter before connecting. If the OUT pin ever measures ~5V when high, do NOT connect it directly to the Pi GPIO — use a level shifter or a simple voltage divider to bring it down to 3.3V.
+- Warm-up: allow the PIR module 20–60 seconds after power-up before expecting reliable motion readings.
+- Jumper/mode and potentiometers on the PIR module control single/repeat trigger modes, sensitivity, and delay. If you see constant LOW (or a floating line), check these settings and verify VCC/GND/OUT wiring.
+- Quick local test: use the included `test_sensor.py` script to exercise the sensor and run the diagnostic. For BOARD (physical) pin testing run:
+
+```bash
+python3 test_sensor.py
+```
+
+Also check `src-tauri/src/motion_sensor.rs` for the Tauri-side listener if you need to match the pin used by the Rust bridge.
+
+
 ### Flask Cannot Connect to Serial Port
 
 **Symptom:**

@@ -3,7 +3,7 @@ use std::thread;
 use std::time::Duration;
 use tauri::Emitter;
 
-const PIR_PIN: u8 = 7;
+const PIR_PIN: u8 = 26; // GPIO pin number for the PIR sensor (BCM numbering)
 
 pub fn is_motion_sensor_working() -> bool {
     Gpio::new().is_ok() && Gpio::new().unwrap().get(PIR_PIN).is_ok() // returns true if we can access the GPIO pin, false otherwise
