@@ -115,7 +115,7 @@ function App() {
     fetchProducts();
     initializePaymentServer();
     startInactivityTimer();
-    isMotionSensorWorking();
+    setTimeout(() => isMotionSensorWorking(), 2500);
 
     const handleUserActivity = () => {
       resetInactivityTimer();
