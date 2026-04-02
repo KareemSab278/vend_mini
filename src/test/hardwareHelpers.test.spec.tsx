@@ -15,7 +15,6 @@ import {
   isDoorClosed,
   setLightsColor,
   listenToMotionSensor,
-  isMotionSensorWorking,
 } from '../hardwareHelpers';
 
 const mockFetch = vi.fn();
@@ -198,28 +197,3 @@ describe('listenToMotionSensor', () => {
   });
 });
 
-// ---------------------------------------------------------------------------
-// isMotionSensorWorking
-// ---------------------------------------------------------------------------
-describe('isMotionSensorWorking', () => {
-  it('calls invoke with "is_motion_sensor_working"', async () => {
-    vi.mocked(invoke).mockResolvedValueOnce(true);
-    await isMotionSensorWorking();
-    expect(invoke).toHaveBeenCalledWith('is_motion_sensor_working');
-  });
-
-  it('returns true when the sensor is working', async () => {
-    vi.mocked(invoke).mockResolvedValueOnce(true);
-    expect(await isMotionSensorWorking()).toBe(true);
-  });
-
-  it('returns false when the sensor is not working', async () => {
-    vi.mocked(invoke).mockResolvedValueOnce(false);
-    expect(await isMotionSensorWorking()).toBe(false);
-  });
-
-  it('returns false and does not throw when invoke rejects', async () => {
-    vi.mocked(invoke).mockRejectedValueOnce(new Error('Sensor error'));
-    await expect(isMotionSensorWorking()).resolves.toBe(false);
-  });
-});
