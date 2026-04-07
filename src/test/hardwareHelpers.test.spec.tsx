@@ -15,6 +15,8 @@ import {
   isDoorClosed,
   setLightsColor,
   listenToMotionSensor,
+  listenToNfcAdminFound,
+  listenToNfcUnknownTag,
 } from '../hardwareHelpers';
 
 const mockFetch = vi.fn();
@@ -194,6 +196,118 @@ describe('listenToMotionSensor', () => {
     vi.mocked(listen).mockResolvedValueOnce(vi.fn());
     await listenToMotionSensor(onMotion);
     expect(onMotion).not.toHaveBeenCalled();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listenToNfcAdminFound
+// ---------------------------------------------------------------------------
+describe('listenToNfcAdminFound', () => {
+  it('calls listen with the "nfc-admin-found" event', async () => {
+    const mockUnlisten = vi.fn();
+    vi.mocked(listen).mockResolvedValueOnce(mockUnlisten);
+    await listenToNfcAdminFound(vi.fn());
+    expect(listen).toHaveBeenCalledWith('nfc-admin-found', expect.any(Function));
+  });
+
+  it('returns the unlisten function provided by listen()', async () => {
+    const mockUnlisten = vi.fn();
+    vi.mocked(listen).mockResolvedValueOnce(mockUnlisten);
+    const result = await listenToNfcAdminFound(vi.fn());
+    expect(result).toBe(mockUnlisten);
+  });
+
+  it('invokes the onAdminFound callback when the event fires', async () => {
+    const onAdminFound = vi.fn();
+    let capturedHandler: (...args: unknown[]) => void = () => {};
+
+    vi.mocked(listen).mockImplementationOnce(async (_event, handler) => {
+      capturedHandler = handler as (...args: unknown[]) => void;
+      return (() => {}) as () => void;
+    });
+
+    await listenToNfcAdminFound(onAdminFound);
+    capturedHandler();
+    expect(onAdminFound).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onAdminFound before the event fires', async () => {
+    const onAdminFound = vi.fn();
+    vi.mocked(listen).mockResolvedValueOnce(vi.fn());
+    await listenToNfcAdminFound(onAdminFound);
+    expect(onAdminFound).not.toHaveBeenCalled();
+  });
+
+  it('calls onAdminFound each time the event fires', async () => {
+    const onAdminFound = vi.fn();
+    let capturedHandler: (...args: unknown[]) => void = () => {};
+
+    vi.mocked(listen).mockImplementationOnce(async (_event, handler) => {
+      capturedHandler = handler as (...args: unknown[]) => void;
+      return (() => {}) as () => void;
+    });
+
+    await listenToNfcAdminFound(onAdminFound);
+    capturedHandler();
+    capturedHandler();
+    capturedHandler();
+    expect(onAdminFound).toHaveBeenCalledTimes(3);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// listenToNfcUnknownTag
+// ---------------------------------------------------------------------------
+describe('listenToNfcUnknownTag', () => {
+  it('calls listen with the "nfc-unknown-tag" event', async () => {
+    const mockUnlisten = vi.fn();
+    vi.mocked(listen).mockResolvedValueOnce(mockUnlisten);
+    await listenToNfcUnknownTag(vi.fn());
+    expect(listen).toHaveBeenCalledWith('nfc-unknown-tag', expect.any(Function));
+  });
+
+  it('returns the unlisten function provided by listen()', async () => {
+    const mockUnlisten = vi.fn();
+    vi.mocked(listen).mockResolvedValueOnce(mockUnlisten);
+    const result = await listenToNfcUnknownTag(vi.fn());
+    expect(result).toBe(mockUnlisten);
+  });
+
+  it('invokes the onUnknown callback when the event fires', async () => {
+    const onUnknown = vi.fn();
+    let capturedHandler: (...args: unknown[]) => void = () => {};
+
+    vi.mocked(listen).mockImplementationOnce(async (_event, handler) => {
+      capturedHandler = handler as (...args: unknown[]) => void;
+      return (() => {}) as () => void;
+    });
+
+    await listenToNfcUnknownTag(onUnknown);
+    capturedHandler();
+    expect(onUnknown).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call onUnknown before the event fires', async () => {
+    const onUnknown = vi.fn();
+    vi.mocked(listen).mockResolvedValueOnce(vi.fn());
+    await listenToNfcUnknownTag(onUnknown);
+    expect(onUnknown).not.toHaveBeenCalled();
+  });
+
+  it('calls onUnknown each time the event fires', async () => {
+    const onUnknown = vi.fn();
+    let capturedHandler: (...args: unknown[]) => void = () => {};
+
+    vi.mocked(listen).mockImplementationOnce(async (_event, handler) => {
+      capturedHandler = handler as (...args: unknown[]) => void;
+      return (() => {}) as () => void;
+    });
+
+    await listenToNfcUnknownTag(onUnknown);
+    capturedHandler();
+    capturedHandler();
+    capturedHandler();
+    expect(onUnknown).toHaveBeenCalledTimes(3);
   });
 });
 

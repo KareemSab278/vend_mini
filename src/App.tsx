@@ -27,8 +27,12 @@ function App() {
   const [payStatus, setPayStatus] = useState<"paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle">("idle");
   const [payMessage, setPayMessage] = useState<string>("");
   const [editorUrl, setEditorUrl] = useState<string>("");
+  const [nfcNotification, setNfcNotification] = useState<string | null>(null);
 
   const unlistenMotionRef = useRef<() => void | null>(null);
+  const unlistenNfcAdminRef = useRef<(() => void) | null>(null);
+  const unlistenNfcUnknownRef = useRef<(() => void) | null>(null);
+  const nfcNotificationTimerRef = useRef<number | null>(null);
   const pollRef = useRef<number | null>(null);
   const inactivityTimerRef = useRef<number | null>(null);
   const cancelledRef = useRef<boolean>(false);
@@ -58,6 +62,27 @@ function App() {
     unlistenMotionRef.current = await hardware.listenToMotionSensor(() => {
       console.log("[App] Motion event received");
       resetInactivityTimer();
+    });
+  };
+
+  const showNfcNotification = (message: string) => {
+    if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
+    setNfcNotification(message);
+    nfcNotificationTimerRef.current = setTimeout(() => {
+      setNfcNotification(null);
+      nfcNotificationTimerRef.current = null;
+    }, 3000) as unknown as number;
+  };
+
+  const listenToNfc = async () => {
+    unlistenNfcAdminRef.current = await hardware.listenToNfcAdminFound(() => {
+      console.log("[App] NFC admin tag detected");
+      setScreenSaverActive(false);
+      setAdminModalOpen(true);
+    });
+    unlistenNfcUnknownRef.current = await hardware.listenToNfcUnknownTag(() => {
+      console.log("[App] NFC unknown tag detected");
+      showNfcNotification("NFC tag not recognised");
     });
   };
 
@@ -95,6 +120,7 @@ function App() {
 
   useEffect(() => {
     listenToMotionSensor();
+    listenToNfc();
     getProductsOnMount();
     fetchEditorUrl();
     initializeStaticServer();
@@ -120,6 +146,9 @@ function App() {
       window.removeEventListener("keydown", handleUserActivity);
       if (pollRef.current) clearInterval(pollRef.current);
       if (unlistenMotionRef.current) unlistenMotionRef.current();
+      if (unlistenNfcAdminRef.current) unlistenNfcAdminRef.current();
+      if (unlistenNfcUnknownRef.current) unlistenNfcUnknownRef.current();
+      if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
     };
   }, []);
 
@@ -388,6 +417,27 @@ function App() {
       />
 
       {screenSaverActive && <ScreenSaver onClose={resetInactivityTimer} />}
+
+      {nfcNotification && (
+        <div style={{
+          position: "fixed",
+          bottom: "2rem",
+          left: "50%",
+          transform: "translateX(-50%)",
+          backgroundColor: "#c0392b",
+          color: "#fff",
+          padding: "0.75rem 1.75rem",
+          borderRadius: "0.5rem",
+          zIndex: 99999,
+          fontSize: "1rem",
+          fontWeight: 600,
+          boxShadow: "0 4px 16px rgba(0,0,0,0.45)",
+          pointerEvents: "none",
+          letterSpacing: "0.01em",
+        }}>
+          ⚠️ {nfcNotification}
+        </div>
+      )}
     </main>
   );
 }

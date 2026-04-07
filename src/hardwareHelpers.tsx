@@ -1,4 +1,4 @@
-export { unlockDoor, isDoorClosed, setLightsColor, listenToMotionSensor };
+export { unlockDoor, isDoorClosed, setLightsColor, listenToMotionSensor, listenToNfcAdminFound, listenToNfcUnknownTag };
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -66,4 +66,20 @@ const listenToMotionSensor = async (onMotion: () => void) => {
     onMotion();
   });
   return unlisten; // call this to stop listening
+};
+
+const listenToNfcAdminFound = async (onAdminFound: () => void) => {
+  const unlisten = await listen("nfc-admin-found", () => {
+    console.log("[NFC] Admin tag detected!");
+    onAdminFound();
+  });
+  return unlisten;
+};
+
+const listenToNfcUnknownTag = async (onUnknown: () => void) => {
+  const unlisten = await listen("nfc-unknown-tag", () => {
+    console.log("[NFC] Unknown tag detected!");
+    onUnknown();
+  });
+  return unlisten;
 };

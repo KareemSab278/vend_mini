@@ -4,6 +4,7 @@ use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 mod database;
 pub mod motion_sensor;
+pub mod nfc;
 mod server;
 
 const FLASK_BASE: &str = "http://127.0.0.1:8080";
@@ -282,6 +283,7 @@ pub fn run() {
                 .plugin(tauri_plugin_updater::Builder::new().build());
 
                 motion_sensor::start_motion_listener(app.handle().clone());
+                nfc::start_nfc_listener(app.handle().clone());
 
             Ok(())
         })
