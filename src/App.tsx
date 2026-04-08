@@ -12,6 +12,7 @@ export { App };
 const INITIAL_STATE_FULLSCREEN: boolean = true;
 const SCREENSAVER_TIMEOUT_MINUTES: number = 1;
 const FETCH_PRODUCTS_INTERVAL: number = 6000;
+const NFC_ONLY_MODE: boolean = false; // set to true to disable the corner admin trigger and rely solely on NFC for admin access
 
 function App() {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
@@ -357,12 +358,12 @@ function App() {
 
   return (
     <main style={visuals.styles.body}>
-      <div
+      {!NFC_ONLY_MODE && <div
         style={visuals.styles.adminTrigger}
         onDoubleClick={() => {
           setAdminModalOpen(true);
         }}
-      />
+      />}
 
       <visuals.AdminModal
         opened={adminModalOpen}

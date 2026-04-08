@@ -2757,7 +2757,7 @@ dependencies = [
 
 [[package]]
 name = "ordering_system"
-version = "0.1.8"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "axum",
