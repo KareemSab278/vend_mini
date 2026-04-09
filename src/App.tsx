@@ -49,7 +49,9 @@ function App() {
     hardware.listenToNFCPayment(helpers.totalPrice(selectedProducts), (newBalance) => {
       setPayStatus("done");
       setPayMessage(`Payment successful.\nRemaining balance: ${newBalance}`);
+      hardware.unlockDoor();
       setAdminModalOpen(false);
+      setTimeout(() => setCheckoutActive(false), 4000); // close modal after showing success message for 4 seconds
     }, (error) => {
       setPayStatus("error");
       // setPayMessage(`Payment failed: ${error.message}`);
@@ -97,7 +99,7 @@ function App() {
     nfcNotificationTimerRef.current = setTimeout(() => {
       setNfcNotification(null);
       nfcNotificationTimerRef.current = null;
-    }, 3000) as unknown as number;
+    }, 5000) as unknown as number;
   };
 
   const listenToNfc = async () => {

@@ -85,7 +85,7 @@ const listenToNfcUnknownTag = async (onUnknown: (tagId: string) => void) => {
   return unlisten;
 };
 
-const listenToNFCPayment = async (
+const listenToNFCPayment = async ( // makes the nfc payment
   amount: number,
   onSuccess: (newBalance: number) => void,
   onError: (error: any) => void
@@ -106,7 +106,6 @@ const listenToNFCPayment = async (
     onError(error);
   }
 };
-
 
 const listenToNFCTags = async () => {
   const tag_id = (await invoke("get_tag_id")) as string;

@@ -317,7 +317,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         textAlign: "center",
         color: "#d4d4d4",
         margin: 0,
-        fontSize: "0.95rem",
+        fontSize: "1.5rem",
         minHeight: "1.4rem",
         maxWidth: "280px",
     },
