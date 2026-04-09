@@ -138,13 +138,13 @@
     .btn-primary { background: #6366f1; color: #fff; }
     .btn-secondary { background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46; }
 
-    #status {
+    #status, #user-status {
       font-size: 0.8rem;
       color: #a1a1aa;
       margin-left: auto;
     }
-    #status.ok  { color: #4ade80; }
-    #status.err { color: #f87171; }
+    #status.ok, #user-status.ok  { color: #4ade80; }
+    #status.err, #user-status.err { color: #f87171; }
 
     /* ── Orders ── */
     .section-title {
@@ -233,6 +233,66 @@
         <span id="status"></span>
       </div>
     </div>
+
+    <h1 class="section-title">Users Admin</h1>
+
+
+    <div class="filter-bar">
+      <div class="field">
+        <label for="user-search">Search users</label>
+        <input type="text" id="user-search" placeholder="Search by name or leave blank to load all" />
+      </div>
+      <button class="btn btn-primary" onclick="loadUsers()">Search</button>
+      <button class="btn btn-secondary" onclick="clearUserSearch()">Clear</button>
+      <span class="orders-summary" id="users-summary"></span>
+    </div>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Tag ID</th>
+            <th>Name</th>
+            <th>Admin</th>
+            <th>Balance</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="user-rows">
+          <tr class="empty-row"><td colspan="6">Search users to see results.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="form-card">
+      <h2 id="user-form-title">Create User</h2>
+      <input type="hidden" id="user-edit-tag-id" value="" />
+      <div class="form-grid">
+        <div class="field">
+          <label for="user-tag-id">Tag ID</label>
+          <input id="user-tag-id" placeholder="e.g. 04a3b2c1" />
+        </div>
+        <div class="field">
+          <label for="user-full-name">Full Name</label>
+          <input id="user-full-name" placeholder="e.g. Jane Doe" />
+        </div>
+        <div class="field">
+          <label for="user-balance">Balance (£)</label>
+          <input id="user-balance" placeholder="e.g. 10.00" inputmode="decimal" />
+        </div>
+      </div>
+      <div class="form-footer">
+        <label class="checkbox-label">
+          <input type="checkbox" id="user-is-admin" />
+          Admin
+        </label>
+        <button class="btn btn-primary" id="user-submit-btn" onclick="submitUserForm()">Create user</button>
+        <button class="btn btn-secondary" id="user-cancel-btn" style="display:none" onclick="cancelUserEdit()">Cancel</button>
+        <span id="user-status"></span>
+      </div>
+    </div>
+
 
     <h1 class="section-title">Orders History</h1>
 
@@ -494,9 +554,190 @@
       URL.revokeObjectURL(url);
     }
 
+    /* ═══════════════════════════════ USERS ═════════════════════════════════ */
+    let users = [];
+
+    async function loadUsers() {
+      const query = document.getElementById("user-search").value.trim();
+      const searchValue = query === "" ? "%" : query;
+      const encoded = encodeURIComponent(searchValue);
+      const url = `/users/name/${encoded}`;
+
+      const tbody = document.getElementById("user-rows");
+      tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Searching…</td></tr>';
+      try {
+        const res = await fetch(url);
+        users = await res.json();
+        renderUsers();
+      } catch (e) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Failed to load users.</td></tr>';
+      }
+    }
+
+    function renderUsers() {
+      const tbody = document.getElementById("user-rows");
+      const summary = document.getElementById("users-summary");
+
+      if (!users.length) {
+        tbody.innerHTML = '<tr class="empty-row"><td colspan="6">No users found.</td></tr>';
+        summary.innerHTML = "";
+        return;
+      }
+
+      summary.innerHTML = `<strong>${users.length}</strong> user${users.length === 1 ? "" : "s"}`;
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td style="color:#52525b">${u.user_id}</td>
+          <td style="font-family:monospace; font-size:0.9rem;">${esc(u.tag_id)}</td>
+          <td style="font-weight:600">${esc(u.full_name)}</td>
+          <td><span class="pill ${u.is_admin ? 'pill-active' : 'pill-inactive'}">${u.is_admin ? 'Admin' : 'User'}</span></td>
+          <td>£${u.balance.toFixed(2)}</td>
+          <td>
+            <button class="btn btn-secondary" onclick="startEditUser('${encodeURIComponent(u.tag_id)}')">Edit</button>
+            <button class="btn btn-secondary" onclick="toggleAdmin('${encodeURIComponent(u.tag_id)}')">${u.is_admin ? 'Revoke admin' : 'Make admin'}</button>
+            <button class="btn btn-secondary" onclick="deleteUser('${encodeURIComponent(u.tag_id)}')">Delete</button>
+          </td>
+        </tr>
+      `).join("");
+    }
+
+    async function toggleAdmin(encodedTagId) {
+      const tagId = decodeURIComponent(encodedTagId);
+      const user = users.find(u => u.tag_id === tagId);
+      if (!user) return;
+
+      const updated = {
+        tag_id: user.tag_id,
+        full_name: user.full_name,
+        is_admin: !user.is_admin,
+        balance: user.balance,
+      };
+
+      try {
+        const res = await fetch(`/users?tag_id=${encodeURIComponent(tagId)}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(updated),
+        });
+        if (!res.ok) {
+          throw new Error(`Status ${res.status}`);
+        }
+        user.is_admin = !user.is_admin;
+        renderUsers();
+      } catch (e) {
+        alert(`Failed to update admin status: ${e}`);
+      }
+    }
+
+    async function deleteUser(encodedTagId) {
+      const tagId = decodeURIComponent(encodedTagId);
+      if (!confirm("Delete this user?")) return;
+
+      try {
+        const res = await fetch(`/users?tag_id=${encodeURIComponent(tagId)}`, {
+          method: "DELETE",
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || res.statusText);
+        }
+        loadUsers();
+      } catch (e) {
+        alert(`Failed to delete user: ${e}`);
+      }
+    }
+
+    function startEditUser(encodedTagId) {
+      const tagId = decodeURIComponent(encodedTagId);
+      const user = users.find(u => u.tag_id === tagId);
+      if (!user) return;
+
+      document.getElementById("user-edit-tag-id").value = user.tag_id;
+      document.getElementById("user-tag-id").value = user.tag_id;
+      document.getElementById("user-tag-id").disabled = true;
+      document.getElementById("user-full-name").value = user.full_name;
+      document.getElementById("user-balance").value = user.balance.toFixed(2);
+      document.getElementById("user-is-admin").checked = user.is_admin;
+      document.getElementById("user-form-title").textContent = "Edit User";
+      document.getElementById("user-submit-btn").textContent = "Save user";
+      document.getElementById("user-cancel-btn").style.display = "";
+      document.getElementById("user-status").textContent = "";
+    }
+
+    function cancelUserEdit() {
+      document.getElementById("user-edit-tag-id").value = "";
+      document.getElementById("user-tag-id").value = "";
+      document.getElementById("user-tag-id").disabled = false;
+      document.getElementById("user-full-name").value = "";
+      document.getElementById("user-balance").value = "";
+      document.getElementById("user-is-admin").checked = false;
+      document.getElementById("user-form-title").textContent = "Create User";
+      document.getElementById("user-submit-btn").textContent = "Create user";
+      document.getElementById("user-cancel-btn").style.display = "none";
+      document.getElementById("user-status").textContent = "";
+    }
+
+    async function submitUserForm() {
+      const originalTagId = document.getElementById("user-edit-tag-id").value;
+      const tagId = document.getElementById("user-tag-id").value.trim();
+      const fullName = document.getElementById("user-full-name").value.trim();
+      const balanceValue = document.getElementById("user-balance").value.trim();
+      const isAdmin = document.getElementById("user-is-admin").checked;
+      const statusEl = document.getElementById("user-status");
+
+      statusEl.textContent = "";
+      const balance = parseFloat(balanceValue || "0");
+      if (!tagId || !fullName) {
+        statusEl.textContent = "Tag ID and full name are required.";
+        statusEl.className = "err";
+        return;
+      }
+      if (balanceValue !== "" && (isNaN(balance) || balance < 0)) {
+        statusEl.textContent = "Balance must be a positive number.";
+        statusEl.className = "err";
+        return;
+      }
+
+      const payload = {
+        tag_id: tagId.toLowerCase(),
+        full_name: fullName,
+        is_admin: isAdmin,
+        balance: isNaN(balance) ? 0 : balance,
+      };
+
+      try {
+        const url = originalTagId
+          ? `/users?tag_id=${encodeURIComponent(originalTagId)}`
+          : "/users";
+        const method = originalTagId ? "PUT" : "POST";
+        const res = await fetch(url, {
+          method,
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        if (!res.ok) {
+          const text = await res.text();
+          throw new Error(text || res.statusText);
+        }
+        statusEl.textContent = originalTagId ? "User updated." : "User created.";
+        statusEl.className = "ok";
+        cancelUserEdit();
+        loadUsers();
+      } catch (e) {
+        statusEl.textContent = `Save failed: ${e}`;
+        statusEl.className = "err";
+      }
+    }
+
+    function clearUserSearch() {
+      document.getElementById("user-search").value = "";
+      loadUsers();
+    }
+
     /* ═════════════════════════════ INIT ════════════════════════════════════ */
     loadProducts();
     loadOrders();
+    loadUsers();
   </script>
 </body>
 </html>
