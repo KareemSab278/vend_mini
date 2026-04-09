@@ -1,5 +1,5 @@
 use axum::{
-    extract::{Path, Query},
+    extract::{path, Path, Query},
     http::StatusCode,
     response::IntoResponse,
     routing::{delete, get, post, put},
@@ -12,6 +12,184 @@ use tower_http::services::ServeDir;
 #[path = "database.rs"]
 mod database;
 
+#[path = "users_database.rs"]
+mod users_database;
+
+// ───────────────────────────────────────────────────────────────────────────── users
+
+#[derive(Deserialize)]
+struct NewUser {
+    tag_id: String,
+    full_name: String,
+    is_admin: bool,
+    balance: f64,
+}
+
+async fn new_user(Json(user): Json<NewUser>) -> impl IntoResponse {
+    println!(
+        "POST /users payload: tag_id='{}' full_name='{}' is_admin={} balance={}",
+        user.tag_id, user.full_name, user.is_admin, user.balance
+    );
+    match users_database::new_user(&user.tag_id, &user.full_name, user.is_admin, user.balance) {
+        Ok(_) => (StatusCode::CREATED, "ok".to_string()),
+        Err(e) => {
+            eprintln!("POST /users error: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {}", e))
+        }
+    }
+}
+
+async fn update_user_by_tag_id(
+    Query(params): Query<TagQuery>,
+    Json(payload): Json<NewUser>,
+) -> impl IntoResponse {
+    if let Some(tag_id) = params.tag_id {
+        println!(
+            "PUT /users?tag_id={} payload: full_name='{}' is_admin={} balance={}",
+            tag_id, payload.full_name, payload.is_admin, payload.balance
+        );
+        match users_database::update_user_by_tag_id(
+            &tag_id,
+            &payload.full_name,
+            payload.is_admin,
+            payload.balance,
+        ) {
+            Ok(_) => (StatusCode::OK, "User updated".to_string()).into_response(),
+            Err(e) => {
+                eprintln!("PUT /users?tag_id={} error: {}", tag_id, e);
+                (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {}", e)).into_response()
+            }
+        }
+    } else {
+        println!("PUT /users with no tag_id");
+        (
+            StatusCode::BAD_REQUEST,
+            "Missing tag_id query parameter".to_string(),
+        )
+            .into_response()
+    }
+}
+
+#[derive(Deserialize)]
+struct TagQuery {
+    tag_id: Option<String>,
+}
+
+async fn get_user_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoResponse {
+    // this fn will probably bite me later because of into_response.
+    if let Some(tag_id) = params.tag_id {
+        println!("GET /users?tag_id={}", tag_id);
+        match users_database::get_user_by_tag_id(&tag_id) {
+            Ok(Some(user)) => (StatusCode::OK, Json(user)).into_response(),
+            Ok(None) => (StatusCode::NOT_FOUND, "User not found".to_string()).into_response(),
+            Err(e) => {
+                eprintln!("GET /users?tag_id={} error: {}", tag_id, e);
+                (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {}", e)).into_response()
+            }
+        }
+    } else {
+        println!("GET /users with no tag_id");
+        (
+            StatusCode::BAD_REQUEST,
+            "Missing tag_id query parameter".to_string(),
+        )
+            .into_response()
+    }
+}
+
+async fn get_balance_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoResponse {
+    if let Some(tag_id) = params.tag_id {
+        println!("GET /balance?tag_id={}", tag_id);
+        match users_database::get_balance_by_tag_id(&tag_id) {
+            Ok(Some(balance)) => (StatusCode::OK, Json(balance)).into_response(),
+            Ok(None) => (StatusCode::NOT_FOUND, Json(0.00)).into_response(),
+            Err(e) => {
+                eprintln!("GET /balance?tag_id={} error: {}", tag_id, e);
+                (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {}", e)).into_response()
+            }
+        }
+    } else {
+        println!("GET /balance with no tag_id");
+        (
+            StatusCode::BAD_REQUEST,
+            "Missing tag_id query parameter".to_string(),
+        )
+            .into_response()
+    }
+}
+
+async fn update_balance_by_tag_id(
+    Query(params): Query<TagQuery>,
+    Json(payload): Json<f64>,
+) -> impl IntoResponse {
+    if let Some(tag_id) = params.tag_id {
+        println!(
+            "PUT /balance?tag_id={} payload: balance={}",
+            tag_id, payload
+        );
+        match users_database::update_balance_by_tag_id(&tag_id, payload) {
+            Ok(_) => (StatusCode::OK, "Balance updated".to_string()).into_response(),
+            Err(e) => {
+                eprintln!("PUT /balance?tag_id={} error: {}", tag_id, e);
+                (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {}", e)).into_response()
+            }
+        }
+    } else {
+        println!("PUT /balance with no tag_id");
+        (
+            StatusCode::BAD_REQUEST,
+            "Missing tag_id query parameter".to_string(),
+        )
+            .into_response()
+    }
+}
+
+async fn delete_user_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoResponse {
+    if let Some(tag_id) = params.tag_id {
+        println!("DELETE /users?tag_id={}", tag_id);
+        match users_database::delete_user_by_tag_id(&tag_id) {
+            Ok(_) => (StatusCode::OK, "User deleted".to_string()).into_response(),
+            Err(e) => {
+                eprintln!("DELETE /users?tag_id={} error: {}", tag_id, e);
+                (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {}", e)).into_response()
+            }
+        }
+    } else {
+        println!("DELETE /users with no tag_id");
+        (
+            StatusCode::BAD_REQUEST,
+            "Missing tag_id query parameter".to_string(),
+        )
+            .into_response()
+    }
+}
+
+#[derive(Deserialize)]
+struct SearchName {
+    name: Option<String>,
+}
+
+async fn search_users_by_name(Query(params): Query<SearchName>) -> impl IntoResponse {
+    if let Some(name) = params.name {
+        println!("GET /users?name={}", name);
+        match users_database::search_users_by_name(&name) {
+            Ok(users) => (StatusCode::OK, Json(users)).into_response(),
+            Err(e) => {
+                eprintln!("GET /users?name={} error: {}", name, e);
+                (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {}", e)).into_response()
+            }
+        }
+    } else {
+        println!("GET /users with no name");
+        (
+            StatusCode::BAD_REQUEST,
+            "Missing name query parameter".to_string(),
+        )
+            .into_response()
+    }
+}
+
+// ───────────────────────────────────────────────────────────────────────────── products
 #[derive(Deserialize)]
 struct NewProduct {
     product_name: String,
@@ -121,6 +299,17 @@ pub async fn start() {
         .route("/products/:id", delete(remove_product).put(edit_product))
         .route("/orders", get(view_orders))
         .route("/orders/detail", get(view_orders_detail))
+        .route(
+            "/users",
+            post(new_user)
+                .put(update_user_by_tag_id)
+                .delete(delete_user_by_tag_id),
+        )
+        .route("/users", get(get_user_by_tag_id))
+        .route(
+            "/balance",
+            get(get_balance_by_tag_id).put(update_balance_by_tag_id),
+        )
         .fallback_service(ServeDir::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/src/static"

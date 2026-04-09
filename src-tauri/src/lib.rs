@@ -3,6 +3,7 @@ use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 mod database;
+mod users_database;
 pub mod motion_sensor;
 pub mod nfc;
 mod server;
