@@ -477,14 +477,24 @@ Tag IDs are stored and compared in lowercase (`lower(?1)`) to normalise across r
 
 If the system has no admin user yet, create one with `create_admin.py` after first scanning the NFC tag to get its UID from the application.
 
+The script is now standalone and can be copied to a new device on its own. On first run, it also installs a desktop launcher at `~/Desktop/Ordering System Admin Creator.desktop`.
+
 Steps:
 1. Scan the unidentified NFC tag with the running system and note the `tag_id` shown in the red notification.
-2. Download or use `create_admin.py` from this repository.
+2. Place `create_admin.py` in the desired local folder on the new system.
 3. Run:
    ```bash
-   python3 create_admin.py
+   python3 create_admin.py # only fir the first time setting up the user's device - then they desktop app is built automatically
    ```
 4. Enter the scanned `tag_id` and the admin full name when prompted.
+
+When the script runs, it will:
+- create `~/data/ordering_system_users.db` if missing
+- create the desktop shortcut on the current machine
+- use a local `tag_listener` binary if present next to the script
+- otherwise fallback to `cargo run --manifest-path ...` only when Rust/Cargo is installed
+
+If you later move `create_admin.py` to another folder or device, rerun it so the desktop shortcut is recreated with the new path.
 
 This adds the tag as an admin user in `~/data/ordering_system_users.db` so that future scans are recognised as admin access.
 

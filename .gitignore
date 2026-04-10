@@ -27,6 +27,7 @@ dist-ssr
 /vcpkg/
 ~/.tauri/
 /.venv/
+/__pycache__/
 
 updater-key.pem
 updater_private.pem
