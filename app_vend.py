@@ -8,6 +8,11 @@ import re
 from dataclasses import dataclass, asdict
 from typing import Optional, Dict, Any, List
 
+from pathlib import Path
+from dotenv import load_dotenv
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(dotenv_path=BASE_DIR / ".env")
+
 import serial
 from flask import Flask, request, jsonify, Response, abort
 
@@ -19,7 +24,7 @@ BAUDRATE = int(os.environ.get("MDB_BAUD", "115200"))
 READ_TIMEOUT_S = float(os.environ.get("MDB_READ_TIMEOUT", "0.2"))
 WEB_HOST = os.environ.get("WEB_HOST", "0.0.0.0")
 WEB_PORT = int(os.environ.get("WEB_PORT", "8080"))
-API_TOKEN = os.environ.get("API_TOKEN", "supersecret")
+API_TOKEN = os.environ.get("API_TOKEN") # Must be set in env for security; default is disabled to prevent accidental exposure.
 CASHLESS_X = int(os.environ.get("CASHLESS_X", "1"))
 BASKET_MODE = os.environ.get("BASKET_MODE", "0")
 CARD_TAP_TIMEOUT_S = float(os.environ.get("CARD_TAP_TIMEOUT_S", "60.0"))
@@ -31,18 +36,16 @@ VNDAPP_TIMEOUT_S = float(os.environ.get("VNDAPP_TIMEOUT_S", "30.0"))
 def now_ms() -> int:
     return int(time.time() * 1000)
 
-
 def require_token(req):
-    auth = req.headers.get("Authorization", "")
-    token = ""
+    auth = req.headers.get("Authorization", "") or (req.args.get("auth") or "").strip()
     if auth.startswith("Bearer "):
         token = auth.split(" ", 1)[1].strip()
     else:
-        token = (req.args.get("auth") or "").strip()
+        token = auth.strip()
     if not token:
         abort(401)
     if token != API_TOKEN:
-        abort(403)
+        abort(403) # unauthorized!
 
 
 def crlf_line(s: str) -> bytes:
@@ -616,7 +619,7 @@ def healthz():
 def main():
     print(f"[app_vend] Starting on http://{WEB_HOST}:{WEB_PORT}")
     print(f"[app_vend] Serial : {SERIAL_PORT} @ {BAUDRATE} baud (no flow control)")
-    print(f"[app_vend] Token  : API_TOKEN env var (currently {'DEFAULT — change it!' if API_TOKEN == 'supersecret' else 'set'})")
+    print(f"[app_vend] Token  : API_TOKEN env var (currently {'NOT SET' if not API_TOKEN else 'SET'})")
     print(f"[app_vend] Basket mode: {BASKET_MODE}")
     app.run(host=WEB_HOST, port=WEB_PORT, threaded=True)
 

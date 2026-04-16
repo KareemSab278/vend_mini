@@ -1,2 +1,5 @@
 flask==2.3.0
 pyserial==3.5
+python-dotenv==1.0.0
+dataclasses==0.8
+typing-extensions==4.0.1

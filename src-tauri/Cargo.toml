@@ -41,6 +41,7 @@ embedded-hal-bus = "0.2.0"
 anyhow = "1.0"
 
 mfrc522 = { version = "0.8", features = ["std"] }
+dotenv = "0.15.0"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-updater = "2"

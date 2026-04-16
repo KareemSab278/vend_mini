@@ -2,7 +2,8 @@ export {
   statusIcon,
   totalPrice,
   filteredProducts,
-  getProductIcon
+  getProductIcon,
+  isPiOs,
 };
 import {
   IconCreditCard,
@@ -16,6 +17,8 @@ import {
   IconCookie,
   IconShoppingBag,
 } from "@tabler/icons-react";
+
+import { invoke } from "@tauri-apps/api/core";
 
 import { TbNfc } from "react-icons/tb";
 
@@ -40,6 +43,11 @@ const totalPrice = (selectedProducts: { product_price: number; count: number }[]
     0,
   );
 };
+
+const isPiOs = async () => {
+  const res = await invoke("is_raspberry_pi");
+  return res as boolean;
+}
 
 const getProductIcon = (productName: string, productCategory: string, size = 26) => {
   const name = (productName || "").toLowerCase();

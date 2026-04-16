@@ -9,7 +9,6 @@ import { check } from "@tauri-apps/plugin-updater";
 
 export { App };
 
-const INITIAL_STATE_FULLSCREEN: boolean = true;
 const SCREENSAVER_TIMEOUT_MINUTES: number = 1; // uno minuto
 const FETCH_PRODUCTS_INTERVAL: number = 6000;
 const NFC_ONLY_MODE: boolean = false; // set to true to disable the corner admin trigger and rely solely on NFC for admin access
@@ -21,7 +20,7 @@ function App() {
   const [adminModalOpen, setAdminModalOpen] = useState<boolean>(false);
   const [paymentMethodModalOpen, setPaymentMethodModalOpen] = useState<boolean>(false);
 
-  const [fullScreenState, setFullScreenState] = useState<boolean>(INITIAL_STATE_FULLSCREEN);
+  const [fullScreenState, setFullScreenState] = useState<boolean>(false);
 
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
@@ -183,8 +182,9 @@ function App() {
     window.addEventListener("pointerdown", handleUserActivity);
     window.addEventListener("keydown", handleUserActivity);
 
-    const timer: number | null = setTimeout(() => {
-      getCurrentWindow().setFullscreen(INITIAL_STATE_FULLSCREEN);
+    const timer: number | null = setTimeout(async () => {
+      const isPi = await helpers.isPiOs();
+      getCurrentWindow().setFullscreen(isPi);
     }, 1000);
 
     return () => {

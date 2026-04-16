@@ -1114,7 +1114,7 @@ The Flask server communicates with the PicoVend EZ Bridge card reader using MDB 
 
 ### Flask Endpoints
 
-All Flask endpoints require an `Authorization: Bearer <API_TOKEN>` header. The default token is `supersecret`.
+All Flask endpoints require an `Authorization: Bearer <API_TOKEN>` header. The token is stored in .env and is different in every device.
 
 #### POST /api/basket/pay
 

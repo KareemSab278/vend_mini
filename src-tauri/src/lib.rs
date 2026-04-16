@@ -1,15 +1,15 @@
+use dotenv::dotenv;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 mod database;
-mod users_database;
 pub mod motion_sensor;
 pub mod nfc;
 mod server;
+mod users_database;
 
 const FLASK_BASE: &str = "http://127.0.0.1:8080";
-const API_TOKEN: &str = "supersecret";
 
 static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
 
@@ -29,8 +29,23 @@ fn make_client() -> Result<Client, String> {
         .map_err(|e| format!("HTTP client error: {}", e))
 }
 
+// Source - https://stackoverflow.com/q/62546180 (edited)
+// Posted by elementory, modified by community. See post 'Timeline' for change history
+// Retrieved 2026-04-16, License - CC BY-SA 4.0
+fn get_api_token() -> String {
+    dotenv().ok();
+    let api_token = std::env::var("API_TOKEN");
+    match api_token {
+        Ok(token) => token.to_string(),
+        Err(_) => {
+            eprintln!("API_TOKEN not set");
+            "".to_string()
+        }
+    }
+}
+
 fn auth_header() -> String {
-    format!("Bearer {}", API_TOKEN)
+    format!("Bearer {}", get_api_token())
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -51,7 +66,8 @@ async fn initialize_user_database() -> Result<(), String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
-async fn get_balance_by_tag_id(tag_id: String) -> Result<Option<f64>, String> { // success return f64 else string err
+async fn get_balance_by_tag_id(tag_id: String) -> Result<Option<f64>, String> {
+    // success return f64 else string err
     users_database::get_balance_by_tag_id(&tag_id)
         .map_err(|e| format!("Failed to get balance: {}", e))
         .map(|balance| balance)
@@ -60,7 +76,8 @@ async fn get_balance_by_tag_id(tag_id: String) -> Result<Option<f64>, String> { 
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
-async fn update_balance_by_tag_id(tag_id: String, amount: f64) -> Result<f64, String> { // success return new balance else string err
+async fn update_balance_by_tag_id(tag_id: String, amount: f64) -> Result<f64, String> {
+    // success return new balance else string err
     users_database::update_balance_by_tag_id(&tag_id, amount)
         .map_err(|e| format!("Failed to update balance: {}", e))
 }
@@ -97,6 +114,27 @@ async fn query_products() -> Result<Vec<database::Product>, String> {
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
+async fn is_raspberry_pi() -> bool {
+    // rapsberry pi uses ARM architecture, so we can check for that
+    #[cfg(target_arch = "arm")]
+    {
+        if cfg!(target_os == "linux") {
+            true
+        } else {
+            false
+        }
+
+        true
+    }
+    #[cfg(not(target_arch = "arm"))]
+    {
+        false
+    }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
+#[tauri::command]
 async fn initialize_payment_server() -> Result<(), String> {
     // must run cargo run --bin server before anything in this folder
     let project_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
@@ -114,7 +152,11 @@ async fn initialize_payment_server() -> Result<(), String> {
     .spawn()
     .map_err(|e| format!("Failed to spawn payment server: {}", e))?;
 
-    tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+    let api_key = get_api_token();
+    if api_key.is_empty() {
+        eprintln!("Warning: API_TOKEN is not set. The payment server may reject requests without a valid token.");
+    }
+
     Ok(())
 }
 
@@ -163,11 +205,8 @@ async fn initiate_payment(slot: u32, items: Vec<BasketItem>) -> Result<String, S
         .json(&body)
         .send()
         .await
-        .map_err(|e| {
-            format!(
-                "Payment request failed — is app_vend.py running on :8080? ({})",
-                e
-            )
+        .map_err(|_| {
+            format!("Payment request failed. Is app_vend.py running on :8080? Is api token set?")
         })?;
 
     resp.text()
@@ -312,7 +351,8 @@ pub fn run() {
             kill_app,
             initialize_static_page_server,
             return_editor_url,
-            install_deb
+            install_deb,
+            is_raspberry_pi
         ])
         .setup(|app| {
             #[cfg(desktop)]
