@@ -283,7 +283,7 @@ describe('listenToNfcUnknownTag', () => {
     });
 
     await listenToNfcUnknownTag(onUnknown);
-    capturedHandler();
+    capturedHandler({ payload: 'test-tag-id' });
     expect(onUnknown).toHaveBeenCalledTimes(1);
   });
 
@@ -304,9 +304,9 @@ describe('listenToNfcUnknownTag', () => {
     });
 
     await listenToNfcUnknownTag(onUnknown);
-    capturedHandler();
-    capturedHandler();
-    capturedHandler();
+    capturedHandler({ payload: 'test-tag-id' });
+    capturedHandler({ payload: 'test-tag-id' });
+    capturedHandler({ payload: 'test-tag-id' });
     expect(onUnknown).toHaveBeenCalledTimes(3);
   });
 });
