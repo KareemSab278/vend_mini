@@ -14,8 +14,7 @@ fn user_db_path() -> PathBuf {
     dir.join(USER_DATA_FILE)
 }
 
-fn initialize_base_admin() -> Result<()> {
-    let conn = open_user_db()?;
+fn initialize_base_admin(conn: &Connection) -> Result<()> {
     conn.execute(
         "INSERT OR IGNORE INTO users (tag_id, full_name, is_admin, balance) VALUES (lower(?1), ?2, 1, 0)",
         params!["admin", "Base Admin"],
@@ -35,7 +34,7 @@ pub fn initialize_user_database() -> Result<()> {
         );",
     )?;
     // Initialize the base admin after creating the table
-    initialize_base_admin()?;
+    initialize_base_admin(&conn)?;
     Ok(())
 }
 

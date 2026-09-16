@@ -93,13 +93,16 @@ impl DeviceConnection {
             state: Arc::clone(&state),
         });
 
-        std::thread::Builder::new()
+        if let Err(e) = std::thread::Builder::new()
             .name(format!(
                 "serial-{}",
                 connection.descriptor.identity.replace('/', "_")
             ))
             .spawn(move || serial_worker(port, receiver, state))
-            .expect("failed to start serial worker");
+        {
+            eprintln!("failed to start serial worker for {}: {e}", connection.descriptor.identity);
+            return connection;
+        }
 
         connection
     }
