@@ -3,7 +3,7 @@ import { ProductCard } from "./Components/ProductCard";
 import { PrimaryButton } from "./Components/Button";
 import { PriceStatusPill } from "./Components/PriceStatusPill";
 import * as helpers from "./AppHelpers";
-import * as hardware from "./hardwareHelpers";
+import { Door } from "./Helpers/Door";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { CategoryIndicator } from "./Components/CategoryIndicator";
@@ -55,7 +55,6 @@ type ProductsSectionProps = {
     activeCategory: string;
 };
 
-type MotionSensorStatusModalProps = { opened: boolean; onClose: () => void; };
 
 
 const SelectedProductsModal = ({ opened, onClose, selectedProducts, onRemove, onClearAll }: SelectedProductsModalProps) => (
@@ -135,10 +134,10 @@ const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, 
         { title: "Kill App (Double Click)", onClick: () => invoke("kill_app"), doubleClick: true },
         { title: "Refresh Products", onClick: () => window.location.reload() },
         { title: "Open Admin Page", onClick: () => openUrl(editorUrl) },
-        { title: "Unlock Door", onClick: () => hardware.unlockDoor() },
-        // { title: "Set Light Green", onClick: () => hardware.setLightsColor("green") },
-        // { title: "Set Light Red", onClick: () => hardware.setLightsColor("red") },
-        // { title: "Set Light Blue", onClick: () => hardware.setLightsColor("blue") },
+        { title: "Unlock Door", onClick: () => Door.unlock() },
+        // { title: "Set Light Green", onClick: () => Lights.setColor("green") },
+        // { title: "Set Light Red", onClick: () => Lights.setColor("red") },
+        // { title: "Set Light Blue", onClick: () => Lights.setColor("blue") },
     ];
 
     return (

@@ -11,25 +11,39 @@
 //!
 // CREDIT: based on code found in this repo -> https://gitlab.com/jspngh/mfrc522/-/tree/main/examples/rpi4
 
+#[cfg(target_os = "linux")]
 use linux_embedded_hal as hal;
 
+#[cfg(target_os = "linux")]
+use embedded_hal::delay::DelayNs;
+#[cfg(target_os = "linux")]
+use hal::spidev::{SpiModeFlags, SpidevOptions};
+#[cfg(target_os = "linux")]
+use hal::Delay;
+#[cfg(target_os = "linux")]
+use hal::SpidevDevice;
+#[cfg(target_os = "linux")]
+use mfrc522::comm::{blocking::spi::SpiInterface, Interface};
+#[cfg(target_os = "linux")]
+use mfrc522::{Initialized, Mfrc522};
+
+#[cfg(target_os = "linux")]
 use std::thread;
+#[cfg(target_os = "linux")]
 use std::time::Duration;
 
-use embedded_hal::delay::DelayNs;
-use hal::spidev::{SpiModeFlags, SpidevOptions};
-use hal::Delay;
-use hal::SpidevDevice;
-use mfrc522::comm::{blocking::spi::SpiInterface, Interface};
-use mfrc522::{Initialized, Mfrc522};
+#[cfg(target_os = "linux")]
 use tauri::Emitter;
 
 #[path = "users_database.rs"]
 mod users_database;
 
+#[cfg(target_os = "linux")]
 const SCAN_DELAY_MS: u32 = 500;
+#[cfg(target_os = "linux")]
 const DEBOUNCE_MS: u64 = 1500;
 
+#[cfg(target_os = "linux")]
 fn get_spi() -> Result<SpidevDevice, ()> {
     SpidevDevice::open("/dev/spidev0.0").map_err(|e| {
         eprintln!("Failed to open SPI device: {:?}", e);
@@ -39,6 +53,7 @@ fn get_spi() -> Result<SpidevDevice, ()> {
 // - `"nfc-admin-found"` — tag UID is in the admin allow-list
 // - `"nfc-unknown-tag"` — tag UID is not recognised
 
+#[cfg(target_os = "linux")]
 pub fn start_nfc_listener(app_handle: tauri::AppHandle) {
     if std::env::consts::OS != "linux" {
         println!(
@@ -144,6 +159,12 @@ pub fn start_nfc_listener(app_handle: tauri::AppHandle) {
 }
 
 
+#[cfg(not(target_os = "linux"))]
+pub fn start_nfc_listener(_app_handle: tauri::AppHandle) {
+    println!("\nLINUX OS REQUIRED.\nDETECTED: {}.\nNFC listener not started.\n", std::env::consts::OS);
+}
+
+#[cfg(target_os = "linux")]
 pub fn listen_for_tag_ids() -> Result<String, String> {
     if std::env::consts::OS != "linux" {
         println!(
@@ -219,8 +240,12 @@ pub fn listen_for_tag_ids() -> Result<String, String> {
     }
 }
 
+#[cfg(not(target_os = "linux"))]
+pub fn listen_for_tag_ids() -> Result<String, String> {
+    Err("NFC listener not started due to unsupported OS".to_string())
+}
 
-
+#[cfg(target_os = "linux")]
 #[allow(dead_code)]
 fn handle_authenticate<E, COMM: Interface<Error = E>, F>(
     mfrc522: &mut Mfrc522<COMM, Initialized>,

@@ -3,14 +3,16 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as helpers from "./AppHelpers";
 import * as visuals from "./AppVisualHelpers";
-import * as hardware from "./hardwareHelpers";
+import { Door } from "./Helpers/Door";
+import { NFC } from "./Helpers/Nfc";
+import { MotionSensor } from "./Helpers/Serial";
 import { ScreenSaver } from "./Components/ScreenSaver";
 import { check } from "@tauri-apps/plugin-updater";
 
 export { App };
 
 const SCREENSAVER_TIMEOUT_MINUTES: number = 1; // uno minuto
-const FETCH_PRODUCTS_INTERVAL: number = 6000;
+const FETCH_PRODUCTS_INTERVAL: number = 6000; // i could live by doing this when a purchase happens and when the screensaver mounts...
 const NFC_ONLY_MODE: boolean = false; // set to true to disable the corner admin trigger and rely solely on NFC for admin access
 
 function App() {
@@ -31,7 +33,6 @@ function App() {
   const [editorUrl, setEditorUrl] = useState<string>("");
   const [nfcNotification, setNfcNotification] = useState<string | null>(null);
 
-  const unlistenMotionRef = useRef<() => void | null>(null);
   const unlistenNfcAdminRef = useRef<(() => void) | null>(null);
   const unlistenNfcUnknownRef = useRef<(() => void) | null>(null);
   const nfcNotificationTimerRef = useRef<number | null>(null);
@@ -48,9 +49,9 @@ function App() {
     setPayStatus("paying");
     setPayMessage("Please tap your NFC tag to pay…");
 
-    hardware.listenToNFCPayment(helpers.totalPrice(selectedProducts), (newBalance) => {
+    NFC.payment(helpers.totalPrice(selectedProducts), (newBalance) => {
       setPayStatus("dispensing");
-      hardware.unlockDoor();
+      Door.unlock();
 
       setPayStatus("waiting_door");
       setPayMessage("Please take your items and close the door.");
@@ -60,7 +61,7 @@ function App() {
           clearInterval(doorPollInterval);
           return;
         }
-        const closed = await hardware.isDoorClosed(); // remember here: sometimes the door is closed and when you open it shows closed immediately. its just a lock hardware glitch
+        const closed = await Door.isClosed(); // remember here: sometimes the door is closed and when you open it shows closed immediately. its just a lock hardware glitch
         if (closed) {
           clearInterval(doorPollInterval);
           setPayStatus("done");
@@ -78,7 +79,7 @@ function App() {
       setAdminModalOpen(false);
     }, (error) => {
       setPayStatus("error");
-      setPayMessage(`Payment failed: ${error?.message ?? String(error) ?? "Unknown error"}`);
+      setPayMessage(`Payment failed: ${error ?? String(error) ?? "Unknown error"}`);
       setAdminModalOpen(false);
     });
 
@@ -108,12 +109,6 @@ function App() {
     startInactivityTimer();
   };
 
-  const listenToMotionSensor = async () => {
-    unlistenMotionRef.current = await hardware.listenToMotionSensor(() => {
-      console.log("[App] Motion event received");
-      resetInactivityTimer();
-    });
-  };
 
   const showNfcNotification = (message: string) => {
     if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
@@ -125,10 +120,10 @@ function App() {
   };
 
   const listenToNfc = async () => {
-    unlistenNfcUnknownRef.current = await hardware.listenToNfcUnknownTag((tagId) => {
+    unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {
       showNfcNotification(`Unknown NFC tag: ${tagId}`);
     });
-    unlistenNfcAdminRef.current = await hardware.listenToNfcAdminFound(() => {
+    unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
       !modalOpen && !checkoutActive && (setAdminModalOpen(true), setScreenSaverActive(false)); // only show admin if nothing else open.
     });
   };
@@ -166,7 +161,6 @@ function App() {
   };
 
   useEffect(() => {
-    listenToMotionSensor();
     listenToNfc();
     getProductsOnMount();
     fetchEditorUrl();
@@ -193,7 +187,6 @@ function App() {
       window.removeEventListener("pointerdown", handleUserActivity);
       window.removeEventListener("keydown", handleUserActivity);
       if (pollRef.current) clearInterval(pollRef.current);
-      if (unlistenMotionRef.current) unlistenMotionRef.current();
       if (unlistenNfcAdminRef.current) unlistenNfcAdminRef.current();
       if (unlistenNfcUnknownRef.current) unlistenNfcUnknownRef.current();
       if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
@@ -273,7 +266,7 @@ function App() {
       return;
     }
 
-    hardware.unlockDoor();
+    Door.unlock();
 
     for (const p of selectedProducts) {
       try {
@@ -293,7 +286,7 @@ function App() {
         clearInterval(doorPollInterval);
         return;
       }
-      const closed = await hardware.isDoorClosed();
+      const closed = await Door.isClosed();
       if (closed) {
         clearInterval(doorPollInterval);
         setPayStatus("done");

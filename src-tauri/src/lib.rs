@@ -3,7 +3,6 @@ use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
 mod database;
-pub mod motion_sensor;
 pub mod nfc;
 mod server;
 mod users_database;
@@ -317,8 +316,6 @@ pub fn run() {
             let _ = app
                 .handle()
                 .plugin(tauri_plugin_updater::Builder::new().build());
-
-            motion_sensor::start_motion_listener(app.handle().clone());
 
             nfc::start_nfc_listener(app.handle().clone());
 
