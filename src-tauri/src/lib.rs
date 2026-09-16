@@ -1,31 +1,15 @@
-use reqwest::Client;
-use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::sync::atomic::{AtomicBool, Ordering};
+mod config;
 mod database;
+mod door;
 pub mod nfc;
+mod pay;
+mod serial_comms;
 mod server;
 mod users_database;
 
-const FLASK_BASE: &str = "http://127.0.0.1:8080";
-
 static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-struct BasketItem {
-    id: u32,
-    name: String,
-    price: u32,
-    qty: u32,
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-fn make_client() -> Result<Client, String> {
-    Client::builder()
-        .build()
-        .map_err(|e| format!("HTTP client error: {}", e))
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -101,43 +85,6 @@ async fn is_raspberry_pi() -> bool {
 // ─────────────────────────────────────────────────────────────────────────────
 
 #[tauri::command]
-async fn initialize_payment_server() -> Result<(), String> {
-    // must run cargo run --bin server before anything in this folder
-    let project_root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .parent()
-        .ok_or("Failed to determine project root")?
-        .to_path_buf();
-
-    Command::new(if cfg!(target_os = "windows") {
-        "python"
-    } else {
-        "python3"
-    })
-    .arg("app_vend.py")
-    .current_dir(&project_root)
-    .spawn()
-    .map_err(|e| format!("Failed to spawn payment server: {}", e))?;
-
-    Ok(())
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-#[tauri::command]
-async fn terminate_payment() -> Result<(), String> {
-    // comminucate with the Flask server to tell the nayax reader to stop waiting for payments
-    let client = make_client()?;
-    let _ = client
-        .post(format!("{}/api/state/terminate", FLASK_BASE))
-        .send()
-        .await
-        .map_err(|e| format!("Failed to terminate payment: {}", e))?;
-    Ok(())
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-#[tauri::command]
 async fn initialize_static_page_server() -> Result<(), String> {
     if SERVER_STARTED
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
@@ -146,31 +93,6 @@ async fn initialize_static_page_server() -> Result<(), String> {
         tokio::spawn(server::start());
     }
     Ok(())
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-#[tauri::command]
-async fn initiate_payment(slot: u32, items: Vec<BasketItem>) -> Result<String, String> {
-    let client = make_client()?;
-
-    let body = serde_json::json!({
-        "slot": slot,
-        "items": items,
-    });
-
-    let resp = client
-        .post(format!("{}/api/basket/pay", FLASK_BASE))
-        .json(&body)
-        .send()
-        .await
-        .map_err(|_| {
-            format!("Payment request failed. Is app_vend.py running on :8080?")
-        })?;
-
-    resp.text()
-        .await
-        .map_err(|e| format!("Failed to read payment response: {}", e))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -196,61 +118,6 @@ async fn new_product(
 #[tauri::command]
 async fn delete_product(product_id: i32) -> Result<(), String> {
     database::delete_product(product_id).map_err(|e| format!("Failed to delete product: {}", e))
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-#[tauri::command]
-async fn dispense_item(slot: u32, success: bool) -> Result<String, String> {
-    let client = make_client()?;
-
-    let body = serde_json::json!({
-        "slot": slot,
-        "success": success,
-    });
-
-    let resp = client
-        .post(format!("{}/api/basket/dispense", FLASK_BASE))
-        .json(&body)
-        .send()
-        .await
-        .map_err(|e| format!("Dispense request failed: {}", e))?;
-
-    resp.text()
-        .await
-        .map_err(|e| format!("Failed to read dispense response: {}", e))
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-#[tauri::command]
-async fn get_pay_state() -> Result<String, String> {
-    let client = make_client()?;
-
-    let resp = client
-        .get(format!("{}/api/state", FLASK_BASE))
-        .send()
-        .await
-        .map_err(|e| format!("State request failed: {}", e))?;
-
-    resp.text()
-        .await
-        .map_err(|e| format!("Failed to read state response: {}", e))
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-#[tauri::command]
-async fn get_door_status() -> Result<String, String> {
-    let client = make_client()?;
-    let resp = client
-        .get(format!("http://10.20.1.252/status"))
-        .send()
-        .await
-        .map_err(|e| format!("Failed to get door status: {}", e))?;
-    resp.text()
-        .await
-        .map_err(|e| format!("Failed to read door status response: {}", e))
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -284,12 +151,20 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
-            dispense_item,
-            // Flask bridge commands & Payment
-            initiate_payment,
-            get_pay_state,
-            initialize_payment_server,
-            terminate_payment,
+            // Payment (direct serial PicoVend/Nayax bridge)
+            pay::initialize_payment_device,
+            pay::start_payment,
+            pay::end_payment,
+            pay::kill_payment,
+            // Doors (direct serial CADLOCK controllers)
+            door::unlock_door,
+            door::lock_door,
+            door::paid_unlock_door,
+            door::paid_unlock_all_doors,
+            door::get_all_doors_status,
+            // Serial utilities
+            serial_comms::get_all_serial_ports,
+            serial_comms::kill_polling,
             // DB related commands
             initialize_database,
             initialize_user_database,
@@ -300,8 +175,6 @@ pub fn run() {
             // Product management
             delete_product,
             new_product,
-            // Door
-            get_door_status,
             // NFC
             get_tag_id,
             // Utility

@@ -5,7 +5,9 @@ import * as helpers from "./AppHelpers";
 import * as visuals from "./AppVisualHelpers";
 import { Door } from "./Helpers/Door";
 import { NFC } from "./Helpers/Nfc";
+import { Payment } from "./Helpers/Payment";
 import { MotionSensor } from "./Helpers/Serial";
+import { KeyPressListener } from "./Helpers/KeyPressListener";
 import { ScreenSaver } from "./Components/ScreenSaver";
 import { check } from "@tauri-apps/plugin-updater";
 
@@ -135,11 +137,11 @@ function App() {
 
   const initializePaymentServer = async () => {
     try {
-      await invoke("initialize_payment_server");
+      await Payment.initialize();
     } catch (e) {
       setCheckoutActive(true);
       setPayStatus("error");
-      setPayMessage(`Failed to start payment server: ${e}`);
+      setPayMessage(`Failed to initialize payment device: ${e}`);
     }
   };
 
@@ -212,57 +214,16 @@ function App() {
     }, FETCH_PRODUCTS_INTERVAL);
   };
 
-  const startPolling = () => {
-    pollRef.current = setInterval(async () => {
-      if (cancelledRef.current) {
-        stopPolling();
-        return;
-      }
-      try {
-        const raw: string = await invoke("get_pay_state");
-        const state = JSON.parse(raw);
-        const pay = state.pay;
-
-        if (pay.approved) {
-          stopPolling();
-          setPayMessage("Card approved!");
-          doDispenseAll();
-        } else if (!pay.in_progress && pay.last_error) {
-          stopPolling();
-          setPayStatus("error");
-          setPayMessage(pay.last_error || "Payment failed");
-        } else {
-          setPayMessage(pay.last_status || "Tap your contactless card…");
-        }
-      } catch (_) {
-        setPayMessage("Waiting for payment service…");
-      }
-    }, 500);
-  };
-
-  const stopPolling = () => {
-    if (pollRef.current) {
-      clearInterval(pollRef.current);
-      pollRef.current = null;
-    }
-  };
-
   const doDispenseAll = async () => {
     if (cancelledRef.current) return;
     setPayStatus("dispensing");
     setPayMessage("Payment approved! Opening door…");
 
     try {
-      const raw: string = await invoke("dispense_item", { slot: 1, success: true });
-      const res = JSON.parse(raw);
-      if (!res.ok) {
-        setPayStatus("error");
-        setPayMessage(res.error || "Dispense confirmation failed");
-        return;
-      }
+      await Payment.end(true);
     } catch (e) {
       setPayStatus("error");
-      setPayMessage(`Dispense error: ${e}`);
+      setPayMessage(`Failed to settle payment: ${e}`);
       return;
     }
 
@@ -308,47 +269,37 @@ function App() {
     setScreenSaverActive(false);
     cancelledRef.current = false;
     setCheckoutActive(true);
+    setPaymentMethod("card");
     setPayStatus("paying");
-    setPayMessage("Initiating payment…");
+    setPayMessage("Please tap, insert, or swipe your card…");
 
-    const items = selectedProducts.map((p) => ({
-      id: p.product_id,
-      name: p.product_name,
-      price: Math.round(p.product_price * 100),
-      qty: p.count,
-    }));
+    const amount = helpers.totalPrice(selectedProducts);
 
-    try {
-      const raw: string = await invoke("initiate_payment", { slot: 1, items });
-      const res = JSON.parse(raw);
-      console.log("Payment initiation response:", res);
-      if (!res.ok) {
+    await Payment.start(amount, (success: boolean) => {
+      if (cancelledRef.current) return;
+
+      if (success) {
+        doDispenseAll();
+      } else {
         setPayStatus("error");
-        setPayMessage(res.error || "Failed to start payment");
-        return;
+        setPayMessage("Payment failed. Please try again.");
       }
-      setPayMessage("Tap your contactless card to pay…");
-      startPolling();
-    } catch (e) {
-      setPayStatus("error");
-      setPayMessage(`Could not reach payment service: ${e}`);
-    }
+    });
+
     setAdminModalOpen(false);
   };
 
   const handleCardCheckoutCancel = async () => {
     cancelledRef.current = true;
-    stopPolling();
     setCheckoutActive(false);
     setPayStatus("idle");
     setPayMessage("");
-    await invoke("terminate_payment");
+    await Payment.cancel();
     setAdminModalOpen(false);
   };
 
   const resetCheckoutState = () => {
     cancelledRef.current = false;
-    stopPolling();
     setCheckoutActive(false);
     setPayStatus("idle");
     setPayMessage("");
@@ -400,6 +351,8 @@ function App() {
   const hideAdminModal = ((payStatus === "paying" || payStatus === "dispensing" || payStatus === "waiting_door") || checkoutActive || paymentMethodModalOpen);
   return (
     <main style={visuals.styles.body}>
+      <KeyPressListener />
+
       {!NFC_ONLY_MODE && <div
         style={visuals.styles.adminTrigger}
         onDoubleClick={() => {

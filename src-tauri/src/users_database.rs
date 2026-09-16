@@ -14,6 +14,15 @@ fn user_db_path() -> PathBuf {
     dir.join(USER_DATA_FILE)
 }
 
+fn initialize_base_admin() -> Result<()> {
+    let conn = open_user_db()?;
+    conn.execute(
+        "INSERT OR IGNORE INTO users (tag_id, full_name, is_admin, balance) VALUES (lower(?1), ?2, 1, 0)",
+        params!["admin", "Base Admin"],
+    )?;
+    Ok(())
+}
+
 pub fn initialize_user_database() -> Result<()> {
     let conn = Connection::open(user_db_path())?;
     conn.execute_batch(
@@ -25,6 +34,8 @@ pub fn initialize_user_database() -> Result<()> {
             balance   REAL    NOT NULL DEFAULT 0
         );",
     )?;
+    // Initialize the base admin after creating the table
+    initialize_base_admin()?;
     Ok(())
 }
 
@@ -176,6 +187,9 @@ pub fn update_user_by_tag_id(
 #[allow(dead_code)]
 pub fn delete_user_by_tag_id(tag_id: &str) -> Result<()> {
     let conn = open_user_db()?;
-    conn.execute("DELETE FROM users WHERE tag_id = lower(?1)", params![tag_id])?;
+    conn.execute(
+        "DELETE FROM users WHERE tag_id = lower(?1)",
+        params![tag_id],
+    )?;
     Ok(())
 }
