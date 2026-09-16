@@ -356,7 +356,7 @@ function App() {
       {!NFC_ONLY_MODE && <div
         style={visuals.styles.adminTrigger}
         onDoubleClick={() => {
-          setAdminModalOpen(true);
+          !modalOpen && !checkoutActive && !paymentMethodModalOpen && (setAdminModalOpen(true), setScreenSaverActive(false));
         }}
       />}
 

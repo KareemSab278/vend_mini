@@ -7,6 +7,7 @@ import { Door } from "./Helpers/Door";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { CategoryIndicator } from "./Components/CategoryIndicator";
+import { Payment } from "./Helpers/Payment";
 
 export {
     styles, SelectedProductsModal, CheckoutModal,
@@ -92,7 +93,7 @@ const CheckoutModal = ({ opened, payMessage, payStatus, onDismiss, onCancel, pay
     return (
         <Modal
             opened={opened}
-            onClose={blockClose ? () => {} : onDismiss}
+            onClose={blockClose ? () => { } : onDismiss}
             title={`${paymentType === "card" ? "Card" : "NFC"} Contactless Payment`}
             withCloseButton={!blockClose}
             closeOnClickOutside={!blockClose}
@@ -124,6 +125,7 @@ const PriceStatusPillComponent = ({ onModalOpen, onCheckout, totalPrice }: Price
 );
 
 const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, fullScreenState }: AdminModalProps) => {
+    let paymentResult: boolean | null = null;
     const adminOptions = [
         {
             title: fullScreenState ? "Exit Full Screen" : "Enter Full Screen",
@@ -135,6 +137,8 @@ const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, 
         { title: "Refresh Products", onClick: () => window.location.reload() },
         { title: "Open Admin Page", onClick: () => openUrl(editorUrl) },
         { title: "Unlock Door", onClick: () => Door.unlock() },
+        { title: "Lock Door", onClick: () => Door.lock() },
+        { title: "Test Payment", onClick: async () => await Payment.start(0.1, (success: boolean) => { paymentResult = success; }) },
         // { title: "Set Light Green", onClick: () => Lights.setColor("green") },
         // { title: "Set Light Red", onClick: () => Lights.setColor("red") },
         // { title: "Set Light Blue", onClick: () => Lights.setColor("blue") },
@@ -151,11 +155,12 @@ const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, 
                     <PrimaryButton
                         key={idx}
                         title={opt.title}
-                        onClick={opt.doubleClick ? () => { } : () => onAction(opt)}
+                        onClick={opt.doubleClick || opt.title === 'Test Payment' ? () => { } : () => onAction(opt)}
                         onDoubleClick={opt.doubleClick ? () => onAction(opt) : undefined}
                     />
                 ))}
                 <p>Editor Url Active at: {editorUrl}</p>
+                <p>Payment Test Result: {paymentResult !== null ? (paymentResult ? "Success" : "Failure") : "Not Tested"}</p>
             </section>
         </Modal>
     );
