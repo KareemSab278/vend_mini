@@ -272,6 +272,7 @@ async fn edit_product(Path(id): Path<i32>, Json(payload): Json<NewProduct>) -> i
 fn get_local_ip() -> String {
     let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
     socket.connect("8.8.8.8:80").unwrap();
+    println!("TCP SOCKET CONNECTED");
     socket.local_addr().unwrap().ip().to_string()
 }
 
@@ -314,6 +315,6 @@ pub async fn start() {
             return;
         }
     };
-
+    println!("Server listener bound on {}", addr);
     axum::serve(listener, app).await.unwrap();
 }
