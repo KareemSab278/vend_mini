@@ -270,15 +270,25 @@ async fn edit_product(Path(id): Path<i32>, Json(payload): Json<NewProduct>) -> i
 }
 
 fn get_local_ip() -> String {
-    let socket = UdpSocket::bind("0.0.0.0:0").unwrap();
-    socket.connect("8.8.8.8:80").unwrap();
-    println!("TCP SOCKET CONNECTED");
-    socket.local_addr().unwrap().ip().to_string()
+    if let Ok(socket) = UdpSocket::bind("0.0.0.0:0") {
+        if socket.connect("8.8.8.8:80").is_ok() {
+            if let Ok(addr) = socket.local_addr() {
+                let ip = addr.ip().to_string();
+                if !ip.is_empty() && ip != "0.0.0.0" {
+                    return ip;
+                }
+            }
+        }
+    }
+
+    // Fall back when offline or on a local-only network so the process never
+    // panics. Browsers on the same machine can still reach 127.0.0.1.
+    "127.0.0.1".to_string()
 }
 
 pub fn return_editor_url() -> String {
     let local_ip = get_local_ip();
-    format!("http://{}:3000", local_ip)
+    format!("http://{}:8000", local_ip)
 }
 
 pub async fn start() {
@@ -303,10 +313,10 @@ pub async fn start() {
             env!("CARGO_MANIFEST_DIR"),
             "/src/static"
         )));
-    let addr = SocketAddr::from(([0, 0, 0, 0], 3000));
+    let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
     let local_ip = get_local_ip();
 
-    println!("Server running on http://{}:3000", local_ip);
+    println!("Server running on http://{}:8000", local_ip);
 
     let listener = match tokio::net::TcpListener::bind(addr).await {
         Ok(l) => l,
@@ -316,5 +326,7 @@ pub async fn start() {
         }
     };
     println!("Server listener bound on {}", addr);
-    axum::serve(listener, app).await.unwrap();
+    if let Err(e) = axum::serve(listener, app).await {
+        eprintln!("Static page server error: {}", e);
+    }
 }
