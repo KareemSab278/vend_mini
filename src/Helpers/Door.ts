@@ -16,6 +16,7 @@ interface DoorFunctions {
     paidUnlockAll: () => Promise<void>, 
     status: () => Promise<DoorStatus[]>, 
     isClosed: () => Promise<boolean>,
+    waitForClosed: (timeoutMs?: number, pollIntervalMs?: number) => Promise<boolean>,
 }
 
 export const Door: DoorFunctions = {
@@ -49,21 +50,15 @@ export const Door: DoorFunctions = {
         const statuses = await Door.status();
         return statuses.length > 0 && statuses.every((s) => s.door_closed);
     },
-};
 
-
-const isDoorClosed = async (): Promise<boolean> => {
-    // should poll every 3 second to see when the door closed after 5 seconds of door opening.
-    // check repeatedly until the door is closed. when door is closed return true.
-    // if after 30 seconds door not closed then return false to set light red.
-    await new Promise((resolve) => setTimeout(resolve, 5000)); // wait for 5 seconds before checking if the door is closed
-
-    const startTime = Date.now();
-    while (Date.now() - startTime < 30000) { // poll for up to 30 seconds
-        if (await Door.isClosed()) {
-            return true;
+    waitForClosed: async (timeoutMs = 30000, pollIntervalMs = 1000): Promise<boolean> => {
+        const startTime = Date.now();
+        while (Date.now() - startTime < timeoutMs) {
+            if (await Door.isClosed()) {
+                return true;
+            }
+            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
         }
-        await new Promise((resolve) => setTimeout(resolve, 3000)); // poll every 3 seconds
-    }
-    return false; // door did not close within 30 seconds
+        return false; // door did not close within the timeout
+    },
 };

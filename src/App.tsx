@@ -61,31 +61,36 @@ function App() {
     setPaymentMethod("nfc");
     setPayStatus("paying");
 
-    NFC.payment(helpers.totalPrice(selectedProducts), (newBalance) => {
+    NFC.payment(helpers.totalPrice(selectedProducts), async (newBalance) => {
       setPayStatus("dispensing");
       Door.paidUnlock();
 
       setPayStatus("waiting_door");
 
-      const doorPollInterval = setInterval(async () => {
-        if (cancelledRef.current) {
-          clearInterval(doorPollInterval);
-          return;
-        }
-        const closed = await Door.isClosed(); // remember here: sometimes the door is closed and when you open it shows closed immediately. its just a lock hardware glitch
-        if (closed) {
-          clearInterval(doorPollInterval);
-          setPayStatus("done");
-          setPayMessage(`Payment successful.\nRemaining balance: £${parseFloat(Number(newBalance).toFixed(2))}`);
-          setAdminModalOpen(false);
+      const closed = await Door.waitForClosed(30000, 500);
+      if (cancelledRef.current) return;
 
-          setTimeout(() => {
-            if (!cancelledRef.current) {
-              resetCheckoutState();
-            }
-          }, 5000);
-        }
-      }, 500);
+      if (closed) {
+        setPayStatus("done");
+        setPayMessage(`Payment successful.\nRemaining balance: £${parseFloat(Number(newBalance).toFixed(2))}`);
+        setAdminModalOpen(false);
+
+        setTimeout(() => {
+          if (!cancelledRef.current) {
+            resetCheckoutState();
+          }
+        }, 5000);
+      } else {
+        setPayStatus("error");
+        setPayMessage("Failed to open doors.");
+        setAdminModalOpen(false);
+
+        setTimeout(() => {
+          if (!cancelledRef.current) {
+            resetCheckoutState();
+          }
+        }, 5000);
+      }
 
       setAdminModalOpen(false);
     }, (error) => {
@@ -256,25 +261,30 @@ function App() {
 
     setPayStatus("waiting_door");
 
-    const doorPollInterval = setInterval(async () => {
-      if (cancelledRef.current) {
-        clearInterval(doorPollInterval);
-        return;
-      }
-      const closed = await Door.isClosed();
+    const closed = await Door.waitForClosed(30000, 500);
+    if (cancelledRef.current) return;
 
-      if (closed) {
-        clearInterval(doorPollInterval);
-        setPayStatus("done");
-        setAdminModalOpen(false);
+    if (closed) {
+      setPayStatus("done");
+      setPayMessage("Payment successful.\nPlease take your items.");
+      setAdminModalOpen(false);
 
-        setTimeout(() => {
-          if (!cancelledRef.current) {
-            resetCheckoutState();
-          }
-        }, 500);
-      }
-    }, 500);
+      setTimeout(() => {
+        if (!cancelledRef.current) {
+          resetCheckoutState();
+        }
+      }, 500);
+    } else {
+      setPayStatus("error");
+      setPayMessage("Failed to open doors.");
+      setAdminModalOpen(false);
+
+      setTimeout(() => {
+        if (!cancelledRef.current) {
+          resetCheckoutState();
+        }
+      }, 5000);
+    }
 
   };
 
