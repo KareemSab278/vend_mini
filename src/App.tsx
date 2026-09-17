@@ -346,7 +346,6 @@ function App() {
     setCheckoutActive(false);
     setPayStatus("idle");
     setPayMessage("");
-    setSelectedProducts([]);
   };
 
   type Product = { product_id: number | string; product_name?: string; product_price?: number; count?: number;[key: string]: any };

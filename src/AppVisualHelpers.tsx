@@ -15,7 +15,7 @@ export {
     CategoryIndicatorComponent, ProductsSection, PaymentMethodModal
 };
 
-const CATEGORIES = ["All", "Drinks", "Snacks", "Food", "Questionable"];
+const CATEGORIES = ["All", "Drinks", "Snacks", "Food", "Questionable", "Drugs"];
 
 type SelectedProductsModalProps = {
     opened: boolean;
