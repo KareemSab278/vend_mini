@@ -91,7 +91,11 @@ const SelectedProductsModal = ({ opened, onClose, selectedProducts, onRemove, on
 const CheckoutModal = ({ opened, payMessage, payStatus, onDismiss, onCancel, paymentType }: CheckoutModalProps) => {
     const blockClose = payStatus === "waiting_door";
     const [showDismiss, setShowDismiss] = useState(false);
+
     useEffect(() => {
+        if (payStatus === "done" || payStatus === "error") {
+            setShowDismiss(true);
+        }
         if (payStatus === "waiting_door") {
             const timer = setTimeout(() => setShowDismiss(true), 20000);
             return () => clearTimeout(timer);
@@ -114,12 +118,12 @@ const CheckoutModal = ({ opened, payMessage, payStatus, onDismiss, onCancel, pay
 
                 <p style={styles.statusMessage}>{payMessage}</p>
 
-                {(payStatus === "error" || payStatus === "done" || (payStatus === "waiting_door" && showDismiss) ) && (
-                    <PrimaryButton title="Dismiss" onClick={onDismiss} />
+                {(payStatus === "error" || payStatus === "done" || (payStatus === "waiting_door" && showDismiss)) && (
+                    <PrimaryButton title="Dismiss" onClick={onDismiss} size="xl"/>
                 )}
 
 
-                {payStatus === "paying" && <PrimaryButton title="Cancel" onClick={onCancel} />}
+                {payStatus === "paying" && <PrimaryButton title="Cancel" onClick={onCancel} size="xl"/>}
             </section>
         </Modal>
     );

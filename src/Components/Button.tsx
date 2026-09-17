@@ -2,13 +2,13 @@ import { Button } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 export { PrimaryButton, RemoveButton };
 
-const PrimaryButton = ({ title, onClick, color = 'rgb(99, 99, 99)', onDoubleClick }:
-{ title: string; onClick: () => void; color?: string; onDoubleClick?: () => void }) => {
+const PrimaryButton = ({ title, onClick, color = 'rgb(99, 99, 99)', onDoubleClick, size }:
+{ title: string; onClick: () => void; color?: string; onDoubleClick?: () => void; size?: "sm" | "md" | "lg" | "xl" }) => {
   return (
     <section style={{ display: "inline-block", margin: "8px" }}>
       <Button
         variant="filled"
-        size="lg"
+        size={size || "lg"}
         radius="xl"
         style={{
           ...styles.primary,
