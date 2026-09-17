@@ -76,11 +76,11 @@ function App() {
 
     NFC.payment(helpers.totalPrice(selectedProducts), async (newBalance) => {
       setPayStatus("dispensing");
-      Door.paidUnlock();
+      await Door.paidUnlock();
 
       setPayStatus("waiting_door");
 
-      const closed = await Door.waitForOpenedThenClosed(30000, 500);
+      const closed = await Door.waitForOpenedThenClosed();
       if (cancelledRef.current) return;
 
       if (closed) {
@@ -279,7 +279,7 @@ function App() {
 
     setPayStatus("waiting_door");
 
-    const closed = await Door.waitForOpenedThenClosed(30000, 500);
+    const closed = await Door.waitForOpenedThenClosed();
     if (cancelledRef.current) return;
 
     if (closed) {

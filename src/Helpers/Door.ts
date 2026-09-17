@@ -10,11 +10,11 @@ export interface DoorStatus {
 }
 
 interface DoorFunctions {
-    unlock: () => Promise<void>, 
-    lock: () => Promise<void>, 
-    paidUnlock: () => Promise<void>, 
-    paidUnlockAll: () => Promise<void>, 
-    status: () => Promise<DoorStatus[]>, 
+    unlock: () => Promise<void>,
+    lock: () => Promise<void>,
+    paidUnlock: () => Promise<void>,
+    paidUnlockAll: () => Promise<void>,
+    status: () => Promise<DoorStatus[]>,
     isClosed: () => Promise<boolean>,
     waitForClosed: (timeoutMs?: number, pollIntervalMs?: number) => Promise<boolean>,
     waitForOpenedThenClosed: (timeoutMs?: number, pollIntervalMs?: number) => Promise<boolean>,
@@ -65,18 +65,47 @@ export const Door: DoorFunctions = {
 
     // right after unlocking, the sensor can briefly report "closed" before the user actually opens it,
     // so we require an open sighting first and only then wait for it to close again.
-    waitForOpenedThenClosed: async (timeoutMs = 30000, pollIntervalMs = 500): Promise<boolean> => {
+    // We also debounce: a single flaky "open" or "closed" reading should not count.
+    waitForOpenedThenClosed: async (timeoutMs = 30000, pollIntervalMs = 2000): Promise<boolean> => {
         const startTime = Date.now();
         let wasOpened = false;
+        let openStreak = 0;
+        let closedStreak = 0;
+        const requiredStreak = 2;
+
+        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+
         while (Date.now() - startTime < timeoutMs) {
             const closed = await Door.isClosed();
+            console.log(`[door] waiting: closed=${closed}, wasOpened=${wasOpened}, openStreak=${openStreak}, closedStreak=${closedStreak}`);
+
             if (!wasOpened) {
-                if (!closed) wasOpened = true;
-            } else if (closed) {
-                return true;
+                if (closed) {
+                    openStreak = 0;
+                } else {
+                    openStreak += 1;
+                    if (openStreak >= requiredStreak) {
+                        wasOpened = true;
+                        openStreak = 0;
+                        console.log("[door] door detected as opened");
+                    }
+                }
+            } else {
+                if (closed) {
+                    closedStreak += 1;
+                    if (closedStreak >= requiredStreak) {
+                        console.log("[door] door detected as closed after being opened");
+                        return true;
+                    }
+                } else {
+                    closedStreak = 0;
+                }
             }
+
             await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+
         }
+        console.warn("[door] timed out waiting for opened-then-closed");
         return false; // door was never opened+closed within the timeout
     },
 };
