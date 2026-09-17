@@ -1,21 +1,23 @@
 import { Modal } from "@mantine/core";
-import { ProductCard } from "./Components/ProductCard";
-import { PrimaryButton } from "./Components/Button";
-import { PriceStatusPill } from "./Components/PriceStatusPill";
+import { ProductCard } from "../../Components/ProductCard";
+import { PrimaryButton } from "../../Components/Button";
+import { PriceStatusPill } from "../../Components/PriceStatusPill";
 import * as helpers from "./AppHelpers";
-import { Door } from "./Helpers/Door";
+import { Door } from "../../Helpers/Door";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { CategoryIndicator } from "./Components/CategoryIndicator";
-import { Payment } from "./Helpers/Payment";
+import { CategoryIndicator } from "../../Components/CategoryIndicator";
+import { Payment } from "../../Helpers/Payment";
+import { LEDs } from "../../Helpers/LED";
+import { useState } from "react";
 
 export {
     styles, SelectedProductsModal, CheckoutModal,
     PriceStatusPillComponent, AdminModal, NFCNotification,
-    CategoryIndicatorComponent, ProductsSection, PaymentMethodModal
+    ProductsWithCategories, PaymentMethodModal
 };
 
-const CATEGORIES = ["All", "Drinks", "Snacks", "Food", "Questionable", "Drugs"];
+const CATEGORIES = ["All", "Drinks", "Snacks", "Food", "Other"];
 
 type SelectedProductsModalProps = {
     opened: boolean;
@@ -49,11 +51,10 @@ type AdminModalProps = {
     fullScreenState: boolean;
 };
 
-type ProductsSectionProps = {
+type ProductsWithCategoriesProps = {
     products: any[];
     appendProduct: ({ product, action }: { product: any; action: string }) => void;
     selectedProducts: any[];
-    activeCategory: string;
 };
 
 
@@ -107,10 +108,10 @@ const CheckoutModal = ({ opened, payMessage, payStatus, onDismiss, onCancel, pay
                 <p style={styles.statusMessage}>{payMessage}</p>
 
                 {(payStatus === "error" || payStatus === "done") && (
-                    <PrimaryButton title="Dismiss" onClick={onDismiss} size="xl"/>
+                    <PrimaryButton title="Dismiss" onClick={onDismiss} size="xl" />
                 )}
 
-                {payStatus === "paying" && <PrimaryButton title="Cancel" onClick={onCancel} size="xl"/>}
+                {payStatus === "paying" && <PrimaryButton title="Cancel" onClick={onCancel} size="xl" />}
             </section>
         </Modal>
     );
@@ -125,7 +126,7 @@ const PriceStatusPillComponent = ({ onModalOpen, onCheckout, totalPrice }: Price
 );
 
 const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, fullScreenState }: AdminModalProps) => {
-    let paymentResult: boolean | null = null;
+    const [paymentResult, setPaymentResult] = useState<boolean | null>(null);
     const adminOptions = [
         {
             title: fullScreenState ? "Exit Full Screen" : "Enter Full Screen",
@@ -138,10 +139,11 @@ const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, 
         { title: "Open Admin Page", onClick: () => openUrl(editorUrl) },
         { title: "Unlock Door", onClick: () => Door.unlock() },
         { title: "Lock Door", onClick: () => Door.lock() },
-        { title: "Test Payment", onClick: async () => await Payment.start(0.1, (success: boolean) => { paymentResult = success; }) },
-        // { title: "Set Light Green", onClick: () => Lights.setColor("green") },
-        // { title: "Set Light Red", onClick: () => Lights.setColor("red") },
-        // { title: "Set Light Blue", onClick: () => Lights.setColor("blue") },
+        { title: "Test Payment", onClick: async () => await Payment.start(0.1, (success: boolean) => { setPaymentResult(success); }) },
+        { title: "Set Light Green", onClick: () => LEDs.setGreen() },
+        { title: "Set Light Red", onClick: () => LEDs.setRed() },
+        { title: "Set Light Blue", onClick: () => LEDs.setBlue() },
+        { title: "Set Light White", onClick: () => LEDs.setWhite() },
     ];
 
     return (
@@ -167,20 +169,9 @@ const AdminModal = ({ opened, onClose, onAction, editorUrl, onToggleFullScreen, 
 };
 
 
-const CategoryIndicatorComponent = ({ activeCategory, setActiveCategory }: { activeCategory: string; setActiveCategory: (category: string) => void }) => (
-    <div style={styles.topContainer}>
-        <section style={styles.categoryIndicatorContainer}>
-            <CategoryIndicator
-                categories={CATEGORIES}
-                activeCategory={activeCategory}
-                onCategoryClick={setActiveCategory}
-            />
-        </section>
-    </div>
-);
+const ProductsWithCategories = ({ products, appendProduct, selectedProducts }: ProductsWithCategoriesProps) => {
+    const [activeCategory, setActiveCategory] = useState<string>("All");
 
-
-const ProductsSection = ({ products, appendProduct, selectedProducts, activeCategory }: ProductsSectionProps) => {
     const filteredProducts =
         activeCategory === "All"
             ? products.filter((prod) => prod.product_availability)
@@ -189,42 +180,69 @@ const ProductsSection = ({ products, appendProduct, selectedProducts, activeCate
                     prod.product_category === activeCategory &&
                     prod.product_availability,
             );
-    return (
-        <section style={styles.productsSection}>
-            {products.length > 0 ? (
-                filteredProducts.map((product) => {
-                    const inBasket = selectedProducts.find(
-                        (p) => p.product_id === product.product_id,
-                    );
 
-                    return (
-                        <ProductCard
-                            key={product.product_id}
-                            product={product}
-                            onClick={() => appendProduct({ product: product, action: "+" })}
-                            selected={!!inBasket}
-                            count={inBasket?.count || 0}
-                            showRemoveButton={false}
-                            onRemove={null}
-                        />
-                    );
-                })
-            ) : (
-                <div style={styles.noProductsMessage}>
-                    No products available.
-                </div>
-            )}
-        </section>
+    return (
+        <>
+            <div style={styles.topContainer}>
+                <section style={styles.categoryIndicatorContainer}>
+                    <CategoryIndicator
+                        categories={CATEGORIES}
+                        activeCategory={activeCategory}
+                        onCategoryClick={setActiveCategory}
+                    />
+                </section>
+            </div>
+
+            <section style={styles.productsSection}>
+                {products.length > 0 ? (
+                    filteredProducts.map((product) => {
+                        const inBasket = selectedProducts.find(
+                            (p) => p.product_id === product.product_id,
+                        );
+
+                        return (
+                            <ProductCard
+                                key={product.product_id}
+                                product={product}
+                                onClick={() => appendProduct({ product: product, action: "+" })}
+                                selected={!!inBasket}
+                                count={inBasket?.count || 0}
+                                showRemoveButton={false}
+                                onRemove={null}
+                            />
+                        );
+                    })
+                ) : (
+                    <div style={styles.noProductsMessage}>
+                        No products available.
+                    </div>
+                )}
+            </section>
+        </>
     );
 };
 
 
-type PaymentMethodModalProps = { opened: boolean; onClose: () => void; onSelectCard: () => void; onSelectNFC: () => void }
+type PaymentMethodModalProps = {
+    opened: boolean;
+    onClose: () => void;
+    onSelectCard: () => void;
+    onSelectNFC: () => void;
+}
+
 const PaymentMethodModal = ({ opened, onClose, onSelectCard, onSelectNFC }: PaymentMethodModalProps) => (
     <Modal opened={opened} onClose={onClose} title="Select Payment Method">
         <section style={styles.paymentSection}>
-            <PrimaryButton title="Card" onClick={() => { onSelectCard(); onClose(); }} />
-            <PrimaryButton title="NFC" onClick={() => { onSelectNFC(); onClose(); }} />
+            <PrimaryButton
+                title="Card"
+                onClick={() => { onSelectCard(); onClose(); }}
+                size='xl'
+            />
+            <PrimaryButton
+                title="NFC"
+                onClick={() => { onSelectNFC(); onClose(); }}
+                size='xl'
+            />
         </section>
     </Modal>
 );

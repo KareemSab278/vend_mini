@@ -1281,7 +1281,7 @@ Table: `products`
 |--------|------|-------------|-------------|
 | `product_id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Unique product identifier |
 | `product_name` | TEXT | NOT NULL | Display name of the product |
-| `product_category` | TEXT | NOT NULL | Must match one of the app categories: Drinks, Snacks, Food, Drugs, Questionable |
+| `product_category` | TEXT | NOT NULL | Must match one of the app categories: Drinks, Snacks, Food, Questionable |
 | `product_price` | REAL | NOT NULL | Price in GBP as a decimal (e.g. 1.50) |
 | `product_availability` | INTEGER | NOT NULL DEFAULT 1 | Boolean stored as integer: 1 = available, 0 = hidden |
 

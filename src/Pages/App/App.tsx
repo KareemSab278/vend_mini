@@ -2,21 +2,33 @@ import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import * as helpers from "./AppHelpers";
-import * as visuals from "./AppVisualHelpers";
-import { Door } from "./Helpers/Door";
-import { NFC } from "./Helpers/Nfc";
-import { Payment } from "./Helpers/Payment";
-import { LEDs } from "./Helpers/LED";
-import { KeyPressListener } from "./Helpers/KeyPressListener";
-import { ScreenSaver } from "./Components/ScreenSaver";
+import * as visuals from "../App/AppVisualHelpers";
+import { Door } from "../../Helpers/Door";
+import { NFC } from "../../Helpers/Nfc";
+import { Payment } from "../../Helpers/Payment";
+import { LEDs } from "../../Helpers/LED";
+import { KeyPressListener } from "../../Helpers/KeyPressListener";
+import { ScreenSaver } from "../../Components/ScreenSaver";
 
 export { App };
 
-const SCREENSAVER_TIMEOUT_MINUTES: number = 1; // uno minuto
-const FETCH_PRODUCTS_INTERVAL: number = 6000; // i could live by doing this when a purchase happens and when the screensaver mounts...
-const NFC_ONLY_MODE: boolean = false; // set to true to disable the corner admin trigger and rely solely on NFC for admin access
+const SCREENSAVER_TIMEOUT_MINUTES: number = 1;
+const FETCH_PRODUCTS_INTERVAL: number = 6000;
+const NFC_ONLY_MODE: boolean = false;
 
-function App() {
+type Product = {
+  product_id: string;
+  product_name: string;
+  product_category: string;
+  product_price: number;
+  product_availability: boolean;
+  count: number;
+};
+
+type PayStatus = "paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle" | "nfc";
+
+
+const App = () => {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [screenSaverActive, setScreenSaverActive] = useState<boolean>(false);
   const [checkoutActive, setCheckoutActive] = useState<boolean>(false);
@@ -25,11 +37,10 @@ function App() {
 
   const [fullScreenState, setFullScreenState] = useState<boolean>(false);
 
-  const [activeCategory, setActiveCategory] = useState<string>("All");
-  const [selectedProducts, setSelectedProducts] = useState<any[]>([]);
-  const [products, setProducts] = useState<any[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<Product[]>([]);
 
-  const [payStatus, setPayStatus] = useState<"paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle" | "nfc">("idle");
+  const [payStatus, setPayStatus] = useState<PayStatus>("idle");
   const [payMessage, setPayMessage] = useState<string>("");
   const [editorUrl, setEditorUrl] = useState<string>("");
   const [nfcNotification, setNfcNotification] = useState<string | null>(null);
@@ -43,7 +54,7 @@ function App() {
 
   const [paymentMethod, setPaymentMethod] = useState<"card" | "nfc" | null>(null);
 
-  // listenToNfc only subscribes once on mount, so its callback must read fresh state via refs, not the closed-over state variables.
+  // required refs for nfc.
   const modalOpenRef = useRef(modalOpen);
   const checkoutActiveRef = useRef(checkoutActive);
   const payStatusRef = useRef(payStatus);
@@ -63,8 +74,6 @@ function App() {
       setPayMessage("Please take your items and close the door.");
     }
   }, [payStatus]);
-
-
 
 
   const handleNFCCheckout = () => {
@@ -162,10 +171,9 @@ function App() {
     });
   };
 
-  const getProductsOnMount = async () => {
-    const prods: any[] = await invoke("query_products");
-    setProducts(prods);
-  };
+
+  const getProductsOnMount = async () =>
+    await invoke("query_products") as Product[];
 
   const initializePaymentServer = async () => {
     try {
@@ -180,24 +188,18 @@ function App() {
   const initializeStaticServer = async () => {
     try {
       await invoke("initialize_static_page_server");
+      const editorUrlRaw: string | null = await invoke("return_editor_url");
+      setEditorUrl(editorUrlRaw ?? "Could not get url");
     } catch (e) {
       console.error("Failed to start static page server:", e);
     }
   };
 
-  const fetchEditorUrl = async () => {
-    try {
-      const editorUrlRaw: string | null = await invoke("return_editor_url");
-      setEditorUrl(editorUrlRaw ?? "");
-    } catch (e) {
-      console.error("Failed to fetch editor URL:", e);
-    }
-  };
+
 
   useEffect(() => {
     listenToNfc();
-    getProductsOnMount();
-    fetchEditorUrl();
+    getProductsOnMount().then(setProducts)
     initializeStaticServer();
     fetchProducts();
     initializePaymentServer();
@@ -227,6 +229,8 @@ function App() {
     };
   }, []);
 
+
+
   useEffect(() => {
     if (checkoutActive) {
       clearInactivityTimer();
@@ -248,7 +252,7 @@ function App() {
 
 
   const insertOrderToDB = async () => {
-    for (const p of selectedProducts) {
+    for (const p of selectedProducts as Product[]) {
       try {
         await invoke("insert_order", {
           productId: p.product_id,
@@ -348,7 +352,6 @@ function App() {
     setPayMessage("");
   };
 
-  type Product = { product_id: number | string; product_name?: string; product_price?: number; count?: number;[key: string]: any };
 
   const appendProduct = ({ product, action }: { product: Product | null | undefined; action: string }) => {
     if (!product || product.product_id == null) {
@@ -414,16 +417,10 @@ function App() {
         fullScreenState={fullScreenState}
       />}
 
-      {hideVisual && !modalOpen && <visuals.CategoryIndicatorComponent
-        activeCategory={activeCategory}
-        setActiveCategory={setActiveCategory}
-      />}
-
-      {hideVisual && <visuals.ProductsSection
+      {hideVisual && <visuals.ProductsWithCategories
         products={products}
         appendProduct={appendProduct}
         selectedProducts={selectedProducts}
-        activeCategory={activeCategory}
       />}
 
       {hideVisual && selectedProducts.length > 0 && <visuals.PriceStatusPillComponent

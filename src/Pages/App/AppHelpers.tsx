@@ -17,9 +17,7 @@ import {
   IconCookie,
   IconShoppingBag,
 } from "@tabler/icons-react";
-
 import { invoke } from "@tauri-apps/api/core";
-
 import { TbNfc } from "react-icons/tb";
 
 const statusIcon = (payStatus: "paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle" | "nfc") => {
