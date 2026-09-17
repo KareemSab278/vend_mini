@@ -76,56 +76,28 @@ const App = () => {
   }, [payStatus]);
 
 
-  const handleNFCCheckout = () => {
+  const handleNFCCheckout = async () => {
     if (selectedProducts.length === 0 || checkoutActive) return;
 
     cancelledRef.current = false;
-    setPaymentMethod("nfc");
-    setPayStatus("paying");
-
-    NFC.payment(helpers.totalPrice(selectedProducts), async (newBalance) => {
-      setPayStatus("dispensing");
-      await Door.paidUnlock();
-
-      setPayStatus("waiting_door");
-
-      const closed = await Door.waitForOpenedThenClosed();
-      if (cancelledRef.current) return;
-
-      if (closed) {
-        setPayStatus("done");
-        setPayMessage(`Payment successful.\nRemaining balance: £${parseFloat(Number(newBalance).toFixed(2))}`);
-        setAdminModalOpen(false);
-
-        setTimeout(() => {
-          if (!cancelledRef.current) {
-            resetCheckoutState();
-          }
-        }, 5000);
-      } else {
-        setPayStatus("error");
-        setPayMessage("Door did not close. Please close the door.");
-        LEDs.setRed();
-        setAdminModalOpen(false);
-
-        setTimeout(() => {
-          if (!cancelledRef.current) {
-            resetCheckoutState();
-          }
-        }, 5000);
-      }
-    }, (error) => {
-      setPayStatus("error");
-      setPayMessage(`Payment failed: ${error ?? String(error) ?? "Unknown error"}`);
-      setAdminModalOpen(false);
-    });
-
     setCheckoutActive(true);
     setScreenSaverActive(false);
     setAdminModalOpen(false);
+    setPaymentMethod("nfc");
+    setPayStatus("paying");
+
+    try {
+      await NFC.payment(
+        helpers.totalPrice(selectedProducts),
+        () => { },
+        () => { }
+      );
+      await openDoorAndWaitForClose();
+    } catch (error) {
+      setPayStatus("error");
+      setPayMessage(`Payment failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
   };
-
-
 
 
   const clearInactivityTimer = () => {
@@ -270,7 +242,9 @@ const App = () => {
     setPayStatus("dispensing");
 
     try {
-      await Payment.end(true);
+      if (paymentMethod === "card") {
+        await Payment.end(true);
+      }
     } catch (e) {
       setPayStatus("error");
       setPayMessage(`Failed to settle payment: ${e}`);
@@ -308,7 +282,6 @@ const App = () => {
         }
       }, 5000);
     }
-
   };
 
   const handleCardCheckout = async () => {
@@ -322,11 +295,11 @@ const App = () => {
 
     const amount = helpers.totalPrice(selectedProducts);
 
-    await Payment.start(amount, (success: boolean) => {
+    await Payment.start(amount, async (success: boolean) => {
       if (cancelledRef.current) return;
 
       if (success) {
-        openDoorAndWaitForClose();
+        await openDoorAndWaitForClose();
       } else {
         setPayStatus("error");
         setPayMessage("Payment failed. Please try again.");

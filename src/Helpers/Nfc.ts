@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 interface NfcFunctions {
     listenAdminFound: (onAdminFound: () => void) => Promise<() => void>, // subscribe to nfc-admin-found, returns the unlisten fn
     listenUnknownTag: (onUnknown: (tagId: string) => void) => Promise<() => void>, // subscribe to nfc-unknown-tag, returns the unlisten fn
-    payment: (amount: number, onSuccess: (newBalance: number) => void, onError: (error: unknown) => void) => Promise<void>, // read tag, check balance, deduct amount
+    payment: (amount: number, onSuccess: (newBalance: number) => void, onError: (error: Error) => void) => Promise<number>, // read tag, check balance, deduct amount
     listenTags: () => Promise<string | undefined>, // read a single tag id
 }
 
@@ -29,8 +29,8 @@ export const NFC: NfcFunctions = {
     payment: async (
         amount: number,
         onSuccess: (newBalance: number) => void,
-        onError: (error: unknown) => void
-    ): Promise<void> => {
+        onError: (error: Error) => void
+    ): Promise<number> => {
         try {
             const tagId = (await invoke("get_tag_id")) as string;
             if (!tagId) throw new Error("No tag detected");
@@ -42,9 +42,11 @@ export const NFC: NfcFunctions = {
 
             const newBalance = (await invoke("update_balance_by_tag_id", { tagId, amount })) as number;
             onSuccess(newBalance);
+            return newBalance;
         } catch (error) {
             console.error("NFC payment failed:", error);
-            onError(error);
+            onError(error as Error);
+            throw error;
         }
     },
 
