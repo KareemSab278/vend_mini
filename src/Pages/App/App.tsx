@@ -87,12 +87,12 @@ const App = () => {
     setPayStatus("paying");
 
     try {
-      const newBalance = await NFC.payment(
+      const newBalance: number = await NFC.payment(
         helpers.totalPrice(selectedProducts),
         () => { },
         () => { }
       );
-      await openDoorAndWaitForClose(newBalance);
+      await openDoorAndWaitForClose((newBalance/ 100).toFixed(2));
     } catch (error) {
       setPayStatus("error");
       setPayMessage(`Payment failed: ${error instanceof Error ? error.message : String(error)}`);
@@ -237,7 +237,7 @@ const App = () => {
     }
   };
 
-  const openDoorAndWaitForClose = async (newBalance?: number) => {
+  const openDoorAndWaitForClose = async (newBalance?: string) => {
     if (cancelledRef.current) return;
     setPayStatus("dispensing");
 
