@@ -39,6 +39,7 @@ pub fn run() {
             door::lock_door,
             door::paid_unlock,
             door::get_door_status,
+            door::get_all_doors_status,
             // Serial utilities
             serial_comms::get_all_serial_ports,
             serial_comms::kill_polling,

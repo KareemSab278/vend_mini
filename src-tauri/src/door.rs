@@ -70,11 +70,7 @@ fn extract_device_id(raw: &str) -> Option<String> {
 }
 
 
-#[tauri::command]
-pub async fn get_door_status() -> Result<DoorStatus, String> {
-    let first_door_found = SRL_CMS::status();
-    let raw = first_door_found.first().ok_or("No doors found")?;
-
+fn parse_door_status(raw: &str) -> DoorStatus {
     let mut door = "UNKNOWN".to_string();
     let mut lock = "UNKNOWN".to_string();
     let mut door_number = -1;
@@ -110,12 +106,28 @@ pub async fn get_door_status() -> Result<DoorStatus, String> {
     let door_closed = door.eq_ignore_ascii_case("CLOSED");
     let locked = lock.eq_ignore_ascii_case("LOCKED");
 
-    Ok(DoorStatus {
+    DoorStatus {
         door: door_number,
         door_number,
         lock,
         door_closed,
         locked,
         raw: raw.to_string(),
-    })
+    }
+}
+
+#[tauri::command]
+pub async fn get_door_status() -> Result<DoorStatus, String> {
+    let all_doors_found = SRL_CMS::status();
+    let raw = all_doors_found.first().ok_or("No doors found")?;
+    Ok(parse_door_status(raw))
+}
+
+#[tauri::command]
+pub async fn get_all_doors_status() -> Result<Vec<DoorStatus>, String> {
+    let all_doors_found = SRL_CMS::status();
+    if all_doors_found.is_empty() {
+        return Err("No doors found".to_string());
+    }
+    Ok(all_doors_found.iter().map(|raw| parse_door_status(raw)).collect())
 }
