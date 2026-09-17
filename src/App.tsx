@@ -44,7 +44,7 @@ function App() {
   const [paymentMethod, setPaymentMethod] = useState<"card" | "nfc" | null>(null);
 
   const handleNFCCheckout = () => {
-     if (selectedProducts.length === 0 || checkoutActive) return;
+    if (selectedProducts.length === 0 || checkoutActive) return;
 
     setPaymentMethod("nfc");
     setPayStatus("paying");
@@ -56,7 +56,7 @@ function App() {
 
       setPayStatus("waiting_door");
       setPayMessage("Please take your items and close the door.");
-      
+
       const doorPollInterval = setInterval(async () => {
         if (cancelledRef.current) {
           clearInterval(doorPollInterval);
@@ -213,7 +213,22 @@ function App() {
     }, FETCH_PRODUCTS_INTERVAL);
   };
 
-  const doDispenseAll = async () => {
+
+  const insertOrderToDB = async () => {
+    for (const p of selectedProducts) {
+      try {
+        await invoke("insert_order", {
+          productId: p.product_id,
+          quantity: p.count,
+          price: p.product_price * p.count,
+        });
+      } catch (e) {
+        console.error("Failed to save order for product", p.product_id, e);
+      }
+    }
+  };
+
+  const openDoorAndWaitForClose = async () => {
     if (cancelledRef.current) return;
     setPayStatus("dispensing");
     setPayMessage("Payment approved! Opening door…");
@@ -226,27 +241,20 @@ function App() {
       return;
     }
 
-    Door.unlock();
+    await Door.paidUnlock();
 
-    for (const p of selectedProducts) {
-      try {
-        await invoke("insert_order", {
-          productId: p.product_id,
-          quantity: p.count,
-          price: p.product_price * p.count,
-        });
-      } catch (e) {
-        console.error("Failed to save order for product", p.product_id, e);
-      }
-    }
+    await insertOrderToDB();
+
     setPayStatus("waiting_door");
     setPayMessage("Please take your items and close the door.");
+
     const doorPollInterval = setInterval(async () => {
       if (cancelledRef.current) {
         clearInterval(doorPollInterval);
         return;
       }
       const closed = await Door.isClosed();
+
       if (closed) {
         clearInterval(doorPollInterval);
         setPayStatus("done");
@@ -260,6 +268,7 @@ function App() {
         }, 500);
       }
     }, 500);
+
   };
 
   const handleCardCheckout = async () => {
@@ -278,7 +287,7 @@ function App() {
       if (cancelledRef.current) return;
 
       if (success) {
-        doDispenseAll();
+        openDoorAndWaitForClose();
       } else {
         setPayStatus("error");
         setPayMessage("Payment failed. Please try again.");
