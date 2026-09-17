@@ -43,19 +43,29 @@ function App() {
 
   const [paymentMethod, setPaymentMethod] = useState<"card" | "nfc" | null>(null);
 
+  useEffect(() => {
+    if (payStatus === "paying") {
+      setPayMessage(`Please tap or swipe your ${paymentMethod === "card" ? "card" : "NFC tag"}…`);
+    }
+    if (payStatus === "dispensing") {
+      setPayMessage("Payment approved! Opening door…");
+    }
+    if (payStatus === "waiting_door") {
+      setPayMessage("Please take your items and close the door.");
+    }
+  }, [payStatus]);
+
   const handleNFCCheckout = () => {
     if (selectedProducts.length === 0 || checkoutActive) return;
 
     setPaymentMethod("nfc");
     setPayStatus("paying");
-    setPayMessage("Please tap your NFC tag to pay…");
 
     NFC.payment(helpers.totalPrice(selectedProducts), (newBalance) => {
       setPayStatus("dispensing");
       Door.paidUnlock();
 
       setPayStatus("waiting_door");
-      setPayMessage("Please take your items and close the door.");
 
       const doorPollInterval = setInterval(async () => {
         if (cancelledRef.current) {
@@ -231,7 +241,6 @@ function App() {
   const openDoorAndWaitForClose = async () => {
     if (cancelledRef.current) return;
     setPayStatus("dispensing");
-    setPayMessage("Payment approved! Opening door…");
 
     try {
       await Payment.end(true);
@@ -246,7 +255,6 @@ function App() {
     await insertOrderToDB();
 
     setPayStatus("waiting_door");
-    setPayMessage("Please take your items and close the door.");
 
     const doorPollInterval = setInterval(async () => {
       if (cancelledRef.current) {
@@ -258,7 +266,6 @@ function App() {
       if (closed) {
         clearInterval(doorPollInterval);
         setPayStatus("done");
-        setPayMessage("Thank you! Please come again.");
         setAdminModalOpen(false);
 
         setTimeout(() => {
@@ -279,7 +286,6 @@ function App() {
     setCheckoutActive(true);
     setPaymentMethod("card");
     setPayStatus("paying");
-    setPayMessage("Please tap, insert, or swipe your card…");
 
     const amount = helpers.totalPrice(selectedProducts);
 
