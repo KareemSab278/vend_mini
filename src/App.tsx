@@ -9,7 +9,6 @@ import { Payment } from "./Helpers/Payment";
 import { LEDs } from "./Helpers/LED";
 import { KeyPressListener } from "./Helpers/KeyPressListener";
 import { ScreenSaver } from "./Components/ScreenSaver";
-import { check } from "@tauri-apps/plugin-updater";
 
 export { App };
 
@@ -43,6 +42,15 @@ function App() {
   const cancelledRef = useRef<boolean>(false);
 
   const [paymentMethod, setPaymentMethod] = useState<"card" | "nfc" | null>(null);
+
+  // listenToNfc only subscribes once on mount, so its callback must read fresh state via refs, not the closed-over state variables.
+  const modalOpenRef = useRef(modalOpen);
+  const checkoutActiveRef = useRef(checkoutActive);
+  const payStatusRef = useRef(payStatus);
+
+  useEffect(() => { modalOpenRef.current = modalOpen; }, [modalOpen]);
+  useEffect(() => { checkoutActiveRef.current = checkoutActive; }, [checkoutActive]);
+  useEffect(() => { payStatusRef.current = payStatus; }, [payStatus]);
 
   useEffect(() => {
     if (payStatus === "paying") {
@@ -147,7 +155,10 @@ function App() {
       showNfcNotification(`Unknown NFC tag: ${tagId}`);
     });
     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
-      !modalOpen && !checkoutActive && payStatus === "idle" && (setAdminModalOpen(true), setScreenSaverActive(false));
+      if (!modalOpenRef.current && !checkoutActiveRef.current && payStatusRef.current === "idle") {
+        setAdminModalOpen(true);
+        setScreenSaverActive(false);
+      }
     });
   };
 
