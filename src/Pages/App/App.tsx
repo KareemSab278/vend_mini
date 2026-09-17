@@ -92,7 +92,7 @@ const App = () => {
         () => { },
         () => { }
       );
-      await openDoorAndWaitForClose((newBalance/ 100).toFixed(2));
+      await openDoorAndWaitForClose(newBalance.toFixed(2));
     } catch (error) {
       setPayStatus("error");
       setPayMessage(`Payment failed: ${error instanceof Error ? error.message : String(error)}`);
