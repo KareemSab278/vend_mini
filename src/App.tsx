@@ -56,6 +56,9 @@ function App() {
     }
   }, [payStatus]);
 
+
+
+
   const handleNFCCheckout = () => {
     if (selectedProducts.length === 0 || checkoutActive) return;
 
@@ -105,6 +108,9 @@ function App() {
     setAdminModalOpen(false);
   };
 
+
+
+
   const clearInactivityTimer = () => {
     if (inactivityTimerRef.current) {
       clearTimeout(inactivityTimerRef.current);
@@ -141,7 +147,7 @@ function App() {
       showNfcNotification(`Unknown NFC tag: ${tagId}`);
     });
     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
-      !modalOpen && !checkoutActive && (setAdminModalOpen(true), setScreenSaverActive(false)); // only show admin if nothing else open.
+      !modalOpen && !checkoutActive && payStatus === "idle" && (setAdminModalOpen(true), setScreenSaverActive(false));
     });
   };
 
@@ -267,7 +273,7 @@ function App() {
 
     if (closed) {
       setPayStatus("done");
-      setPayMessage("Payment successful.\nPlease take your items.");
+      setPayMessage("Payment successful.\nThank you for your purchase.");
       setAdminModalOpen(false);
 
       setTimeout(() => {
