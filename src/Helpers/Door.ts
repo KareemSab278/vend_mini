@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+const dev = import.meta.env.DEV;
 
 export interface DoorStatus {
     door: number;
@@ -42,7 +43,7 @@ export const Door: DoorFunctions = {
             const result = await invoke<DoorStatus[]>("get_all_doors_status");
             return Array.isArray(result) ? result : [];
         } catch (error) {
-            console.error("Failed to get door status:", error);
+            dev && console.error("Failed to get door status:", error);
             return [];
         }
     },
@@ -77,7 +78,7 @@ export const Door: DoorFunctions = {
 
         while (Date.now() - startTime < timeoutMs) {
             const closed = await Door.isClosed();
-            console.log(`[door] waiting: closed=${closed}, wasOpened=${wasOpened}, openStreak=${openStreak}, closedStreak=${closedStreak}`);
+            dev && console.log(`[door] waiting: closed=${closed}, wasOpened=${wasOpened}, openStreak=${openStreak}, closedStreak=${closedStreak}`);
 
             if (!wasOpened) {
                 if (closed) {
@@ -87,14 +88,14 @@ export const Door: DoorFunctions = {
                     if (openStreak >= requiredStreak) {
                         wasOpened = true;
                         openStreak = 0;
-                        console.log("[door] door detected as opened");
+                        dev && console.log("[door] door detected as opened");
                     }
                 }
             } else {
                 if (closed) {
                     closedStreak += 1;
                     if (closedStreak >= requiredStreak) {
-                        console.log("[door] door detected as closed after being opened");
+                        dev && console.log("[door] door detected as closed after being opened");
                         return true;
                     }
                 } else {
@@ -105,7 +106,7 @@ export const Door: DoorFunctions = {
             await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
 
         }
-        console.warn("[door] timed out waiting for opened-then-closed");
+        dev && console.warn("[door] timed out waiting for opened-then-closed");
         return false; // door was never opened+closed within the timeout
     },
 };

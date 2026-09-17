@@ -1,3 +1,5 @@
+const dev = import.meta.env.DEV;
+
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
 
@@ -15,14 +17,14 @@ export const Payment: PaymentFunctions = {
 
     initialize: async (): Promise<string> => {
         const port = await invoke<string>("initialize_payment_device");
-        console.log("Payment device initialized on port:", port);
+        dev && console.log("Payment device initialized on port:", port);
         paymentPort = port;
         return port;
     },
 
     end: async (success: boolean): Promise<void> => {
         if (!paymentPort) {
-            console.error("Payment port not initialized");
+            dev && console.error("Payment port not initialized");
             return;
         }
         await invoke("end_payment", { paymentPort, success });
@@ -30,7 +32,7 @@ export const Payment: PaymentFunctions = {
 
     cancel: async (): Promise<void> => {
         if (!paymentPort) {
-            console.error("Payment port not initialized");
+            dev && console.error("Payment port not initialized");
             return;
         }
         currentUnlisten?.();
@@ -41,7 +43,7 @@ export const Payment: PaymentFunctions = {
     start: async (amount: number, onResult: (success: boolean) => void): Promise<void> => {
         try {
             if (!paymentPort) {
-                console.error("Payment port not initialized");
+                dev && console.error("Payment port not initialized");
                 onResult(false);
                 return;
             }
@@ -56,7 +58,7 @@ export const Payment: PaymentFunctions = {
         } catch (error) {
             currentUnlisten?.();
             currentUnlisten = undefined;
-            console.error("Error starting payment:", error);
+            dev && console.error("Error starting payment:", error);
             onResult(false);
         }
     }

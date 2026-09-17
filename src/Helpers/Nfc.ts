@@ -1,3 +1,5 @@
+const dev = import.meta.env.DEV;
+
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 
@@ -11,7 +13,7 @@ interface NfcFunctions {
 export const NFC: NfcFunctions = {
     listenAdminFound: async (onAdminFound: () => void): Promise<() => void> => {
         const unlisten = await listen("nfc-admin-found", () => {
-            console.log("[NFC] Admin tag detected!");
+            dev && console.log("[NFC] Admin tag detected!");
             onAdminFound();
         });
         return unlisten;
@@ -20,7 +22,7 @@ export const NFC: NfcFunctions = {
     listenUnknownTag: async (onUnknown: (tagId: string) => void): Promise<() => void> => {
         const unlisten = await listen("nfc-unknown-tag", (event) => {
             const tagId = String((event as any).payload ?? event);
-            console.log(`NFC unknown tag: ${tagId}`);
+            dev && console.log(`NFC unknown tag: ${tagId}`);
             onUnknown(tagId);
         });
         return unlisten;
@@ -44,7 +46,7 @@ export const NFC: NfcFunctions = {
             onSuccess(newBalance);
             return newBalance;
         } catch (error) {
-            console.error("NFC payment failed:", error);
+            dev && console.error("NFC payment failed:", error);
             onError(error as Error);
             throw error;
         }

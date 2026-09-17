@@ -1,3 +1,5 @@
+const dev = import.meta.env.DEV;
+
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -163,7 +165,7 @@ const App = () => {
       const editorUrlRaw: string | null = await invoke("return_editor_url");
       setEditorUrl(editorUrlRaw ?? "Could not get url");
     } catch (e) {
-      console.error("Failed to start static page server:", e);
+      dev && console.error("Failed to start static page server:", e);
     }
   };
 
@@ -217,7 +219,7 @@ const App = () => {
         const prods: any[] = await invoke("query_products");
         setProducts(prods);
       } catch (e) {
-        console.error("Failed to fetch products:", e);
+        dev && console.error("Failed to fetch products:", e);
       }
     }, FETCH_PRODUCTS_INTERVAL);
   };
@@ -232,7 +234,7 @@ const App = () => {
           price: p.product_price * p.count,
         });
       } catch (e) {
-        console.error("Failed to save order for product", p.product_id, e);
+        dev && console.error("Failed to save order for product", p.product_id, e);
       }
     }
   };
@@ -333,12 +335,12 @@ const App = () => {
 
   const appendProduct = ({ product, action }: { product: Product | null | undefined; action: string }) => {
     if (!product || product.product_id == null) {
-      console.warn("[App] appendProduct: invalid product", product, action);
+      dev && console.warn("[App] appendProduct: invalid product", product, action);
       return;
     }
 
     if (action !== "+" && action !== "-") {
-      console.warn("[App] appendProduct: invalid action", action);
+      dev && console.warn("[App] appendProduct: invalid action", action);
       return;
     }
 

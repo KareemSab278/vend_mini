@@ -1,3 +1,5 @@
+const dev = import.meta.env.DEV;
+
 interface LEDsFunctions {
     setWhite: () => Promise<Response | undefined>;
     setGreen: () => Promise<Response | undefined>;
@@ -39,10 +41,10 @@ const setLightsColor = async (color: Color): Promise<Response | undefined> => {
             },
             body: JSON.stringify(payload),
         });
-        console.log("Shelly light response:", res.status);
+        dev && console.log("Shelly light response:", res.status);
         return res;
     } catch (error) {
-        console.error("Failed to set Shelly light:", error);
+        dev && console.error("Failed to set Shelly light:", error);
     }
 };
 
