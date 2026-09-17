@@ -17,6 +17,7 @@ interface DoorFunctions {
     status: () => Promise<DoorStatus[]>, 
     isClosed: () => Promise<boolean>,
     waitForClosed: (timeoutMs?: number, pollIntervalMs?: number) => Promise<boolean>,
+    waitForOpenedThenClosed: (timeoutMs?: number, pollIntervalMs?: number) => Promise<boolean>,
 }
 
 export const Door: DoorFunctions = {
@@ -60,5 +61,22 @@ export const Door: DoorFunctions = {
             await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
         }
         return false; // door did not close within the timeout
+    },
+
+    // right after unlocking, the sensor can briefly report "closed" before the user actually opens it,
+    // so we require an open sighting first and only then wait for it to close again.
+    waitForOpenedThenClosed: async (timeoutMs = 30000, pollIntervalMs = 500): Promise<boolean> => {
+        const startTime = Date.now();
+        let wasOpened = false;
+        while (Date.now() - startTime < timeoutMs) {
+            const closed = await Door.isClosed();
+            if (!wasOpened) {
+                if (!closed) wasOpened = true;
+            } else if (closed) {
+                return true;
+            }
+            await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        }
+        return false; // door was never opened+closed within the timeout
     },
 };

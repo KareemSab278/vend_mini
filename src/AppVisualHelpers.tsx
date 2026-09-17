@@ -8,7 +8,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { CategoryIndicator } from "./Components/CategoryIndicator";
 import { Payment } from "./Helpers/Payment";
-import { useState, useEffect } from "react";
 
 export {
     styles, SelectedProductsModal, CheckoutModal,
@@ -90,17 +89,6 @@ const SelectedProductsModal = ({ opened, onClose, selectedProducts, onRemove, on
 
 const CheckoutModal = ({ opened, payMessage, payStatus, onDismiss, onCancel, paymentType }: CheckoutModalProps) => {
     const blockClose = payStatus === "waiting_door";
-    const [showDismiss, setShowDismiss] = useState(false);
-
-    useEffect(() => {
-        if (payStatus === "done" || payStatus === "error") {
-            setShowDismiss(true);
-        }
-        if (payStatus === "waiting_door") {
-            const timer = setTimeout(() => setShowDismiss(true), 20000);
-            return () => clearTimeout(timer);
-        }
-    }, [payStatus]);
 
     return (
         <Modal
@@ -118,10 +106,9 @@ const CheckoutModal = ({ opened, payMessage, payStatus, onDismiss, onCancel, pay
 
                 <p style={styles.statusMessage}>{payMessage}</p>
 
-                {(payStatus === "error" || payStatus === "done" || (payStatus === "waiting_door" && showDismiss)) && (
+                {(payStatus === "error" || payStatus === "done") && (
                     <PrimaryButton title="Dismiss" onClick={onDismiss} size="xl"/>
                 )}
-
 
                 {payStatus === "paying" && <PrimaryButton title="Cancel" onClick={onCancel} size="xl"/>}
             </section>

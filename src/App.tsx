@@ -6,6 +6,7 @@ import * as visuals from "./AppVisualHelpers";
 import { Door } from "./Helpers/Door";
 import { NFC } from "./Helpers/Nfc";
 import { Payment } from "./Helpers/Payment";
+import { LEDs } from "./Helpers/LED";
 import { KeyPressListener } from "./Helpers/KeyPressListener";
 import { ScreenSaver } from "./Components/ScreenSaver";
 import { check } from "@tauri-apps/plugin-updater";
@@ -58,6 +59,7 @@ function App() {
   const handleNFCCheckout = () => {
     if (selectedProducts.length === 0 || checkoutActive) return;
 
+    cancelledRef.current = false;
     setPaymentMethod("nfc");
     setPayStatus("paying");
 
@@ -67,7 +69,7 @@ function App() {
 
       setPayStatus("waiting_door");
 
-      const closed = await Door.waitForClosed(30000, 500);
+      const closed = await Door.waitForOpenedThenClosed(30000, 500);
       if (cancelledRef.current) return;
 
       if (closed) {
@@ -82,7 +84,8 @@ function App() {
         }, 5000);
       } else {
         setPayStatus("error");
-        setPayMessage("Failed to open doors.");
+        setPayMessage("Door did not close. Please close the door.");
+        LEDs.setRed();
         setAdminModalOpen(false);
 
         setTimeout(() => {
@@ -91,8 +94,6 @@ function App() {
           }
         }, 5000);
       }
-
-      setAdminModalOpen(false);
     }, (error) => {
       setPayStatus("error");
       setPayMessage(`Payment failed: ${error ?? String(error) ?? "Unknown error"}`);
@@ -261,7 +262,7 @@ function App() {
 
     setPayStatus("waiting_door");
 
-    const closed = await Door.waitForClosed(30000, 500);
+    const closed = await Door.waitForOpenedThenClosed(30000, 500);
     if (cancelledRef.current) return;
 
     if (closed) {
@@ -273,10 +274,11 @@ function App() {
         if (!cancelledRef.current) {
           resetCheckoutState();
         }
-      }, 500);
+      }, 5000);
     } else {
       setPayStatus("error");
-      setPayMessage("Failed to open doors.");
+      setPayMessage("Door did not close. Please close the door.");
+      LEDs.setRed();
       setAdminModalOpen(false);
 
       setTimeout(() => {
