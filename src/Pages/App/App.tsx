@@ -87,12 +87,12 @@ const App = () => {
     setPayStatus("paying");
 
     try {
-      await NFC.payment(
+      const newBalance = await NFC.payment(
         helpers.totalPrice(selectedProducts),
         () => { },
         () => { }
       );
-      await openDoorAndWaitForClose();
+      await openDoorAndWaitForClose(newBalance);
     } catch (error) {
       setPayStatus("error");
       setPayMessage(`Payment failed: ${error instanceof Error ? error.message : String(error)}`);
