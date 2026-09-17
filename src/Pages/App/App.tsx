@@ -237,7 +237,7 @@ const App = () => {
     }
   };
 
-  const openDoorAndWaitForClose = async () => {
+  const openDoorAndWaitForClose = async (newBalance?: number) => {
     if (cancelledRef.current) return;
     setPayStatus("dispensing");
 
@@ -262,7 +262,11 @@ const App = () => {
 
     if (closed) {
       setPayStatus("done");
-      setPayMessage("Payment successful.\nThank you for your purchase.");
+      setPayMessage(
+        newBalance ? `Payment successful. New balance: ${newBalance}`
+          : "Payment successful.\nThank you for your purchase."
+      );
+
       setAdminModalOpen(false);
 
       setTimeout(() => {
@@ -323,6 +327,7 @@ const App = () => {
     setCheckoutActive(false);
     setPayStatus("idle");
     setPayMessage("");
+    paymentMethod && setPaymentMethod(null);
   };
 
 
