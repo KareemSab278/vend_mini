@@ -14,7 +14,7 @@ fn db_path() -> PathBuf {
     dir.join(DATA_FILE)
 }
 
-pub fn initialize_database() -> Result<()> {
+fn ensure_database_schema() -> Result<()> {
     let conn = Connection::open(db_path())?;
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS products (
@@ -46,8 +46,13 @@ pub fn initialize_database() -> Result<()> {
     Ok(())
 }
 
+#[tauri::command]
+pub fn initialize_database() -> Result<(), String> {
+    ensure_database_schema().map_err(|e| format!("Database initialization failed: {}", e))
+}
+
 fn open() -> Result<Connection> {
-    initialize_database()?;
+    ensure_database_schema()?;
     Connection::open(db_path())
 }
 
@@ -60,7 +65,18 @@ pub struct Product {
     pub product_availability: bool,
 }
 
-pub fn new_product(
+#[tauri::command]
+pub async fn new_product(
+    product_name: &str,
+    product_category: &str,
+    product_price: f64,
+    product_availability: bool,
+) -> Result<(), String> {
+    add_product(product_name, product_category, product_price, product_availability)
+        .map_err(|e| format!("Failed to add new product: {}", e))
+}
+
+pub fn add_product(
     product_name: &str,
     product_category: &str,
     product_price: f64,
@@ -80,7 +96,12 @@ pub fn new_product(
     Ok(())
 }
 
-pub fn delete_product(product_id: i32) -> Result<()> {
+#[tauri::command]
+pub async fn delete_product(product_id: i32) -> Result<(), String> {
+    remove_product(product_id).map_err(|e| format!("Failed to delete product: {}", e))
+}
+
+pub fn remove_product(product_id: i32) -> Result<()> {
     let conn = open()?;
     conn.execute(
         "DELETE FROM products WHERE product_id = ?1",
@@ -114,7 +135,12 @@ pub fn update_product(
     Ok(())
 }
 
-pub fn query_products() -> Result<Vec<Product>> {
+#[tauri::command]
+pub async fn query_products() -> Result<Vec<Product>, String> {
+    fetch_products().map_err(|e| format!("Failed to query products: {}", e))
+}
+
+pub fn fetch_products() -> Result<Vec<Product>> {
     let conn = open()?;
     let mut stmt = conn.prepare(
         "SELECT product_id, product_name, product_category, product_price, product_availability
@@ -141,8 +167,13 @@ pub struct Order {
     pub price: f64,
     pub timestamp: String,
 }
+#[tauri::command]
+pub async fn insert_order(product_id: i32, quantity: i32, price: f64) -> Result<(), String> {
+    record_order(product_id, quantity, price).map_err(|e| format!("Failed to add order: {}", e))
+}
+
 #[allow(dead_code)]
-pub fn insert_order(product_id: i32, quantity: i32, price: f64) -> Result<()> {
+pub fn record_order(product_id: i32, quantity: i32, price: f64) -> Result<()> {
     let conn = open()?;
     conn.execute(
         "INSERT INTO orders (product_id, quantity, price) VALUES (?1, ?2, ?3)",

@@ -35,8 +35,8 @@ use std::time::Duration;
 #[cfg(target_os = "linux")]
 use tauri::Emitter;
 
-#[path = "users_database.rs"]
-mod users_database;
+#[cfg(target_os = "linux")]
+use crate::users_database;
 
 #[cfg(target_os = "linux")]
 const SCAN_DELAY_MS: u32 = 500;
@@ -243,6 +243,11 @@ pub fn listen_for_tag_ids() -> Result<String, String> {
 #[cfg(not(target_os = "linux"))]
 pub fn listen_for_tag_ids() -> Result<String, String> {
     Err("NFC listener not started due to unsupported OS".to_string())
+}
+
+#[tauri::command]
+pub async fn get_tag_id() -> Result<String, String> {
+    listen_for_tag_ids().map_err(|e| format!("Failed to get tag ID: {}", e))
 }
 
 #[cfg(target_os = "linux")]

@@ -6,7 +6,6 @@ import * as visuals from "./AppVisualHelpers";
 import { Door } from "./Helpers/Door";
 import { NFC } from "./Helpers/Nfc";
 import { Payment } from "./Helpers/Payment";
-import { MotionSensor } from "./Helpers/Serial";
 import { KeyPressListener } from "./Helpers/KeyPressListener";
 import { ScreenSaver } from "./Components/ScreenSaver";
 import { check } from "@tauri-apps/plugin-updater";
@@ -53,7 +52,7 @@ function App() {
 
     NFC.payment(helpers.totalPrice(selectedProducts), (newBalance) => {
       setPayStatus("dispensing");
-      Door.unlock();
+      Door.paidUnlock();
 
       setPayStatus("waiting_door");
       setPayMessage("Please take your items and close the door.");
@@ -384,7 +383,7 @@ function App() {
         activeCategory={activeCategory}
       />}
 
-      {hideVisual && <visuals.PriceStatusPillComponent
+      {hideVisual && selectedProducts.length > 0 && <visuals.PriceStatusPillComponent
         onModalOpen={() => {
           setScreenSaverActive(false);
           setModalOpen(true);

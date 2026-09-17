@@ -22,7 +22,7 @@ fn initialize_base_admin(conn: &Connection) -> Result<()> {
     Ok(())
 }
 
-pub fn initialize_user_database() -> Result<()> {
+fn ensure_user_database_schema() -> Result<()> {
     let conn = Connection::open(user_db_path())?;
     conn.execute_batch(
         "CREATE TABLE IF NOT EXISTS users (
@@ -38,8 +38,14 @@ pub fn initialize_user_database() -> Result<()> {
     Ok(())
 }
 
+#[tauri::command]
+pub fn initialize_user_database() -> Result<(), String> {
+    ensure_user_database_schema()
+        .map_err(|e| format!("User database initialization failed: {}", e))
+}
+
 fn open_user_db() -> Result<Connection> {
-    initialize_user_database()?;
+    ensure_user_database_schema()?;
     Connection::open(user_db_path())
 }
 
@@ -108,8 +114,13 @@ pub fn get_user_by_tag_id(tag_id: &str) -> Result<Option<User>> {
     Ok(None)
 }
 
+#[tauri::command]
+pub async fn get_balance_by_tag_id(tag_id: String) -> Result<Option<f64>, String> {
+    fetch_balance_by_tag_id(&tag_id).map_err(|e| format!("Failed to get balance: {}", e))
+}
+
 #[allow(dead_code)]
-pub fn get_balance_by_tag_id(tag_id: &str) -> Result<Option<f64>> {
+pub fn fetch_balance_by_tag_id(tag_id: &str) -> Result<Option<f64>> {
     let conn = open_user_db()?;
     let mut stmt = conn.prepare("SELECT balance FROM users WHERE tag_id = lower(?1)")?;
     let balance_iter = stmt.query_map(params![tag_id], |row| row.get(0))?;
@@ -143,8 +154,13 @@ pub fn get_all_admins() -> Result<Vec<User>> {
     Ok(admins)
 }
 
+#[tauri::command]
+pub async fn update_balance_by_tag_id(tag_id: String, amount: f64) -> Result<f64, String> {
+    deduct_balance_by_tag_id(&tag_id, amount)
+}
+
 #[allow(dead_code)]
-pub fn update_balance_by_tag_id(tag_id: &str, amount: f64) -> std::result::Result<f64, String> {
+pub fn deduct_balance_by_tag_id(tag_id: &str, amount: f64) -> std::result::Result<f64, String> {
     let conn = open_user_db().map_err(|e| e.to_string())?;
     let current_balance: f64 = conn
         .query_row(

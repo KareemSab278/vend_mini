@@ -10,29 +10,29 @@ export interface DoorStatus {
 }
 
 interface DoorFunctions {
-    unlock: (door?: number) => Promise<void>, // unlock door with number, or all doors if no number provided
-    lock: (door?: number) => Promise<void>, // lock door with number, or all doors if no number provided
-    paidUnlock: (door: number, millis: number | null) => Promise<void>, // unlock door for millis milliseconds (defaults to 30s if null)
-    paidUnlockAll: (millis: number | null) => Promise<void>, // unlock all connected doors for millis milliseconds (defaults to 30s if null)
-    status: () => Promise<DoorStatus[]>, // status of all CADLOCK door controllers connected over serial
-    isClosed: () => Promise<boolean>, // convenience check: are all connected doors currently closed?
+    unlock: () => Promise<void>, 
+    lock: () => Promise<void>, 
+    paidUnlock: () => Promise<void>, 
+    paidUnlockAll: () => Promise<void>, 
+    status: () => Promise<DoorStatus[]>, 
+    isClosed: () => Promise<boolean>,
 }
 
 export const Door: DoorFunctions = {
-    unlock: async (door?: number): Promise<void> => {
-        await invoke("unlock_door", { door: door ?? 0 });
+    unlock: async (): Promise<void> => {
+        await invoke("unlock_door");
     },
 
-    lock: async (door?: number): Promise<void> => {
-        await invoke("lock_door", { door: door ?? 0 });
+    lock: async (): Promise<void> => {
+        await invoke("lock_door");
     },
 
-    paidUnlock: async (door: number, millis: number | null = 30000): Promise<void> => {
-        await invoke("paid_unlock_door", { door, millis });
+    paidUnlock: async (): Promise<void> => {
+        await invoke("paid_unlock");
     },
 
-    paidUnlockAll: async (millis: number | null = 30000): Promise<void> => {
-        await invoke("paid_unlock_all_doors", { millis });
+    paidUnlockAll: async (): Promise<void> => {
+        await invoke("paid_unlock_all_doors");
     },
 
     status: async (): Promise<DoorStatus[]> => {
@@ -51,3 +51,19 @@ export const Door: DoorFunctions = {
     },
 };
 
+
+const isDoorClosed = async (): Promise<boolean> => {
+    // should poll every 3 second to see when the door closed after 5 seconds of door opening.
+    // check repeatedly until the door is closed. when door is closed return true.
+    // if after 30 seconds door not closed then return false to set light red.
+    await new Promise((resolve) => setTimeout(resolve, 5000)); // wait for 5 seconds before checking if the door is closed
+
+    const startTime = Date.now();
+    while (Date.now() - startTime < 30000) { // poll for up to 30 seconds
+        if (await Door.isClosed()) {
+            return true;
+        }
+        await new Promise((resolve) => setTimeout(resolve, 3000)); // poll every 3 seconds
+    }
+    return false; // door did not close within 30 seconds
+};

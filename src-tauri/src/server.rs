@@ -7,13 +7,13 @@ use axum::{
 };
 use serde::Deserialize;
 use std::net::{SocketAddr, UdpSocket};
+use std::sync::atomic::{AtomicBool, Ordering};
 use tower_http::services::ServeDir;
 
-#[path = "database.rs"]
-mod database;
+static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
 
-#[path = "users_database.rs"]
-mod users_database;
+use crate::database;
+use crate::users_database;
 
 // ───────────────────────────────────────────────────────────────────────────── users
 
@@ -101,7 +101,7 @@ async fn get_user_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoResponse
 async fn get_balance_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoResponse {
     if let Some(tag_id) = params.tag_id {
         println!("GET /balance?tag_id={}", tag_id);
-        match users_database::get_balance_by_tag_id(&tag_id) {
+        match users_database::fetch_balance_by_tag_id(&tag_id) {
             Ok(Some(balance)) => (StatusCode::OK, Json(balance)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND, Json(0.00)).into_response(),
             Err(e) => {
@@ -128,7 +128,7 @@ async fn update_balance_by_tag_id(
             "PUT /balance?tag_id={} payload: balance={}",
             tag_id, payload
         );
-        match users_database::update_balance_by_tag_id(&tag_id, payload) {
+        match users_database::deduct_balance_by_tag_id(&tag_id, payload) {
             Ok(_) => (StatusCode::OK, "Balance updated".to_string()).into_response(),
             Err(e) => {
                 eprintln!("PUT /balance?tag_id={} error: {}", tag_id, e);
@@ -186,7 +186,7 @@ struct NewProduct {
 }
 
 async fn get_products() -> Json<Vec<database::Product>> {
-    let products = database::query_products().unwrap_or_default();
+    let products = database::fetch_products().unwrap_or_default();
     Json(products)
 }
 
@@ -198,7 +198,7 @@ async fn create_product(Json(payload): Json<NewProduct>) -> impl IntoResponse {
         payload.product_price,
         payload.product_availability
     );
-    match database::new_product(
+    match database::add_product(
         &payload.product_name,
         &payload.product_category,
         payload.product_price,
@@ -214,7 +214,7 @@ async fn create_product(Json(payload): Json<NewProduct>) -> impl IntoResponse {
 
 async fn remove_product(Path(id): Path<i32>) -> impl IntoResponse {
     println!("DELETE /products/{}", id);
-    match database::delete_product(id) {
+    match database::remove_product(id) {
         Ok(_) => (StatusCode::OK, "deleted".to_string()),
         Err(e) => {
             eprintln!("DELETE /products/{} error: {}", id, e);
@@ -286,9 +286,21 @@ fn get_local_ip() -> String {
     "127.0.0.1".to_string()
 }
 
+#[tauri::command]
 pub fn return_editor_url() -> String {
     let local_ip = get_local_ip();
     format!("http://{}:8000", local_ip)
+}
+
+#[tauri::command]
+pub async fn initialize_static_page_server() -> Result<(), String> {
+    if SERVER_STARTED
+        .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
+        .is_ok()
+    {
+        tokio::spawn(start());
+    }
+    Ok(())
 }
 
 pub async fn start() {
