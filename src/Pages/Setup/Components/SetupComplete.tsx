@@ -1,4 +1,5 @@
 import { PrimaryButton } from "../../../Components/Button";
+import { styles as appStyles } from "../../App/styles";
 
 interface SetupCompleteProps {
   onFinish: () => void;
@@ -6,31 +7,32 @@ interface SetupCompleteProps {
 
 const SetupComplete = ({ onFinish }: SetupCompleteProps) => {
   return (
-    <div style={styles.container}>
-      <h1 style={styles.heading}>Setup Complete</h1>
-      <p style={styles.text}>
-        You can now start using the application with the configured admin users.
-      </p>
-      <p style={styles.text}>
-        If you ever want to edit admins or products, you can do so from the admin URL.
-      </p>
-      <p style={styles.text}>
-        You can find the admin URL from the main page when you tap your admin tag to the NFC reader.
-      </p>
-      <PrimaryButton title="Finish" onClick={onFinish} size="xl" />
+    <div style={appStyles.body}>
+      <div style={styles.inner}>
+        <h1 style={styles.heading}>Setup Complete</h1>
+        <p style={styles.text}>
+          You can now start using the application with the configured admin users.
+        </p>
+        <p style={styles.text}>
+          If you ever want to edit admins or products, you can do so from the admin URL.
+        </p>
+        <p style={styles.text}>
+          You can find the admin URL from the main page when you tap your admin tag to the NFC reader.
+        </p>
+        <PrimaryButton title="Finish" onClick={onFinish} size="xl" />
+      </div>
     </div>
   );
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
-  container: {
+  inner: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: "100vh",
-    padding: "2rem",
     textAlign: "center",
+    padding: "2rem",
   },
   heading: {
     fontSize: "3rem",

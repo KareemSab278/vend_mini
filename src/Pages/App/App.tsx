@@ -4,8 +4,15 @@ import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useLocation } from "wouter";
-import * as helpers from "./AppHelpers";
-import * as visuals from "../App/AppVisualHelpers";
+import * as helpers from "./Helpers";
+import { styles } from "./styles";
+import { SelectedProductsModal } from "./Components/SelectedProductsModal";
+import { CheckoutModal } from "./Components/CheckoutModal";
+import { AdminModal } from "./Components/AdminModal";
+import { PaymentMethodModal } from "./Components/PaymentMethodModal";
+import { ProductsWithCategories } from "./Components/ProductsWithCategories";
+import { NFCNotification } from "./Components/NFCNotification";
+import { PriceStatusPill } from "../../Components/PriceStatusPill";
 import { Door } from "../../Helpers/Door";
 import { NFC } from "../../Helpers/Nfc";
 import { Payment } from "../../Helpers/Payment";
@@ -387,49 +394,51 @@ const App = () => {
   const hideVisual = !adminModalOpen && !checkoutActive && !modalOpen && !paymentMethodModalOpen;
   const hideAdminModal = ((payStatus === "paying" || payStatus === "dispensing" || payStatus === "waiting_door") || checkoutActive || paymentMethodModalOpen);
   return (
-    <main style={visuals.styles.body}>
+    <main style={styles.body}>
       <KeyPressListener />
 
       {!NFC_ONLY_MODE && <div
-        style={visuals.styles.adminTrigger}
+        style={styles.adminTrigger}
         onClick={() => {
           !modalOpen && !checkoutActive && !paymentMethodModalOpen && (setAdminModalOpen(true), setScreenSaverActive(false));
         }}
       />}
 
-      {!hideAdminModal && <visuals.AdminModal
-        opened={adminModalOpen}
-        onClose={() => setAdminModalOpen(false)}
-        onAction={(opt: { onClick: () => void }) => {
-          opt.onClick();
-          setAdminModalOpen(false);
-        }}
-        editorUrl={editorUrl}
-        onToggleFullScreen={toggleFullScreen}
-        fullScreenState={fullScreenState}
-      />}
+      {!hideAdminModal && (
+        <AdminModal
+          opened={adminModalOpen}
+          onClose={() => setAdminModalOpen(false)}
+          editorUrl={editorUrl}
+          onToggleFullScreen={toggleFullScreen}
+          fullScreenState={fullScreenState}
+        />
+      )}
 
-      {hideVisual && <visuals.ProductsWithCategories
-        products={products}
-        appendProduct={appendProduct}
-        selectedProducts={selectedProducts}
-      />}
+      {hideVisual && (
+        <ProductsWithCategories
+          products={products}
+          appendProduct={appendProduct}
+          selectedProducts={selectedProducts}
+        />
+      )}
 
-      {hideVisual && selectedProducts.length > 0 && <visuals.PriceStatusPillComponent
-        onModalOpen={() => {
-          setScreenSaverActive(false);
-          setModalOpen(true);
-          setAdminModalOpen(false);
-        }}
-        onCheckout={() => {
-          setScreenSaverActive(false);
-          setPaymentMethodModalOpen(true);
-          setAdminModalOpen(false);
-        }}
-        totalPrice={helpers.totalPrice(selectedProducts)}
-      />}
+      {hideVisual && selectedProducts.length > 0 && (
+        <PriceStatusPill
+          onModalOpen={() => {
+            setScreenSaverActive(false);
+            setModalOpen(true);
+            setAdminModalOpen(false);
+          }}
+          onCheckout={() => {
+            setScreenSaverActive(false);
+            setPaymentMethodModalOpen(true);
+            setAdminModalOpen(false);
+          }}
+          totalPrice={helpers.totalPrice(selectedProducts)}
+        />
+      )}
 
-      <visuals.SelectedProductsModal
+      <SelectedProductsModal
         opened={modalOpen}
         onClose={() => setModalOpen(false)}
         selectedProducts={selectedProducts}
@@ -437,7 +446,7 @@ const App = () => {
         onClearAll={() => setSelectedProducts([])}
       />
 
-      <visuals.CheckoutModal
+      <CheckoutModal
         opened={checkoutActive}
         payMessage={payMessage}
         payStatus={payStatus}
@@ -446,16 +455,24 @@ const App = () => {
         paymentType={paymentMethod}
       />
 
-      <visuals.PaymentMethodModal
+      <PaymentMethodModal
         opened={paymentMethodModalOpen}
         onClose={() => setPaymentMethodModalOpen(false)}
-        onSelectCard={() => { handleCardCheckout(); setPaymentMethod("card"); setAdminModalOpen(false); }}
-        onSelectNFC={() => { setPaymentMethod("nfc"); handleNFCCheckout(); setAdminModalOpen(false); }}
+        onSelectCard={() => {
+          handleCardCheckout();
+          setPaymentMethod("card");
+          setAdminModalOpen(false);
+        }}
+        onSelectNFC={() => {
+          setPaymentMethod("nfc");
+          handleNFCCheckout();
+          setAdminModalOpen(false);
+        }}
       />
 
       {screenSaverActive && <ScreenSaver onClose={resetInactivityTimer} />}
 
-      {nfcNotification && <visuals.NFCNotification NFCNotification={nfcNotification} />}
+      {nfcNotification && <NFCNotification message={nfcNotification} />}
     </main>
   );
 }

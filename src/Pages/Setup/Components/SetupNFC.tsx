@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { PrimaryButton } from "../../../Components/Button";
 import { Admin, type User } from "../../../Helpers/Admins";
+import { styles as appStyles } from "../../App/styles";
 
 interface SetupNFCProps {
   onNext: () => void;
@@ -67,58 +68,59 @@ const SetupNFC = ({ onNext }: SetupNFCProps) => {
   const canFinish = admins.length > 0;
 
   return (
-    <div style={styles.container}>
-      <h1 style={styles.heading}>Register Admin Tags</h1>
-      <p style={styles.text}>
-        Please tap your NFC tag to register an admin. Once detected, the admin user information will be auto-filled and added to the list.
-      </p>
+    <div style={appStyles.body}>
+      <div style={styles.inner}>
+        <h1 style={styles.heading}>Register Admin Tags</h1>
+        <p style={styles.text}>
+          Please tap your NFC tag to register an admin. Once detected, the admin user information will be auto-filled and added to the list.
+        </p>
 
-      <p style={styles.counter}>
-        Admins registered: {admins.length} / {MAX_ADMINS}
-      </p>
+        <p style={styles.counter}>
+          Admins registered: {admins.length} / {MAX_ADMINS}
+        </p>
 
-      {message && <p style={styles.message}>{message}</p>}
+        {message && <p style={styles.message}>{message}</p>}
 
-      <div style={styles.buttons}>
-        {canAddMore && (
-          <PrimaryButton
-            title={isScanning ? "Scanning…" : "Register NFC Tag"}
-            onClick={scanTag}
-            size="xl"
-          />
-        )}
-        {canFinish && (
-          <PrimaryButton
-            title="I'm Done"
-            onClick={onNext}
-            size="xl"
-            color={canAddMore ? "#4a4a4a" : undefined}
-          />
+        <div style={styles.buttons}>
+          {canAddMore && (
+            <PrimaryButton
+              title={isScanning ? "Scanning…" : "Register NFC Tag"}
+              onClick={scanTag}
+              size="xl"
+            />
+          )}
+          {canFinish && (
+            <PrimaryButton
+              title="I'm Done"
+              onClick={onNext}
+              size="xl"
+              color={canAddMore ? "#4a4a4a" : undefined}
+            />
+          )}
+        </div>
+
+        {admins.length > 0 && (
+          <ul style={styles.list}>
+            {admins.map((admin, idx) => (
+              <li key={idx} style={styles.listItem}>
+                {admin.full_name} — {admin.tag_id}
+              </li>
+            ))}
+          </ul>
         )}
       </div>
-
-      {admins.length > 0 && (
-        <ul style={styles.list}>
-          {admins.map((admin, idx) => (
-            <li key={idx} style={styles.listItem}>
-              {admin.full_name} — {admin.tag_id}
-            </li>
-          ))}
-        </ul>
-      )}
     </div>
   );
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
-  container: {
+  inner: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: "100vh",
-    padding: "2rem",
     textAlign: "center",
+    padding: "2rem",
   },
   heading: {
     fontSize: "3rem",

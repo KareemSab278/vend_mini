@@ -1,4 +1,5 @@
 import { PrimaryButton } from "../../../Components/Button";
+import { styles as appStyles } from "../../App/styles";
 
 interface GreetingProps {
   onNext: () => void;
@@ -6,28 +7,29 @@ interface GreetingProps {
 
 const Greeting = ({ onNext }: GreetingProps) => {
   return (
-    <div style={styles.container}>
-      <h1 style={styles.heading}>Welcome</h1>
-      <p style={styles.text}>
-        Before you can start using the application, you'll need to add some admin users using the NFC reader.
-      </p>
-      <p style={styles.text}>
-        You can set up a maximum of 3 admin users. This is required to ensure proper management of the application.
-      </p>
-      <PrimaryButton title="Next" onClick={onNext} size="xl" />
+    <div style={appStyles.body}>
+      <div style={styles.inner}>
+        <h1 style={styles.heading}>Welcome</h1>
+        <p style={styles.text}>
+          Before you can start using the application, you'll need to add some admin users using the NFC reader.
+        </p>
+        <p style={styles.text}>
+          You can set up a maximum of 3 admin users. This is required to ensure proper management of the application.
+        </p>
+        <PrimaryButton title="Next" onClick={onNext} size="xl" />
+      </div>
     </div>
   );
 };
 
 const styles: { [key: string]: React.CSSProperties } = {
-  container: {
+  inner: {
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "center",
-    minHeight: "100vh",
-    padding: "2rem",
     textAlign: "center",
+    padding: "2rem",
   },
   heading: {
     fontSize: "3rem",
