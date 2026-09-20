@@ -1,9 +1,0 @@
-flask==2.3.0
-pyserial==3.5
-python-dotenv==1.0.0
-typing-extensions==4.0.1
-
-# for fresh installs:
-# python3 -m venv .venv
-# source .venv/bin/activate
-# pip install -r app_vend_requirements.txt

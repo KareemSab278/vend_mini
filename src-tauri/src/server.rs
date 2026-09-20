@@ -14,23 +14,12 @@ static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
 
 use crate::database;
 use crate::users_database;
+use crate::users_database::NewUser;
 
 // ───────────────────────────────────────────────────────────────────────────── users
 
-#[derive(Deserialize)]
-struct NewUser {
-    tag_id: String,
-    full_name: String,
-    is_admin: bool,
-    balance: f64,
-}
-
 async fn new_user(Json(user): Json<NewUser>) -> impl IntoResponse {
-    println!(
-        "POST /users payload: tag_id='{}' full_name='{}' is_admin={} balance={}",
-        user.tag_id, user.full_name, user.is_admin, user.balance
-    );
-    match users_database::new_user(&user.tag_id, &user.full_name, user.is_admin, user.balance) {
+    match users_database::new_user(user) {
         Ok(_) => (StatusCode::CREATED, "ok".to_string()),
         Err(e) => {
             eprintln!("POST /users error: {}", e);

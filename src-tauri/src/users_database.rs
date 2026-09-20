@@ -1,7 +1,6 @@
 use rusqlite::{params, Connection, Result};
-use serde::Serialize;
-use std::fs;
-use std::path::PathBuf;
+use serde::{Deserialize, Serialize};
+use std::{fs, path::PathBuf};
 
 const USER_DATA_FILE: &str = "ordering_system_users.db";
 
@@ -12,14 +11,6 @@ fn user_db_path() -> PathBuf {
     let dir = PathBuf::from(home).join("data");
     let _ = fs::create_dir_all(&dir);
     dir.join(USER_DATA_FILE)
-}
-
-fn initialize_base_admin(conn: &Connection) -> Result<()> {
-    conn.execute(
-        "INSERT OR IGNORE INTO users (tag_id, full_name, is_admin, balance) VALUES (lower(?1), ?2, 1, 0)",
-        params!["admin", "Base Admin"],
-    )?;
-    Ok(())
 }
 
 fn ensure_user_database_schema() -> Result<()> {
@@ -33,8 +24,6 @@ fn ensure_user_database_schema() -> Result<()> {
             balance   REAL    NOT NULL DEFAULT 0
         );",
     )?;
-    // Initialize the base admin after creating the table
-    initialize_base_admin(&conn)?;
     Ok(())
 }
 
@@ -59,14 +48,35 @@ pub struct User {
     pub balance: f64,
 }
 
-#[allow(dead_code)]
-pub fn new_user(tag_id: &str, full_name: &str, is_admin: bool, balance: f64) -> Result<()> {
-    let conn = open_user_db()?;
+
+#[tauri::command]
+pub async fn are_admins_present() -> Result<bool, String> {
+    let conn = open_user_db().map_err(|e| e.to_string())?;
+    let mut stmt = conn
+        .prepare("SELECT COUNT(*) FROM users WHERE is_admin = 1")
+        .map_err(|e| e.to_string())?;
+    let count: i64 = stmt
+        .query_row([], |row| row.get(0))
+        .map_err(|e| e.to_string())?;
+    Ok(count > 0)
+}
+
+#[derive(Deserialize, Debug, Clone)]
+pub struct NewUser {
+    pub tag_id: String,
+    pub full_name: String,
+    pub is_admin: bool,
+    pub balance: f64,
+}
+
+#[tauri::command]
+pub fn new_user(NewUser { tag_id, full_name, is_admin, balance }: NewUser) -> Result<bool, String> {
+    let conn = open_user_db().map_err(|e| e.to_string())?;
     conn.execute(
         "INSERT INTO users (tag_id, full_name, is_admin, balance) VALUES (lower(?1), ?2, ?3, ?4)",
         params![tag_id, full_name, is_admin, balance],
-    )?;
-    Ok(())
+    ).map_err(|e| e.to_string())?;
+    Ok(true)
 }
 
 #[allow(dead_code)]

@@ -3,6 +3,7 @@ const dev = import.meta.env.DEV;
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useLocation } from "wouter";
 import * as helpers from "./AppHelpers";
 import * as visuals from "../App/AppVisualHelpers";
 import { Door } from "../../Helpers/Door";
@@ -11,6 +12,7 @@ import { Payment } from "../../Helpers/Payment";
 import { LEDs } from "../../Helpers/LED";
 import { KeyPressListener } from "../../Helpers/KeyPressListener";
 import { ScreenSaver } from "../../Components/ScreenSaver";
+import { Admin } from "../../Helpers/Admins";
 
 export { App };
 
@@ -31,6 +33,7 @@ type PayStatus = "paying" | "dispensing" | "done" | "waiting_door" | "error" | "
 
 
 const App = () => {
+  const [, navigate] = useLocation();
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [screenSaverActive, setScreenSaverActive] = useState<boolean>(false);
   const [checkoutActive, setCheckoutActive] = useState<boolean>(false);
@@ -60,7 +63,16 @@ const App = () => {
   const modalOpenRef = useRef(modalOpen);
   const checkoutActiveRef = useRef(checkoutActive);
   const payStatusRef = useRef(payStatus);
+  
+  const adminPresentCheck = async () => {
+    const present = await Admin.areAdminsPresent();
+    if (!present) {
+      console.log("No admins present, opening setup page");
+      navigate("/setup");
+    }
+  };
 
+  useEffect(() => { adminPresentCheck(); }, []);
   useEffect(() => { modalOpenRef.current = modalOpen; }, [modalOpen]);
   useEffect(() => { checkoutActiveRef.current = checkoutActive; }, [checkoutActive]);
   useEffect(() => { payStatusRef.current = payStatus; }, [payStatus]);

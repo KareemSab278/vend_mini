@@ -5,8 +5,8 @@ pub mod nfc;
 mod pay;
 mod serial_comms;
 mod server;
-mod users_database;
 mod update;
+mod users_database;
 
 #[tauri::command]
 async fn kill_app() -> Result<(), String> {
@@ -18,7 +18,6 @@ async fn is_raspberry_pi() -> bool {
     cfg!(all(target_arch = "arm", target_os = "linux"))
         || cfg!(all(target_arch = "aarch64", target_os = "linux"))
 }
-
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -49,6 +48,8 @@ pub fn run() {
             database::query_products,
             // User DB
             users_database::initialize_user_database,
+            users_database::are_admins_present,
+            users_database::new_user,
             // Product management
             database::new_product,
             database::delete_product,
