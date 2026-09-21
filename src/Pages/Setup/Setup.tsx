@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { Greeting } from "./Components/Greeting";
 import { SetupNFC } from "./Components/SetupNFC";
 import { SetupComplete } from "./Components/SetupComplete";
+import { KeyPressListener } from "../../Helpers/KeyPressListener";
 
 type SetupStep = "greeting" | "nfc" | "complete";
 
@@ -14,11 +15,11 @@ const Setup = () => {
 
   switch (step) {
     case "greeting":
-      return <Greeting onNext={() => setStep("nfc")} />;
+      return <><KeyPressListener /><Greeting onNext={() => setStep("nfc")} /></>;
     case "nfc":
-      return <SetupNFC onNext={() => setStep("complete")} />;
+      return <><KeyPressListener /><SetupNFC onNext={() => setStep("complete")} /></>;
     case "complete":
-      return <SetupComplete onFinish={finish} />;
+      return <><KeyPressListener /><SetupComplete onFinish={finish} /></>;
     default:
       return null;
   }
