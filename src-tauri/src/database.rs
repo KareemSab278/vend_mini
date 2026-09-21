@@ -51,6 +51,29 @@ pub fn initialize_database() -> Result<(), String> {
     ensure_database_schema().map_err(|e| format!("Database initialization failed: {}", e))
 }
 
+#[tauri::command]
+pub fn get_categories() -> Result<Vec<String>, String> {
+    let conn = open().map_err(|e| format!("Failed to open database: {}", e))?;
+    let mut stmt = conn.prepare("SELECT DISTINCT product_category FROM products")
+        .map_err(|e| format!("Failed to prepare statement: {}", e))?;
+    let categories = stmt
+        .query_map([], |row| row.get(0))
+        .map_err(|e| format!("Failed to query categories: {}", e))?
+        .collect::<Result<Vec<String>, _>>()
+        .map_err(|e| format!("Failed to collect categories: {}", e))?;
+    Ok(categories)
+}
+
+pub fn create_category(category: &str) -> Result<(), String> {
+    let conn = open().map_err(|e| format!("Failed to open database: {}", e))?;
+    conn.execute(
+        "INSERT INTO products (product_category) VALUES (?1)",
+        params![category],
+    )
+    .map_err(|e| format!("Failed to create category: {}", e))?;
+    Ok(())
+}
+
 fn open() -> Result<Connection> {
     ensure_database_schema()?;
     Connection::open(db_path())

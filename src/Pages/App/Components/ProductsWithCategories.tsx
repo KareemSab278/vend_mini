@@ -1,14 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ProductCard } from "../../../Components/ProductCard";
 import { CategoryIndicator } from "../../../Components/CategoryIndicator";
 import { styles } from "../styles";
+import { Products, type ProductType } from "../../../Helpers/Products";
+
+// will need to get the live categories formt he db
 
 const CATEGORIES = ["All", "Drinks", "Snacks", "Food", "Other"];
 
 interface ProductsWithCategoriesProps {
-  products: any[];
-  appendProduct: ({ product, action }: { product: any; action: string }) => void;
-  selectedProducts: any[];
+  products: ProductType[];
+  appendProduct: ({ product, action }: { product: ProductType; action: string }) => void;
+  selectedProducts: ProductType[];
 }
 
 const ProductsWithCategories = ({
@@ -17,7 +20,14 @@ const ProductsWithCategories = ({
   selectedProducts,
 }: ProductsWithCategoriesProps) => {
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const [categories, setCategories] = useState<string[]>();
 
+  useEffect(() => {
+    Products.fetchCategories().then((fetchedCategories) => {
+      setCategories(fetchedCategories);
+    });
+  }, []);
+  
   const filteredProducts =
     activeCategory === "All"
       ? products.filter((prod) => prod.product_availability)
@@ -32,7 +42,7 @@ const ProductsWithCategories = ({
       <div style={styles.topContainer}>
         <section style={styles.categoryIndicatorContainer}>
           <CategoryIndicator
-            categories={CATEGORIES}
+            categories={categories}
             activeCategory={activeCategory}
             onCategoryClick={setActiveCategory}
           />

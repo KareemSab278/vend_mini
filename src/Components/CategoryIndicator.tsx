@@ -3,13 +3,13 @@ import { PrimaryButton } from "./Button";
 export { CategoryIndicator };
 
 const CategoryIndicator = ({ categories, activeCategory, onCategoryClick }: {
-  categories: string[];
+  categories?: string[];
   activeCategory: string;
   onCategoryClick: (category: string) => void;
 }) => {
   return (
     <div style={styles.container}>
-      {categories.map((category) => (
+      {categories && categories.map((category) => (
         <PrimaryButton
           key={category}
           color={activeCategory === category ? "#3e73ef" : "rgb(99, 99, 99)"}
@@ -22,7 +22,7 @@ const CategoryIndicator = ({ categories, activeCategory, onCategoryClick }: {
         parent={null}
         style={{
           ...styles.indicator,
-          left: `${categories.indexOf(activeCategory) * 100}%`,
+          left: `${categories ? categories.indexOf(activeCategory) * 100 : 0}%`,
         }}
       />
     </div>

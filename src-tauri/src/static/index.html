@@ -344,6 +344,22 @@
       }
     }
 
+    async function addCategory(category_name) {
+      try {
+        const res = await fetch("/categories", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ category_name })
+        });
+        if (!res.ok) throw new Error("Failed to create category");
+        loadCategories();
+      } catch (e) {
+        setStatus("Failed to create category.", false);
+      }
+    }
+
     function renderTable() {
       const tbody = document.getElementById("product-rows");
       if (products.length === 0) {

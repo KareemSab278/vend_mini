@@ -19,24 +19,16 @@ import { LEDs } from "../../Helpers/LED";
 import { KeyPressListener } from "../../Helpers/KeyPressListener";
 import { ScreenSaver } from "../../Components/ScreenSaver";
 import { Admin } from "../../Helpers/Admins";
+import type { ProductType } from "../../Helpers/Products";
+import { Products } from "../../Helpers/Products";
 
 export { App };
+
+type PayStatus = "paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle" | "nfc";
 
 const SCREENSAVER_TIMEOUT_MINUTES: number = 1;
 const FETCH_PRODUCTS_INTERVAL: number = 6000;
 const NFC_ONLY_MODE: boolean = false;
-
-type Product = {
-  product_id: string;
-  product_name: string;
-  product_category: string;
-  product_price: number;
-  product_availability: boolean;
-  count: number;
-};
-
-type PayStatus = "paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle" | "nfc";
-
 
 const App = () => {
   const [, navigate] = useLocation();
@@ -45,8 +37,8 @@ const App = () => {
   const [checkoutActive, setCheckoutActive] = useState<boolean>(false);
   const [paymentMethodModalOpen, setPaymentMethodModalOpen] = useState<boolean>(false);
 
-  const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [selectedProducts, setSelectedProducts] = useState<ProductType[]>([]);
+  const [products, setProducts] = useState<ProductType[]>([]);
 
   const [payStatus, setPayStatus] = useState<PayStatus>("idle");
   const [payMessage, setPayMessage] = useState<string>("");
@@ -162,8 +154,10 @@ const App = () => {
   };
 
 
-  const getProductsOnMount = async () =>
-    await invoke("query_products") as Product[];
+  const getProductsOnMount = async () => {
+    const products = await Products.fetchProducts();
+    setProducts(products);
+  };
 
   const initializePayDevice = async () => {
     try {
@@ -184,7 +178,7 @@ const App = () => {
 
   useEffect(() => {
     listenToNfc();
-    getProductsOnMount().then(setProducts)
+    getProductsOnMount();
     fetchProducts();
     initializePayDevice();
     startInactivityTimer();
@@ -234,7 +228,7 @@ const App = () => {
 
 
   const insertOrderToDB = async () => {
-    for (const p of selectedProducts as Product[]) {
+    for (const p of selectedProducts as ProductType[]) {
       try {
         await invoke("insert_order", {
           productId: p.product_id,
@@ -335,7 +329,7 @@ const App = () => {
   };
 
 
-  const appendProduct = ({ product, action }: { product: Product | null | undefined; action: string }) => {
+  const appendProduct = ({ product, action }: { product: ProductType | null | undefined; action: string }) => {
     if (!product || product.product_id == null) {
       dev && console.warn("[App] appendProduct: invalid product", product, action);
       return;
@@ -363,7 +357,7 @@ const App = () => {
     });
   };
 
-  const removeProduct = (product: Product | null | undefined) => {
+  const removeProduct = (product: ProductType | null | undefined) => {
     if (!product || product.product_id == null) return;
     appendProduct({ product, action: "-" });
   };

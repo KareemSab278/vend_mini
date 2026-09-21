@@ -179,6 +179,22 @@ async fn get_products() -> Json<Vec<database::Product>> {
     Json(products)
 }
 
+#[derive(Deserialize)]
+struct NewCategory {
+    category_name: String,
+}
+
+async fn create_category(Json(payload): Json<NewCategory>) -> impl IntoResponse {
+    println!("POST /categories payload: name='{}'", payload.category_name);
+    match database::create_category(&payload.category_name) {
+        Ok(_) => (StatusCode::CREATED, "ok".to_string()),
+        Err(e) => {
+            eprintln!("POST /categories error: {}", e);
+            (StatusCode::INTERNAL_SERVER_ERROR, format!("error: {}", e))
+        }
+    }
+}
+
 async fn create_product(Json(payload): Json<NewProduct>) -> impl IntoResponse {
     println!(
         "POST /products payload: name='{}' category='{}' price={} avail={}",

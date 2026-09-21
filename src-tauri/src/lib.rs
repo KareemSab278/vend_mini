@@ -54,6 +54,7 @@ pub fn run() {
             // Product management
             database::new_product,
             database::delete_product,
+            database::get_categories,
             // Users / balance
             users_database::get_balance_by_tag_id,
             users_database::update_balance_by_tag_id,

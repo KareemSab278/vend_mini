@@ -11,7 +11,7 @@ interface AdminModalProps {
   onClose: () => void;
 }
 
-const MAX_ADMINS = 3;
+const MAX_ADMINS = 9;
 
 const AdminModal = ({ opened, onClose }: AdminModalProps) => {
   const [admins, setAdmins] = useState<User[]>([]);

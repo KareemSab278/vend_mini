@@ -79,22 +79,23 @@ const Admin = () => {
         </div>
 
         <PrimaryButton
-          title="Back to Kiosk"
+          title="EXIT ADMIN"
           onClick={() => navigate("/")}
           size="xl"
         />
       </div>
 
-      {/* Render all modals and animate via opened */}
       <AdminModal opened={activeModal === "addAdmin"} onClose={() => setActiveModal(null)} />
       <LedModal opened={activeModal === "led"} onClose={() => setActiveModal(null)} />
       <DoorModal opened={activeModal === "door"} onClose={() => setActiveModal(null)} />
       <SystemModal opened={activeModal === "system"} onClose={() => setActiveModal(null)} />
+      
       <UrlModal
         opened={activeModal === "url"}
         onClose={() => setActiveModal(null)}
         editorUrl={editorUrl}
       />
+
     </main>
   );
 };
