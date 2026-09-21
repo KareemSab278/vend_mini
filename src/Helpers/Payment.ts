@@ -16,10 +16,15 @@ let currentUnlisten: UnlistenFn | undefined;
 export const Payment: PaymentFunctions = {
 
     initialize: async (): Promise<string> => {
-        const port = await invoke<string>("initialize_payment_device");
-        dev && console.log("Payment device initialized on port:", port);
-        paymentPort = port;
-        return port;
+        try {
+            const port = await invoke<string>("initialize_payment_device");
+            dev && console.log("Payment device initialized on port:", port);
+            paymentPort = port;
+            return port;
+        } catch (error) {
+            dev && console.error("Error initializing payment device:", error);
+            throw error;
+        }
     },
 
     end: async (success: boolean): Promise<void> => {

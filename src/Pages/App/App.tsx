@@ -169,12 +169,12 @@ const App = () => {
   const getProductsOnMount = async () =>
     await invoke("query_products") as Product[];
 
-  const initializePaymentServer = async () => {
+  const initializePayDevice = async () => {
     try {
       await Payment.initialize();
     } catch (e) {
       setCheckoutActive(true);
-      setPayStatus("error");
+      // setPayStatus("error");
       setPayMessage(`Failed to initialize payment device: ${e}`);
     }
   };
@@ -196,7 +196,7 @@ const App = () => {
     getProductsOnMount().then(setProducts)
     initializeStaticServer();
     fetchProducts();
-    initializePaymentServer();
+    initializePayDevice();
     startInactivityTimer();
 
     const handleUserActivity = () => {
