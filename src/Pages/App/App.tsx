@@ -190,6 +190,13 @@ const App = () => {
   };
 
 
+  const startFullScreen = async (): Promise<void> => {
+    const timer: number | null = setTimeout(async () => {
+      const isPi = await isPiOs();
+      getCurrentWindow().setFullscreen(isPi);
+    }, 1000);
+    if (timer) clearTimeout(timer);
+  };
 
   useEffect(() => {
     listenToNfc();
@@ -206,15 +213,11 @@ const App = () => {
     window.addEventListener("pointerdown", handleUserActivity);
     window.addEventListener("keydown", handleUserActivity);
 
-    const timer: number | null = setTimeout(async () => {
-      const isPi = await isPiOs();
-      getCurrentWindow().setFullscreen(isPi);
-    }, 1000);
+    startFullScreen();
 
     adminPresentCheck(); // check for admin AFTER fullscreen mode to avoid tearing
 
     return () => {
-      if (timer) clearTimeout(timer);
       clearInactivityTimer();
       window.removeEventListener("pointerdown", handleUserActivity);
       window.removeEventListener("keydown", handleUserActivity);
