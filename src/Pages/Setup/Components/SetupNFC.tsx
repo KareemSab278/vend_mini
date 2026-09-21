@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { PrimaryButton } from "../../../Components/Button";
 import { Admin, type User } from "../../../Helpers/Admins";
+import { NFC } from "../../../Helpers/Nfc";
 import { styles as appStyles } from "../../App/styles";
 
 interface SetupNFCProps {
@@ -12,40 +12,35 @@ const MAX_ADMINS = 3;
 
 const SetupNFC = ({ onNext }: SetupNFCProps) => {
   const [admins, setAdmins] = useState<User[]>([]);
-  const [isScanning, setIsScanning] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
-  const cancelledRef = useRef(false);
+  // avoids stale closures over `admins`/`isRegistering` inside the event listener
+  const adminsRef = useRef<User[]>([]);
+  const registeringRef = useRef(false);
 
   useEffect(() => {
-    return () => {
-      cancelledRef.current = true;
-    };
-  }, []);
+    adminsRef.current = admins;
+  }, [admins]);
 
-  const scanTag = async () => {
-    if (isScanning) return;
-    setIsScanning(true);
-    setMessage("Please tap your NFC tag on the reader…");
+  useEffect(() => {
+    let unlisten: (() => void) | undefined;
 
-    try {
-      const tagId = (await invoke("get_tag_id")) as string;
-      if (cancelledRef.current) return;
+    NFC.listenUnknownTag(async (tagId) => {
+      if (registeringRef.current) return;
+      if (adminsRef.current.length >= MAX_ADMINS) return;
 
-      if (!tagId) {
-        setMessage("No tag detected. Please try again.");
-        setIsScanning(false);
-        return;
-      }
-
-      if (admins.some((a) => a.tag_id === tagId)) {
+      if (adminsRef.current.some((a) => a.tag_id === tagId)) {
         setMessage("This tag is already registered.");
-        setIsScanning(false);
         return;
       }
+
+      registeringRef.current = true;
+      setIsRegistering(true);
+      setMessage("Registering tag…");
 
       const newAdmin: User = {
         tag_id: tagId,
-        full_name: `Admin ${admins.length + 1}`,
+        full_name: `Admin ${adminsRef.current.length + 1}`,
         is_admin: true,
         balance: 0,
       };
@@ -57,12 +52,15 @@ const SetupNFC = ({ onNext }: SetupNFCProps) => {
       } else {
         setMessage(result.message ?? "Failed to register admin.");
       }
-    } catch (error) {
-      setMessage(`Error: ${error instanceof Error ? error.message : String(error)}`);
-    } finally {
-      setIsScanning(false);
-    }
-  };
+
+      registeringRef.current = false;
+      setIsRegistering(false);
+    }).then((fn) => {
+      unlisten = fn;
+    });
+
+    return () => unlisten?.();
+  }, []);
 
   const canAddMore = admins.length < MAX_ADMINS;
   const canFinish = admins.length > 0;
@@ -72,23 +70,21 @@ const SetupNFC = ({ onNext }: SetupNFCProps) => {
       <div style={styles.inner}>
         <h1 style={styles.heading}>Register Admin Tags</h1>
         <p style={styles.text}>
-          Please tap your NFC tag to register an admin. Once detected, the admin user information will be auto-filled and added to the list.
+          Please tap your NFC tag on the reader to register an admin. Once detected, the admin user information will be auto-filled and added to the list.
         </p>
 
         <p style={styles.counter}>
           Admins registered: {admins.length} / {MAX_ADMINS}
         </p>
 
-        {message && <p style={styles.message}>{message}</p>}
+        {canAddMore && (
+          <p style={styles.message}>
+            {message ?? (isRegistering ? "Registering…" : "Waiting for tap…")}
+          </p>
+        )}
+        {!canAddMore && message && <p style={styles.message}>{message}</p>}
 
         <div style={styles.buttons}>
-          {canAddMore && (
-            <PrimaryButton
-              title={isScanning ? "Scanning…" : "Register NFC Tag"}
-              onClick={scanTag}
-              size="xl"
-            />
-          )}
           {canFinish && (
             <PrimaryButton
               title="I'm Done"
