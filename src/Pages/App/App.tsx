@@ -5,11 +5,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useLocation } from "wouter";
 import { totalPrice, isPiOs } from "./Helpers";
-
 import { styles } from "./styles";
 import { SelectedProductsModal } from "./Components/SelectedProductsModal";
 import { CheckoutModal } from "./Components/CheckoutModal";
-import { AdminModal } from "./Components/AdminModal";
 import { PaymentMethodModal } from "./Components/PaymentMethodModal";
 import { ProductsWithCategories } from "./Components/ProductsWithCategories";
 import { NFCNotification } from "./Components/NFCNotification";
@@ -45,17 +43,13 @@ const App = () => {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [screenSaverActive, setScreenSaverActive] = useState<boolean>(false);
   const [checkoutActive, setCheckoutActive] = useState<boolean>(false);
-  const [adminModalOpen, setAdminModalOpen] = useState<boolean>(false);
   const [paymentMethodModalOpen, setPaymentMethodModalOpen] = useState<boolean>(false);
-
-  const [fullScreenState, setFullScreenState] = useState<boolean>(false);
 
   const [selectedProducts, setSelectedProducts] = useState<Product[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
 
   const [payStatus, setPayStatus] = useState<PayStatus>("idle");
   const [payMessage, setPayMessage] = useState<string>("");
-  const [editorUrl, setEditorUrl] = useState<string>("");
   const [nfcNotification, setNfcNotification] = useState<string | null>(null);
 
   const unlistenNfcAdminRef = useRef<(() => void) | null>(null);
@@ -72,13 +66,16 @@ const App = () => {
   const checkoutActiveRef = useRef(checkoutActive);
   const payStatusRef = useRef(payStatus);
 
-  const adminPresentCheck = async (): Promise<boolean> => {
+  const adminPresentCheck = async (): Promise<void> => {
+    const isPi = await isPiOs();
     const present = await Admin.areAdminsPresent();
-    if (!present) {
-      console.log("No admins present, opening setup page");
+
+    if (!present && isPi) {
+      console.log("No admins present on pi, opening setup page");
       navigate("/setup");
+    } else {
+      console.log("Admins are present or not running on pi");
     }
-    return present;
   };
 
   useEffect(() => { modalOpenRef.current = modalOpen; }, [modalOpen]);
@@ -104,7 +101,6 @@ const App = () => {
     cancelledRef.current = false;
     setCheckoutActive(true);
     setScreenSaverActive(false);
-    setAdminModalOpen(false);
     setPaymentMethod("nfc");
     setPayStatus("paying");
 
@@ -159,8 +155,8 @@ const App = () => {
     });
     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
       if (!modalOpenRef.current && !checkoutActiveRef.current && payStatusRef.current === "idle") {
-        setAdminModalOpen(true);
         setScreenSaverActive(false);
+        navigate("/admin");
       }
     });
   };
@@ -179,17 +175,6 @@ const App = () => {
     }
   };
 
-  const initializeStaticServer = async () => {
-    try {
-      await invoke("initialize_static_page_server");
-      const editorUrlRaw: string | null = await invoke("return_editor_url");
-      setEditorUrl(editorUrlRaw ?? "Could not get url");
-    } catch (e) {
-      dev && console.error("Failed to start static page server:", e);
-    }
-  };
-
-
   const startFullScreen = async (): Promise<void> => {
     setTimeout(async () => {
       const isPi = await isPiOs();
@@ -200,7 +185,6 @@ const App = () => {
   useEffect(() => {
     listenToNfc();
     getProductsOnMount().then(setProducts)
-    initializeStaticServer();
     fetchProducts();
     initializePayDevice();
     startInactivityTimer();
@@ -293,8 +277,6 @@ const App = () => {
           : "Payment successful.\nThank you for your purchase."
       );
 
-      setAdminModalOpen(false);
-
       setTimeout(() => {
         if (!cancelledRef.current) {
           resetCheckoutState();
@@ -304,7 +286,6 @@ const App = () => {
       setPayStatus("error");
       setPayMessage("Door did not close. Please close the door.");
       LEDs.setRed();
-      setAdminModalOpen(false);
 
       setTimeout(() => {
         if (!cancelledRef.current) {
@@ -335,8 +316,6 @@ const App = () => {
         setPayMessage("Payment failed. Please try again.");
       }
     });
-
-    setAdminModalOpen(false);
   };
 
   const handleCardCheckoutCancel = async () => {
@@ -345,7 +324,6 @@ const App = () => {
     setPayStatus("idle");
     setPayMessage("");
     await Payment.cancel();
-    setAdminModalOpen(false);
   };
 
   const resetCheckoutState = () => {
@@ -390,14 +368,7 @@ const App = () => {
     appendProduct({ product, action: "-" });
   };
 
-  const toggleFullScreen = () => {
-    const newFullScreenState = !fullScreenState;
-    setFullScreenState(newFullScreenState);
-    getCurrentWindow().setFullscreen(newFullScreenState);
-  };
-
-  const hideVisual = !adminModalOpen && !checkoutActive && !modalOpen && !paymentMethodModalOpen;
-  const hideAdminModal = ((payStatus === "paying" || payStatus === "dispensing" || payStatus === "waiting_door") || checkoutActive || paymentMethodModalOpen);
+  const hideVisual = !checkoutActive && !modalOpen && !paymentMethodModalOpen;
   return (
     <main style={styles.body}>
       <KeyPressListener />
@@ -405,19 +376,9 @@ const App = () => {
       {!NFC_ONLY_MODE && <div
         style={styles.adminTrigger}
         onClick={() => {
-          !modalOpen && !checkoutActive && !paymentMethodModalOpen && (setAdminModalOpen(true), setScreenSaverActive(false));
+          !modalOpen && !checkoutActive && !paymentMethodModalOpen && (navigate("/admin"), setScreenSaverActive(false));
         }}
       />}
-
-      {!hideAdminModal && (
-        <AdminModal
-          opened={adminModalOpen}
-          onClose={() => setAdminModalOpen(false)}
-          editorUrl={editorUrl}
-          onToggleFullScreen={toggleFullScreen}
-          fullScreenState={fullScreenState}
-        />
-      )}
 
       {hideVisual && (
         <ProductsWithCategories
@@ -432,12 +393,10 @@ const App = () => {
           onModalOpen={() => {
             setScreenSaverActive(false);
             setModalOpen(true);
-            setAdminModalOpen(false);
           }}
           onCheckout={() => {
             setScreenSaverActive(false);
             setPaymentMethodModalOpen(true);
-            setAdminModalOpen(false);
           }}
           totalPrice={totalPrice(selectedProducts)}
         />
@@ -466,12 +425,10 @@ const App = () => {
         onSelectCard={() => {
           handleCardCheckout();
           setPaymentMethod("card");
-          setAdminModalOpen(false);
         }}
         onSelectNFC={() => {
           setPaymentMethod("nfc");
           handleNFCCheckout();
-          setAdminModalOpen(false);
         }}
       />
 

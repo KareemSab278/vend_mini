@@ -2,8 +2,16 @@ import { Button } from "@mantine/core";
 import { IconX } from "@tabler/icons-react";
 export { PrimaryButton, RemoveButton };
 
-const PrimaryButton = ({ title, onClick, color = 'rgb(99, 99, 99)', onDoubleClick, size }:
-{ title: string; onClick: () => void; color?: string; onDoubleClick?: () => void; size?: "sm" | "md" | "lg" | "xl" }) => {
+export interface PrimaryButtonProps {
+  title: string;
+  onClick: () => void;
+  color?: string;
+  textColor?: string;
+  onDoubleClick?: () => void;
+  size?: "sm" | "md" | "lg" | "xl";
+}
+
+const PrimaryButton = ({ title, onClick, color, textColor, onDoubleClick, size }: PrimaryButtonProps) => {
   return (
     <section style={{ display: "inline-block", margin: "8px" }}>
       <Button
@@ -13,6 +21,7 @@ const PrimaryButton = ({ title, onClick, color = 'rgb(99, 99, 99)', onDoubleClic
         style={{
           ...styles.primary,
           backgroundColor: color || styles.primary.backgroundColor,
+          color: textColor || styles.primary.color,
         }}
         onMouseOver={(e) => {
           e.currentTarget.style.backgroundColor = color
