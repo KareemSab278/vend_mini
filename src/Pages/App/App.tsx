@@ -72,12 +72,14 @@ const App = () => {
   const checkoutActiveRef = useRef(checkoutActive);
   const payStatusRef = useRef(payStatus);
 
-  const adminPresentCheck = async () => {
-    const present = await Admin.areAdminsPresent();
-    if (!present) {
-      console.log("No admins present, opening setup page");
-      navigate("/setup");
-    }
+  const adminPresentCheck = async (): Promise<boolean> => {
+    // const present = await Admin.areAdminsPresent();
+    // if (!present) {
+    //   console.log("No admins present, opening setup page");
+    //   navigate("/setup");
+    // }
+    // return present;
+    return true;
   };
 
   useEffect(() => { adminPresentCheck(); }, []);
