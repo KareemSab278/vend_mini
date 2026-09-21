@@ -11,12 +11,16 @@ const toggleFullScreen = async () => {
 export const appKeyMap: Record<string, () => void | Promise<void>> = {
   "Control+q": () => invoke("kill_app"),
   "Control+f": toggleFullScreen,
+  "Meta+q": () => invoke("kill_app"),
+  "Meta+f": toggleFullScreen,
 };
 
 export const KeyPressListener = () => {
     useEffect(() => {
         const handleKeyPressEvent = (event: KeyboardEvent) => {
-            const keyString = `${event.ctrlKey ? "Control+" : ""}${event.key}`;
+            // Cmd on macOS reports as metaKey, not ctrlKey; normalize case so Caps Lock/Shift don't break matching.
+            const modifier = event.ctrlKey ? "Control+" : event.metaKey ? "Meta+" : "";
+            const keyString = `${modifier}${event.key.toLowerCase()}`;
             const action = appKeyMap[keyString];
             if (!action) return;
             action();

@@ -173,9 +173,9 @@ const App = () => {
     try {
       await Payment.initialize();
     } catch (e) {
-      setCheckoutActive(true);
-      // setPayStatus("error");
-      setPayMessage(`Failed to initialize payment device: ${e}`);
+      // Don't block the kiosk screen if the payment device isn't connected yet;
+      // card checkout will simply fail later if attempted.
+      dev && console.error("Failed to initialize payment device:", e);
     }
   };
 
