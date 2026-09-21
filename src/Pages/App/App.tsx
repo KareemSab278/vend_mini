@@ -81,7 +81,6 @@ const App = () => {
     return present;
   };
 
-  useEffect(() => { adminPresentCheck(); }, []);
   useEffect(() => { modalOpenRef.current = modalOpen; }, [modalOpen]);
   useEffect(() => { checkoutActiveRef.current = checkoutActive; }, [checkoutActive]);
   useEffect(() => { payStatusRef.current = payStatus; }, [payStatus]);
@@ -211,6 +210,8 @@ const App = () => {
       const isPi = await isPiOs();
       getCurrentWindow().setFullscreen(isPi);
     }, 1000);
+
+    adminPresentCheck(); // check for admin AFTER fullscreen mode to avoid tearing
 
     return () => {
       if (timer) clearTimeout(timer);
