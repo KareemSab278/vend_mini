@@ -24,6 +24,9 @@ fn ensure_database_schema() -> Result<()> {
             product_price        REAL    NOT NULL,
             product_availability INTEGER NOT NULL DEFAULT 1
         );
+        CREATE TABLE IF NOT EXISTS categories (
+            category_name TEXT PRIMARY KEY
+        );
         CREATE TABLE IF NOT EXISTS orders (
             order_id   INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER NOT NULL,
@@ -54,21 +57,39 @@ pub fn initialize_database() -> Result<(), String> {
 #[tauri::command]
 pub fn get_categories() -> Result<Vec<String>, String> {
     let conn = open().map_err(|e| format!("Failed to open database: {}", e))?;
+
+    let mut categories: Vec<String> = Vec::new();
+
+    // Distinct categories currently used by products
     let mut stmt = conn.prepare("SELECT DISTINCT product_category FROM products")
         .map_err(|e| format!("Failed to prepare statement: {}", e))?;
-    let categories = stmt
+    let product_categories = stmt
         .query_map([], |row| row.get(0))
         .map_err(|e| format!("Failed to query categories: {}", e))?
         .collect::<Result<Vec<String>, _>>()
         .map_err(|e| format!("Failed to collect categories: {}", e))?;
+    categories.extend(product_categories);
+
+    // Categories explicitly created via the admin page
+    let mut stmt = conn.prepare("SELECT category_name FROM categories ORDER BY category_name")
+        .map_err(|e| format!("Failed to prepare categories statement: {}", e))?;
+    let explicit_categories = stmt
+        .query_map([], |row| row.get(0))
+        .map_err(|e| format!("Failed to query categories table: {}", e))?
+        .collect::<Result<Vec<String>, _>>()
+        .map_err(|e| format!("Failed to collect categories table: {}", e))?;
+    categories.extend(explicit_categories);
+
+    categories.sort();
+    categories.dedup();
     Ok(categories)
 }
 
 pub fn create_category(category: &str) -> Result<(), String> {
     let conn = open().map_err(|e| format!("Failed to open database: {}", e))?;
     conn.execute(
-        "INSERT INTO products (product_category) VALUES (?1)",
-        params![category],
+        "INSERT OR IGNORE INTO categories (category_name) VALUES (?1)",
+        params![category.trim()],
     )
     .map_err(|e| format!("Failed to create category: {}", e))?;
     Ok(())

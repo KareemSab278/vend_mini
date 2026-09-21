@@ -184,6 +184,11 @@ struct NewCategory {
     category_name: String,
 }
 
+async fn get_categories() -> Json<Vec<String>> {
+    let categories = database::get_categories().unwrap_or_default();
+    Json(categories)
+}
+
 async fn create_category(Json(payload): Json<NewCategory>) -> impl IntoResponse {
     println!("POST /categories payload: name='{}'", payload.category_name);
     match database::create_category(&payload.category_name) {
@@ -310,6 +315,7 @@ pub async fn initialize_static_page_server() -> Result<(), String> {
 
 pub async fn start() {
     let app = Router::new()
+        .route("/categories", get(get_categories).post(create_category))
         .route("/products", get(get_products).post(create_product))
         .route("/products/:id", delete(remove_product).put(edit_product))
         .route("/orders", get(view_orders))
