@@ -70,7 +70,15 @@ const SetupNFC = ({ onNext }: SetupNFCProps) => {
       <div style={styles.inner}>
         <h1 style={styles.heading}>Register Admin Tags</h1>
         <p style={styles.text}>
-          Please tap your NFC tag on the reader to register an admin. Once detected, the admin user information will be auto-filled and added to the list.
+          Please place and hold your NFC tag on the reader to register an admin. This may take up to 3 seconds so please wait.
+        </p>
+
+        <p style={styles.text}>
+          Make sure your NFC tag is on the reader and is unique to each admin.
+        </p>
+
+        <p style={styles.text}>
+          Once detected, the admin user information will be auto-filled and added to the list.
         </p>
 
         <p style={styles.counter}>
