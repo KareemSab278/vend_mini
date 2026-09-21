@@ -58,7 +58,7 @@ const Admin = () => {
       size: "xl",
     },
     url: {
-      title: "URL Editor",
+      title: "ADMIN URL",
       onClick: () => setActiveModal("url"),
       size: "xl",
     },
