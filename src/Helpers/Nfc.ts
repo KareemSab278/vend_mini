@@ -1,4 +1,5 @@
 const dev = import.meta.env.DEV;
+const TAG_POLL_INTERVAL_MS = 250;
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
@@ -54,8 +55,9 @@ export const NFC: NfcFunctions = {
 
     listenTags: async (): Promise<string | undefined> => {
         while (true) {
-            const tagId = (await invoke("get_tag_id")) as string;
+            const tagId = (await invoke("get_tag_id")) as string | undefined;
             if (tagId) return tagId;
+            await new Promise((resolve) => setTimeout(resolve, TAG_POLL_INTERVAL_MS));
         }
     },
 };
