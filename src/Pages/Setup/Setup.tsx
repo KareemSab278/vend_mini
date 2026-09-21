@@ -12,11 +12,10 @@ type SetupStep = "greeting" | "nfc" | "complete";
 const Setup = () => {
 
   const startFullScreen = async (): Promise<void> => {
-    const timer: number | null = setTimeout(async () => {
+    setTimeout(async () => {
       const isPi = await isPiOs();
-      getCurrentWindow().setFullscreen(isPi);
+      await getCurrentWindow().setFullscreen(isPi);
     }, 1000);
-    if (timer) clearTimeout(timer);
   };
 
   useEffect(() => { startFullScreen(); }, []);
