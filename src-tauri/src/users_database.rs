@@ -141,8 +141,7 @@ pub fn fetch_balance_by_tag_id(tag_id: &str) -> Result<Option<f64>> {
     Ok(None)
 }
 
-#[allow(dead_code)]
-pub fn get_all_admins() -> Result<Vec<User>> {
+pub fn fetch_all_admins() -> Result<Vec<User>> {
     let conn = open_user_db()?;
     let mut stmt = conn.prepare(
         "SELECT user_id, tag_id, full_name, is_admin, balance FROM users WHERE is_admin = 1",
@@ -162,6 +161,11 @@ pub fn get_all_admins() -> Result<Vec<User>> {
         admins.push(admin?);
     }
     Ok(admins)
+}
+
+#[tauri::command]
+pub async fn get_all_admins() -> Result<Vec<User>, String> {
+    fetch_all_admins().map_err(|e| e.to_string())
 }
 
 #[tauri::command]

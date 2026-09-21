@@ -36,4 +36,8 @@ export const Admin = {
     areAdminsPresent: async (): Promise<boolean> =>
         await invoke("are_admins_present") as boolean
     ,
+
+    getAllAdmins: async (): Promise<User[]> =>
+        await invoke("get_all_admins") as User[]
+    ,
 };

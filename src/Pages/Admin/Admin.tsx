@@ -6,6 +6,7 @@ import { PrimaryButton, PrimaryButtonProps } from "../../Components/Button";
 import { KeyPressListener } from "../../Helpers/KeyPressListener";
 import { isPiOs } from "../App/Helpers";
 import { styles as appStyles } from "../App/styles";
+import { AdminModal } from "./Components/AdminModal";
 import { DoorModal } from "./Components/DoorModal";
 import { LedModal } from "./Components/LedModal";
 import { SystemModal } from "./Components/SystemModal";
@@ -13,7 +14,7 @@ import { UrlModal } from "./Components/UrlModal";
 
 export { Admin };
 
-type AdminModalType = "door" | "led" | "system" | "url" | null;
+type AdminModalType = "addAdmin" | "door" | "led" | "system" | "url" | null;
 
 const Admin = () => {
   const [, navigate] = useLocation();
@@ -42,25 +43,25 @@ const Admin = () => {
   }, []);
 
   const options: { [key: string]: PrimaryButtonProps } = {
+    addAdmin: {
+      title: "Add Admin",
+      onClick: () => setActiveModal("addAdmin"),
+    },
     led: {
       title: "LED Controls",
       onClick: () => setActiveModal("led"),
-      size: "xl",
     },
     door: {
       title: "Door Controls",
       onClick: () => setActiveModal("door"),
-      size: "xl",
     },
     system: {
       title: "System",
       onClick: () => setActiveModal("system"),
-      size: "xl",
     },
     url: {
-      title: "ADMIN URL",
+      title: "URL",
       onClick: () => setActiveModal("url"),
-      size: "xl",
     },
   };
 
@@ -85,6 +86,7 @@ const Admin = () => {
       </div>
 
       {/* Render all modals and animate via opened */}
+      <AdminModal opened={activeModal === "addAdmin"} onClose={() => setActiveModal(null)} />
       <LedModal opened={activeModal === "led"} onClose={() => setActiveModal(null)} />
       <DoorModal opened={activeModal === "door"} onClose={() => setActiveModal(null)} />
       <SystemModal opened={activeModal === "system"} onClose={() => setActiveModal(null)} />
