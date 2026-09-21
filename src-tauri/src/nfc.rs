@@ -23,10 +23,12 @@ use hal::Delay;
 #[cfg(target_os = "linux")]
 use hal::SpidevDevice;
 #[cfg(target_os = "linux")]
-use mfrc522::comm::{blocking::spi::SpiInterface, Interface};
+use mfrc522::comm::blocking::spi::{DummyDelay, SpiInterface};
 #[cfg(target_os = "linux")]
 use mfrc522::{Initialized, Mfrc522};
 
+#[cfg(target_os = "linux")]
+use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(target_os = "linux")]
 use std::thread;
 #[cfg(target_os = "linux")]
@@ -42,12 +44,61 @@ use crate::users_database;
 const SCAN_DELAY_MS: u32 = 500;
 #[cfg(target_os = "linux")]
 const DEBOUNCE_MS: u64 = 1500;
+#[cfg(target_os = "linux")]
+const MAX_SPI_ATTEMPTS: u8 = 20;
+
+// guards against spawning more than one listener thread if start_nfc_listener is called twice.
+#[cfg(target_os = "linux")]
+static NFC_RUNNING: AtomicBool = AtomicBool::new(false);
 
 #[cfg(target_os = "linux")]
-fn get_spi() -> Result<SpidevDevice, ()> {
-    SpidevDevice::open("/dev/spidev0.0").map_err(|e| {
-        eprintln!("Failed to open SPI device: {:?}", e);
-    })
+fn reset_nfc_thread_lock() {
+    NFC_RUNNING.store(false, Ordering::SeqCst);
+}
+
+#[cfg(target_os = "linux")]
+fn find_spi(max_attempts: u8) -> Result<SpidevDevice, ()> {
+    let mut attempts = max_attempts;
+
+    loop {
+        match SpidevDevice::open("/dev/spidev0.0") {
+            Ok(spi) => return Ok(spi),
+            Err(e) => {
+                eprintln!("Failed to open SPI device: {:?}", e);
+                attempts = attempts.saturating_sub(1);
+                if attempts == 0 {
+                    eprintln!("Failed to open SPI device after {max_attempts} attempts.");
+                    return Err(());
+                }
+                eprintln!("Retrying SPI device in 3 seconds… Remaining attempts: {attempts}");
+                thread::sleep(Duration::from_secs(3));
+            }
+        }
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn find_vers(
+    mfrc522: &mut Mfrc522<SpiInterface<SpidevDevice, DummyDelay>, Initialized>,
+) -> Result<u8, ()> {
+    let vers = match mfrc522.version() {
+        Ok(v) => v,
+        Err(e) => {
+            eprintln!("Failed to read MFRC522 version: {:?}", e);
+            return Err(());
+        }
+    };
+
+    match vers {
+        0x91 | 0x92 => println!("MFRC522 Version 1 (0x{vers:x}) — NFC listener starting…"),
+        0x90 => println!("MFRC522 Version 2 (0x{vers:x}) — NFC listener starting…"),
+        0x82 => println!("Older MFRC522 (0x{vers:x}) — NFC listener starting…"),
+        _ => {
+            eprintln!("Unknown MFRC522 version 0x{vers:x} — NFC listener not started.");
+            return Err(());
+        }
+    }
+    Ok(vers)
 }
 
 // - `"nfc-admin-found"` — tag UID is in the admin allow-list
@@ -63,25 +114,27 @@ pub fn start_nfc_listener(app_handle: tauri::AppHandle) {
         return;
     }
 
+    if NFC_RUNNING.swap(true, Ordering::SeqCst) {
+        return;
+    }
+
     thread::spawn(move || {
         let options = SpidevOptions::new()
             .max_speed_hz(1_000_000)
             .mode(SpiModeFlags::SPI_MODE_0)
             .build();
 
-        // retry opening the SPI device until it succeeds.
-        let mut spi = loop {
-            match get_spi() {
-                Ok(s) => break s,
-                Err(_) => {
-                    println!("Retrying SPI device in 3 seconds…");
-                    thread::sleep(Duration::from_secs(3));
-                }
+        let mut spi = match find_spi(MAX_SPI_ATTEMPTS) {
+            Ok(s) => s,
+            Err(_) => {
+                reset_nfc_thread_lock();
+                return;
             }
         };
 
         if let Err(e) = spi.configure(&options) {
             eprintln!("Failed to configure SPI device: {:?}", e);
+            reset_nfc_thread_lock();
             return;
         }
 
@@ -90,26 +143,14 @@ pub fn start_nfc_listener(app_handle: tauri::AppHandle) {
             Ok(m) => m,
             Err(e) => {
                 eprintln!("Failed to initialise MFRC522: {:?}", e);
+                reset_nfc_thread_lock();
                 return;
             }
         };
 
-        let vers = match mfrc522.version() {
-            Ok(v) => v,
-            Err(e) => {
-                eprintln!("Failed to read MFRC522 version: {:?}", e);
-                return;
-            }
-        };
-
-        match vers {
-            0x91 | 0x92 => println!("MFRC522 Version 1 (0x{vers:x}) — NFC listener starting…"),
-            0x90 => println!("MFRC522 Version 2 (0x{vers:x}) — NFC listener starting…"),
-            0x82 => println!("Older MFRC522 (0x{vers:x}) — NFC listener starting…"),
-            _ => {
-                eprintln!("Unknown MFRC522 version 0x{vers:x} — NFC listener not started.");
-                return;
-            }
+        if find_vers(&mut mfrc522).is_err() {
+            reset_nfc_thread_lock();
+            return;
         }
 
         let mut delay = Delay;
@@ -166,28 +207,12 @@ pub fn start_nfc_listener(_app_handle: tauri::AppHandle) {
 
 #[cfg(target_os = "linux")]
 pub fn listen_for_tag_ids() -> Result<String, String> {
-    if std::env::consts::OS != "linux" {
-        println!(
-            "\nLINUX OS REQUIRED.\nDETECTED: {}.\nNFC listener not started.\n",
-            std::env::consts::OS
-        );
-        return Err("NFC listener not started due to unsupported OS".to_string());
-    }
-
     let options = SpidevOptions::new()
         .max_speed_hz(1_000_000)
         .mode(SpiModeFlags::SPI_MODE_0)
         .build();
 
-    let mut spi = loop {
-        match get_spi() {
-            Ok(s) => break s,
-            Err(_) => {
-                println!("Retrying SPI device in 3 seconds…");
-                thread::sleep(Duration::from_secs(3));
-            }
-        }
-    };
+    let mut spi = find_spi(MAX_SPI_ATTEMPTS).map_err(|_| "Failed to open SPI device".to_string())?;
 
     if let Err(e) = spi.configure(&options) {
         eprintln!("Failed to configure SPI device: {:?}", e);
@@ -203,23 +228,7 @@ pub fn listen_for_tag_ids() -> Result<String, String> {
         }
     };
 
-    let vers = match mfrc522.version() {
-        Ok(v) => v,
-        Err(e) => {
-            eprintln!("Failed to read MFRC522 version: {:?}", e);
-            return Err("Failed to read MFRC522 version".to_string());
-        }
-    };
-
-    match vers {
-        0x91 | 0x92 => println!("MFRC522 Version 1 (0x{vers:x}) — NFC listener starting…"),
-        0x90 => println!("MFRC522 Version 2 (0x{vers:x}) — NFC listener starting…"),
-        0x82 => println!("Older MFRC522 (0x{vers:x}) — NFC listener starting…"),
-        _ => {
-            eprintln!("Unknown MFRC522 version 0x{vers:x} — NFC listener not started.");
-            return Err("Unknown MFRC522 version".to_string());
-        }
-    }
+    find_vers(&mut mfrc522).map_err(|_| "Unknown MFRC522 version".to_string())?;
 
     let mut delay = Delay;
 
@@ -248,27 +257,4 @@ pub fn listen_for_tag_ids() -> Result<String, String> {
 #[tauri::command]
 pub async fn get_tag_id() -> Result<String, String> {
     listen_for_tag_ids().map_err(|e| format!("Failed to get tag ID: {}", e))
-}
-
-#[cfg(target_os = "linux")]
-#[allow(dead_code)]
-fn handle_authenticate<E, COMM: Interface<Error = E>, F>(
-    mfrc522: &mut Mfrc522<COMM, Initialized>,
-    uid: &mfrc522::Uid,
-    action: F,
-) -> Result<(), anyhow::Error>
-where
-    F: FnOnce(&mut Mfrc522<COMM, Initialized>) -> Result<(), anyhow::Error>,
-    E: std::fmt::Debug + std::marker::Sync + std::marker::Send + 'static,
-{
-    let key = [0xFF; 6];
-    if mfrc522.mf_authenticate(uid, 1, &key).is_ok() {
-        action(mfrc522)?;
-    } else {
-        println!("Could not authenticate");
-    }
-
-    mfrc522.hlta()?;
-    mfrc522.stop_crypto1()?;
-    Ok(())
 }
