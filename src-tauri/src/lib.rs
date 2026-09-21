@@ -71,7 +71,7 @@ pub fn run() {
                 .handle()
                 .plugin(tauri_plugin_updater::Builder::new().build());
 
-            // nfc::start_nfc_listener(app.handle().clone());
+            nfc::start_nfc_listener(app.handle().clone());
 
             Ok(())
         })
