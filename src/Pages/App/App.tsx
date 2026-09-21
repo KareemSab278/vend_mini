@@ -73,13 +73,12 @@ const App = () => {
   const payStatusRef = useRef(payStatus);
 
   const adminPresentCheck = async (): Promise<boolean> => {
-    // const present = await Admin.areAdminsPresent();
-    // if (!present) {
-    //   console.log("No admins present, opening setup page");
-    //   navigate("/setup");
-    // }
-    // return present;
-    return true;
+    const present = await Admin.areAdminsPresent();
+    if (!present) {
+      console.log("No admins present, opening setup page");
+      navigate("/setup");
+    }
+    return present;
   };
 
   useEffect(() => { adminPresentCheck(); }, []);
