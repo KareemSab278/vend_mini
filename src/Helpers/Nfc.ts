@@ -53,11 +53,9 @@ export const NFC: NfcFunctions = {
     },
 
     listenTags: async (): Promise<string | undefined> => {
-        const tagId = (await invoke("get_tag_id")) as string;
-        while (!tagId) {
-            if (tagId) {
-                return tagId;
-            }
+        while (true) {
+            const tagId = (await invoke("get_tag_id")) as string;
+            if (tagId) return tagId;
         }
     },
 };

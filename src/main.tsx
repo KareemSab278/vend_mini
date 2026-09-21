@@ -1,5 +1,5 @@
-import React from "react";
-import ReactDOM from "react-dom/client";
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
 import { MantineProvider } from "@mantine/core";
 import { Route, Router, Switch } from "wouter";
 import "@mantine/core/styles.css";
@@ -7,8 +7,8 @@ import "@mantine/core/styles.css";
 import { App } from "./Pages/App/App";
 import { Setup } from "./Pages/Setup/Setup";
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <React.StrictMode>
+createRoot(document.getElementById("root") as HTMLElement).render(
+  <StrictMode>
     <MantineProvider defaultColorScheme="dark">
       <Router>
         <Switch>
@@ -17,5 +17,5 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
         </Switch>
       </Router>
     </MantineProvider>
-  </React.StrictMode>
+  </StrictMode>
 );

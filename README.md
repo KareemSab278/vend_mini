@@ -169,7 +169,7 @@ ordering_system/
 
 ### Frontend (React)
 
-#### Entry Point: `src/main.jsx`
+#### Entry Point: `src/main.tsx`
 
 Mounts the React application inside a MantineProvider (UI component library) and renders the `App` component into the DOM element with id `root`.
 
