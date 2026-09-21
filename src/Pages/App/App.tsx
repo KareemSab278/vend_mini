@@ -4,7 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useLocation } from "wouter";
-import * as helpers from "./Helpers";
+import { totalPrice, isPiOs } from "./Helpers";
+
 import { styles } from "./styles";
 import { SelectedProductsModal } from "./Components/SelectedProductsModal";
 import { CheckoutModal } from "./Components/CheckoutModal";
@@ -70,7 +71,7 @@ const App = () => {
   const modalOpenRef = useRef(modalOpen);
   const checkoutActiveRef = useRef(checkoutActive);
   const payStatusRef = useRef(payStatus);
-  
+
   const adminPresentCheck = async () => {
     const present = await Admin.areAdminsPresent();
     if (!present) {
@@ -109,7 +110,7 @@ const App = () => {
 
     try {
       const newBalance: number = await NFC.payment(
-        helpers.totalPrice(selectedProducts),
+        totalPrice(selectedProducts),
         () => { },
         () => { }
       );
@@ -206,7 +207,7 @@ const App = () => {
     window.addEventListener("keydown", handleUserActivity);
 
     const timer: number | null = setTimeout(async () => {
-      const isPi = await helpers.isPiOs();
+      const isPi = await isPiOs();
       getCurrentWindow().setFullscreen(isPi);
     }, 1000);
 
@@ -318,7 +319,7 @@ const App = () => {
     setPaymentMethod("card");
     setPayStatus("paying");
 
-    const amount = helpers.totalPrice(selectedProducts);
+    const amount = totalPrice(selectedProducts);
 
     await Payment.start(amount, async (success: boolean) => {
       if (cancelledRef.current) return;
@@ -434,7 +435,7 @@ const App = () => {
             setPaymentMethodModalOpen(true);
             setAdminModalOpen(false);
           }}
-          totalPrice={helpers.totalPrice(selectedProducts)}
+          totalPrice={totalPrice(selectedProducts)}
         />
       )}
 
