@@ -17,10 +17,12 @@ export const Admin = {
     create: async (user: User): Promise<Response> => {
         try {
             await invoke("new_user", {
-                tagId: user.tag_id,
-                fullName: user.full_name,
-                isAdmin: user.is_admin,
-                balance: user.balance,
+                newUser: {
+                    tag_id: user.tag_id,
+                    full_name: user.full_name,
+                    is_admin: user.is_admin,
+                    balance: user.balance,
+                },
             });
             return { success: true, message: "User added successfully" };
         } catch (error) {
