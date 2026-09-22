@@ -15,6 +15,7 @@ import { UpdateModal } from "./Components/UpdateModal";
 export { Admin };
 
 type AdminModalType = "addAdmin" | "door" | "led" | "system" | "url" | "update" | null;
+const currentVersion = import.meta.env.VITE_APP_VERSION as string;
 
 const Admin = () => {
   const [, navigate] = useLocation();
@@ -71,6 +72,8 @@ const Admin = () => {
 
   return (
     <main style={appStyles.body}>
+      <p style={styles.versionText}>{currentVersion}</p>
+
       <KeyPressListener />
       <div style={styles.inner}>
 
@@ -93,7 +96,7 @@ const Admin = () => {
       <LedModal opened={activeModal === "led"} onClose={() => setActiveModal(null)} />
       <DoorModal opened={activeModal === "door"} onClose={() => setActiveModal(null)} />
       <SystemModal opened={activeModal === "system"} onClose={() => setActiveModal(null)} />
-      
+
       <UrlModal
         opened={activeModal === "url"}
         onClose={() => setActiveModal(null)}
@@ -104,6 +107,7 @@ const Admin = () => {
         opened={activeModal === "update"}
         onClose={() => setActiveModal(null)}
       />
+
 
     </main>
   );
@@ -130,5 +134,14 @@ const styles: { [key: string]: React.CSSProperties } = {
     justifyContent: "center",
     gap: "1rem",
     marginBottom: "2rem",
+  },
+  versionText: {
+    position: "absolute",
+    display: 'flex',
+    justifyContent: 'flex-start',
+    bottom: "0rem",
+    right: "1rem",
+    color: "#ffffff",
+    fontWeight: 600,
   },
 };

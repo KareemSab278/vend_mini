@@ -28,6 +28,7 @@ const UpdateModal = ({ opened, onClose }: UpdateModalProps) => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
 
+
     const handleCheckForUpdates = async () => {
         setLoading(true);
         try {
@@ -45,7 +46,7 @@ const UpdateModal = ({ opened, onClose }: UpdateModalProps) => {
     }
 
     return (
-        <Modal opened={opened} onClose={onClose} title="Update" size="lg">
+        <Modal opened={opened} onClose={onClose} title={"Update"} size="lg">
             <div style={styles.grid}>
                 <PrimaryButton
                     title={loading ? "Updating..." : "Get Latest Update"}
