@@ -1,6 +1,6 @@
 [package]
 name = "vend_mini"
-version = "0.1.6"
+version = "0.1.7"
 description = "A Tauri App"
 authors = ["KareemSab278"]
 edition = "2021"
