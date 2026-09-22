@@ -174,6 +174,53 @@
     }
     .orders-summary strong { color: #e4e4e7; }
 
+    /* ── Images ── */
+    .image-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 1rem;
+    }
+    .image-card {
+      background: #18181b;
+      border: 1px solid #27272a;
+      border-radius: 0.75rem;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    .image-card img {
+      width: 100%;
+      height: 140px;
+      object-fit: cover;
+      display: block;
+      background: #0f0f11;
+    }
+    .image-card .image-info {
+      padding: 0.6rem 0.75rem;
+      font-size: 0.78rem;
+      color: #a1a1aa;
+      word-break: break-all;
+      flex: 1;
+    }
+    .image-card .image-actions {
+      padding: 0 0.75rem 0.75rem;
+    }
+    .image-upload-zone {
+      border: 2px dashed #3f3f46;
+      border-radius: 0.75rem;
+      padding: 2rem;
+      text-align: center;
+      color: #71717a;
+      margin-bottom: 1.5rem;
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+    }
+    .image-upload-zone:hover, .image-upload-zone.dragover {
+      border-color: #6366f1;
+      background: #1f1f23;
+    }
+    .image-upload-zone input { display: none; }
+
     /* ── Tabs ── */
     .tabs {
       display: flex;
@@ -229,6 +276,7 @@
       <button class="tab-btn active" data-tab="tab-products" onclick="switchTab('tab-products')">Products</button>
       <button class="tab-btn" data-tab="tab-users" onclick="switchTab('tab-users')">Users</button>
       <button class="tab-btn" data-tab="tab-orders" onclick="switchTab('tab-orders')">Orders</button>
+      <button class="tab-btn" data-tab="tab-images" onclick="switchTab('tab-images')">Images</button>
     </div>
 
     <div class="tab-panel active" id="tab-products">
@@ -383,6 +431,28 @@
         </tbody>
       </table>
     </div>
+  </div>
+</div>
+
+<div class="tab-panel" id="tab-images">
+  <h1>Images Admin</h1>
+
+  <div class="form-card" style="margin-bottom: 2rem">
+    <h2>Upload Images</h2>
+    <label class="image-upload-zone" id="upload-zone">
+      <input type="file" id="image-input" accept="image/png,image/jpeg,image/webp,image/gif" multiple onchange="uploadImages(this.files)" />
+      <div>Click or drag images here to upload</div>
+      <div style="font-size: 0.75rem; margin-top: 0.5rem; color: #52525b">PNG, JPG, WEBP, GIF</div>
+    </label>
+    <span id="image-status"></span>
+  </div>
+
+  <h2 class="section-title" style="margin-top: 0">Uploaded Images</h2>
+  <div class="image-grid" id="image-grid">
+    <p style="color:#52525b; grid-column: 1 / -1">Loading…</p>
+  </div>
+</div>
+
   </div>
 </div>
 
@@ -868,6 +938,78 @@
       loadUsers();
     }
 
+    /* ═════════════════════════════ IMAGES ═════════════════════════════════ */
+    async function loadImages() {
+      const grid = document.getElementById("image-grid");
+      grid.innerHTML = '<p style="color:#52525b; grid-column: 1 / -1">Loading…</p>';
+      try {
+        const res = await fetch("/images");
+        if (!res.ok) throw new Error("Failed to fetch images");
+        const imgs = await res.json();
+        if (!imgs.length) {
+          grid.innerHTML = '<p style="color:#52525b; grid-column: 1 / -1">No images uploaded yet.</p>';
+          return;
+        }
+        grid.innerHTML = imgs.map(img => `
+          <div class="image-card">
+            <img src="${esc(img.url)}" alt="${esc(img.name)}" loading="lazy" />
+            <div class="image-info">${esc(img.name)}</div>
+            <div class="image-actions">
+              <button class="btn-icon danger" onclick="deleteImage('${encodeURIComponent(img.name)}')" title="Delete">🗑</button>
+            </div>
+          </div>
+        `).join("");
+      } catch (e) {
+        grid.innerHTML = `<p style="color:#f87171; grid-column: 1 / -1">Failed to load images: ${esc(e.message)}</p>`;
+      }
+    }
+
+    async function uploadImages(files) {
+      if (!files || !files.length) return;
+      const status = document.getElementById("image-status");
+      status.textContent = "Uploading…";
+      status.className = "";
+
+      const form = new FormData();
+      for (const file of files) {
+        form.append("images", file);
+      }
+
+      try {
+        const res = await fetch("/images", { method: "POST", body: form });
+        if (!res.ok) throw new Error(await res.text() || res.statusText);
+        status.textContent = `${files.length} image(s) uploaded.`;
+        status.className = "ok";
+        document.getElementById("image-input").value = "";
+        loadImages();
+      } catch (e) {
+        status.textContent = `Upload failed: ${e.message}`;
+        status.className = "err";
+      }
+    }
+
+    async function deleteImage(encodedName) {
+      const name = decodeURIComponent(encodedName);
+      if (!confirm(`Delete ${name}?`)) return;
+      try {
+        const res = await fetch(`/images/${encodeURIComponent(name)}`, { method: "DELETE" });
+        if (!res.ok) throw new Error(await res.text() || res.statusText);
+        loadImages();
+      } catch (e) {
+        alert(`Failed to delete image: ${e.message}`);
+      }
+    }
+
+    /* drag-and-drop */
+    const uploadZone = document.getElementById("upload-zone");
+    uploadZone.addEventListener("dragover", e => { e.preventDefault(); uploadZone.classList.add("dragover"); });
+    uploadZone.addEventListener("dragleave", () => uploadZone.classList.remove("dragover"));
+    uploadZone.addEventListener("drop", e => {
+      e.preventDefault();
+      uploadZone.classList.remove("dragover");
+      uploadImages(e.dataTransfer.files);
+    });
+
     /* ═════════════════════════════ TABS ════════════════════════════════════ */
     function switchTab(tabId) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -881,6 +1023,7 @@
     loadCategories();
     loadOrders();
     loadUsers();
+    loadImages();
   </script>
 </body>
 </html>

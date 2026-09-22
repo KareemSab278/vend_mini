@@ -131,6 +131,14 @@ const App = () => {
     startInactivityTimer();
   };
 
+  const startScreenSaverServer = async () => {
+    try {
+      await invoke("initialize_static_page_server");
+    } catch (e) {
+      dev && console.error("Failed to start static page server:", e);
+    }
+  };
+
 
   const showNfcNotification = (message: string) => {
     if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
@@ -182,6 +190,7 @@ const App = () => {
     fetchProducts();
     initializePayDevice();
     startInactivityTimer();
+    startScreenSaverServer();
 
     const handleUserActivity = () => {
       resetInactivityTimer();

@@ -1,6 +1,7 @@
 mod config;
 mod database;
 mod door;
+mod images;
 pub mod nfc;
 mod pay;
 mod serial_comms;
@@ -66,6 +67,7 @@ pub fn run() {
             update::install_update_with_password, // sudo password fallback
             server::initialize_static_page_server,
             server::return_editor_url,
+            images::list_images_command,
             is_raspberry_pi
         ])
         .setup(|app| {

@@ -13,6 +13,7 @@ use tower_http::services::ServeDir;
 static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
 
 use crate::database;
+use crate::images;
 use crate::users_database;
 use crate::users_database::NewUser;
 
@@ -332,6 +333,8 @@ pub async fn start() {
             "/balance",
             get(get_balance_by_tag_id).put(update_balance_by_tag_id),
         )
+        .route("/images", get(images::list_images).post(images::upload_image))
+        .route("/images/:name", get(images::serve_image).delete(images::delete_image))
         .fallback_service(ServeDir::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/src/static"

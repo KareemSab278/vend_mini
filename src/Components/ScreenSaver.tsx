@@ -1,16 +1,42 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import importedImages from '../imageImporter';
+import { useState, useEffect, useRef } from 'react';
+import { invoke } from '@tauri-apps/api/core';
 
 export { ScreenSaver };
 
+type ImageListEntry = {
+  name: string;
+  url: string;
+};
+
 const INTERVAL: number = 8; // seconds
 
+const BASE_URL = 'http://127.0.0.1:8000';
+
 const ScreenSaver = ({ images, onClose }: { images?: string[]; onClose: () => void }) => {
-  const defaultImages = useMemo(() => Object.values(importedImages), []);
-  const slides = images ?? defaultImages;
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
+  const slides = images ?? uploadedImages;
 
   const [currentIndex, setCurrentIndex] = useState(0);
   const pollRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    invoke<ImageListEntry[]>('list_images_command')
+      .then((entries) => {
+        if (cancelled) return;
+        const urls = entries.map((e) => `${BASE_URL}${e.url}`);
+        setUploadedImages(urls);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setUploadedImages([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     if (!slides.length) return;
