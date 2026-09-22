@@ -1,5 +1,5 @@
-use std::fs::File;
-use std::io::copy;
+use tokio::fs::File;
+use tokio::io::AsyncWriteExt;
 
 const LATEST_RELEASE_URL: &str =
     "https://raw.githubusercontent.com/KareemSab278/vend_mini_releases/main/latest_release.json";
@@ -14,11 +14,11 @@ fn to_raw_github_url(url: &str) -> String {
     url.to_string()
 }
 
-fn get_download_url() -> Result<String, String> {
-    let response = reqwest::blocking::get(LATEST_RELEASE_URL).map_err(|err| err.to_string())?;
+async fn get_download_url() -> Result<String, String> {
+    let response = reqwest::get(LATEST_RELEASE_URL).await.map_err(|err| err.to_string())?;
 
     if response.status().is_success() {
-        let json: serde_json::Value = response.json().map_err(|err| err.to_string())?;
+        let json: serde_json::Value = response.json().await.map_err(|err| err.to_string())?;
         if let Some(download_url) = json.get("download_url") {
             if let Some(download_url_str) = download_url.as_str() {
                 return Ok(to_raw_github_url(download_url_str));
@@ -29,11 +29,11 @@ fn get_download_url() -> Result<String, String> {
     Err("Failed to fetch download URL".to_string())
 }
 
-fn is_update_available() -> Result<bool, String> {
-    let response = reqwest::blocking::get(LATEST_RELEASE_URL).map_err(|err| err.to_string())?;
+async fn is_update_available() -> Result<bool, String> {
+    let response = reqwest::get(LATEST_RELEASE_URL).await.map_err(|err| err.to_string())?;
 
     if response.status().is_success() {
-        let json: serde_json::Value = response.json().map_err(|err| err.to_string())?;
+        let json: serde_json::Value = response.json().await.map_err(|err| err.to_string())?;
         if let Some(latest_version) = json.get("version") {
             if let Some(latest_version_str) = latest_version.as_str() {
                 let current_version = env!("CARGO_PKG_VERSION");
@@ -47,10 +47,10 @@ fn is_update_available() -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub fn install_update() -> Result<(), String> {
-    let download_url = get_download_url()?;
+pub async fn install_update() -> Result<(), String> {
+    let download_url = get_download_url().await?;
 
-    let update_available = is_update_available()?;
+    let update_available = is_update_available().await?;
     if !update_available {
         return Err("No update available".to_string());
     }
@@ -68,13 +68,15 @@ pub fn install_update() -> Result<(), String> {
 
     println!("Downloading to: {:?}", file_path);
 
-    let mut response = reqwest::blocking::get(&download_url).map_err(|err| err.to_string())?;
+    let mut response = reqwest::get(&download_url).await.map_err(|err| err.to_string())?;
     response
         .error_for_status_ref()
         .map_err(|err| err.to_string())?;
 
-    let mut file = File::create(&file_path).map_err(|err| err.to_string())?;
-    copy(&mut response, &mut file).map_err(|err| err.to_string())?;
+    let mut file = File::create(&file_path).await.map_err(|err| err.to_string())?;
+    while let Some(chunk) = response.chunk().await.map_err(|err| err.to_string())? {
+        file.write_all(&chunk).await.map_err(|err| err.to_string())?;
+    }
 
     println!("Download complete");
 
