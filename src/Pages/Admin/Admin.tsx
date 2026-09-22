@@ -11,10 +11,10 @@ import { DoorModal } from "./Components/DoorModal";
 import { LedModal } from "./Components/LedModal";
 import { SystemModal } from "./Components/SystemModal";
 import { UrlModal } from "./Components/UrlModal";
-
+import { UpdateModal } from "./Components/UpdateModal";
 export { Admin };
 
-type AdminModalType = "addAdmin" | "door" | "led" | "system" | "url" | null;
+type AdminModalType = "addAdmin" | "door" | "led" | "system" | "url" | "update" | null;
 
 const Admin = () => {
   const [, navigate] = useLocation();
@@ -63,6 +63,10 @@ const Admin = () => {
       title: "URL",
       onClick: () => setActiveModal("url"),
     },
+    update: {
+      title: "Update",
+      onClick: () => setActiveModal("update"),
+    },
   };
 
   return (
@@ -94,6 +98,11 @@ const Admin = () => {
         opened={activeModal === "url"}
         onClose={() => setActiveModal(null)}
         editorUrl={editorUrl}
+      />
+
+      <UpdateModal
+        opened={activeModal === "update"}
+        onClose={() => setActiveModal(null)}
       />
 
     </main>
