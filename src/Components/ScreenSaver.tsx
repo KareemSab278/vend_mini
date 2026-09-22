@@ -8,7 +8,7 @@ type ImageListEntry = {
   url: string;
 };
 
-const INTERVAL: number = 8; // seconds
+const INTERVAL: number = 5; // seconds
 
 const BASE_URL = 'http://127.0.0.1:8000';
 

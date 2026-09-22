@@ -24,7 +24,7 @@ const ProductsWithCategories = ({
 
   useEffect(() => {
     Products.fetchCategories().then((fetchedCategories) => {
-      setCategories(fetchedCategories);
+      setCategories(["All", ...fetchedCategories]);
     });
   }, []);
   
