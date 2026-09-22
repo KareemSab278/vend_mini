@@ -63,6 +63,7 @@ pub fn run() {
             // Utility
             kill_app,
             update::install_update, // get latest updates
+            update::install_update_with_password, // sudo password fallback
             server::initialize_static_page_server,
             server::return_editor_url,
             is_raspberry_pi
