@@ -34,9 +34,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     position: "relative",
     display: "flex",
     overflowX: "auto",
+    overflowY: "hidden",
     borderRadius: "50px",
     scrollbarWidth: "none",
     msOverflowStyle: "none",
+    touchAction: "pan-x",
+    WebkitOverflowScrolling: "touch",
   },
   indicator: {
     position: "absolute",
