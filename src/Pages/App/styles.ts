@@ -2,8 +2,8 @@ export { styles };
 
 const styles: { [key: string]: React.CSSProperties } = {
   body: {
-    background: "#1b2136",
-    color: "#fff",
+    background: "var(--theme-background, #1b2136)",
+    color: "var(--theme-text, #fff)",
     fontFamily:
       'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     minHeight: "100vh",
@@ -34,7 +34,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-    background: "#181A20",
+    background: "var(--theme-secondary, #181A20)",
     boxShadow: "0px 2px 15px rgba(0, 0, 0, 0.52)",
     borderRadius: "50px",
     padding: "0.5rem 0.5rem",
@@ -55,7 +55,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   noProductsMessage: {
     textAlign: "center",
-    color: "#d4d4d4",
+    color: "var(--theme-text, #d4d4d4)",
     fontSize: "1.2rem",
     marginTop: "2rem",
   },

@@ -36,7 +36,7 @@ const styles: { [key: string]: React.CSSProperties } = {
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        background: "#181A20",
+        background: "var(--theme-secondary, #181A20)",
         boxShadow: "0px 2px 15px rgba(0, 0, 0, 0.52)",
         borderRadius: "50px",
         padding: "0.5rem 0.8rem",

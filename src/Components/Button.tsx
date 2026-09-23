@@ -4,7 +4,7 @@ export { PrimaryButton, RemoveButton };
 
 export interface PrimaryButtonProps {
   title: string;
-  onClick: () => void;
+  onClick?: () => void;
   color?: string;
   textColor?: string;
   onDoubleClick?: () => void;
@@ -24,14 +24,11 @@ const PrimaryButton = ({ title, onClick, color, textColor, onDoubleClick, size }
           color: textColor || styles.primary.color,
         }}
         onMouseOver={(e) => {
-          e.currentTarget.style.backgroundColor = color
-            ? `rgba(${parseInt(color.slice(1, 3), 16)}, ${parseInt(color.slice(3, 5), 16)}, ${parseInt(color.slice(5, 7), 16)}, 0.7)`
-            : "rgba(156, 156, 156, 0.7)";
+          e.currentTarget.style.opacity = "0.8";
           e.currentTarget.style.boxShadow = "0 4px 16px rgba(0,0,0,0.18)";
         }}
         onMouseOut={(e) => {
-          e.currentTarget.style.backgroundColor =
-            color || styles.primary.backgroundColor;
+          e.currentTarget.style.opacity = "1";
           e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.12)";
         }}
         onClick={onClick}
@@ -60,8 +57,8 @@ const RemoveButton = ({ onClick }: { onClick: () => void }) => {
 
 const styles = {
   primary: {
-    backgroundColor: "rgba(99, 99, 99, 0.42)",
-    color: "#fff",
+    backgroundColor: "var(--theme-primary, rgba(99, 99, 99, 0.42))",
+    color: "var(--theme-text, #fff)",
     padding: "10px 15px",
     fontWeight: "bold",
     fontSize: "1.5rem",

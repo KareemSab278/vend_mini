@@ -12,9 +12,11 @@ import { LedModal } from "./Components/LedModal";
 import { SystemModal } from "./Components/SystemModal";
 import { UrlModal } from "./Components/UrlModal";
 import { UpdateModal } from "./Components/UpdateModal";
+import { ThemeSetter } from "./Components/ThemeSetter";
+
 export { Admin };
 
-type AdminModalType = "addAdmin" | "door" | "led" | "system" | "url" | "update" | null;
+type AdminModalType = "addAdmin" | "door" | "led" | "system" | "url" | "update" | "theme" | null;
 const currentVersion = import.meta.env.VITE_APP_VERSION as string;
 
 const Admin = () => {
@@ -44,6 +46,10 @@ const Admin = () => {
   }, []);
 
   const options: { [key: string]: PrimaryButtonProps } = {
+    theme: {
+      title: "Theme Setter",
+      onClick: () => setActiveModal("theme"),
+    },
     addAdmin: {
       title: "Add Admin",
       onClick: () => setActiveModal("addAdmin"),
@@ -108,7 +114,7 @@ const Admin = () => {
         onClose={() => setActiveModal(null)}
       />
 
-
+      <ThemeSetter opened={activeModal === "theme"} onClose={() => setActiveModal(null)} />
     </main>
   );
 };

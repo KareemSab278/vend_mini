@@ -46,10 +46,10 @@ const ProductCard = ({
 const styles: { [key: string]: React.CSSProperties } = {
   card: {
     position: "relative",
-    backgroundColor: "rgba(99, 99, 99, 0.42)",
+    backgroundColor: "var(--theme-primary-rgb, rgba(99, 99, 99, 0.42))",
     fontFamily:
       'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    color: "#fff",
+    color: "var(--theme-text, #fff)",
     padding: "0.5rem",
     borderRadius: "40px",
     cursor: "pointer",

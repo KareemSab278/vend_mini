@@ -12,7 +12,7 @@ const CategoryIndicator = ({ categories, activeCategory, onCategoryClick }: {
       {categories && categories.map((category) => (
         <PrimaryButton
           key={category}
-          color={activeCategory === category ? "#3e73ef" : "rgb(99, 99, 99)"}
+          color={activeCategory === category ? "#00000057" : "var(--theme-primary-rgb, rgb(46, 46, 46))"}
           onClick={() => onCategoryClick(category)}
           title={category}
         />

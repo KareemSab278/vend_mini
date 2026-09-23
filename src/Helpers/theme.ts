@@ -16,25 +16,57 @@
 import { LS } from './LS';
 
 export interface Theme {
-    primaryColor?: string;
-    secondaryColor?: string;
-    backgroundColor?: string;
-    textColor?: string;
+    primaryColor: string;
+    secondaryColor: string;
+    backgroundColor: string;
+    textColor: string;
+    primaryOpacity: number;
 }
 
 export const defaultTheme: Theme = {
-    // should hold the current theme colors that the app is using right now.
-    // like purple and stuff or i set it to just grey and apply it initially...
-    primaryColor: '#6200ee',
-    secondaryColor: '#03dac6',
-    backgroundColor: '#f5f5f5',
-    textColor: '#000000',
+    primaryColor: '#8f8f8f',
+    secondaryColor: '#1b2136',
+    backgroundColor: '#1b2136',
+    textColor: '#ffffff',
+    primaryOpacity: 0.42,
+};
+
+export const hexToRgba = (hex: string, alpha: number) => {
+    const clean = hex.replace('#', '');
+    const r = parseInt(clean.substring(0, 2), 16);
+    const g = parseInt(clean.substring(2, 4), 16);
+    const b = parseInt(clean.substring(4, 6), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
+export const applyTheme = (theme: Theme) => {
+    const root = document.documentElement;
+    root.style.setProperty('--theme-primary', theme.primaryColor);
+    root.style.setProperty('--theme-primary-rgb', hexToRgba(theme.primaryColor, theme.primaryOpacity));
+    root.style.setProperty('--theme-secondary', theme.secondaryColor);
+    root.style.setProperty('--theme-background', theme.backgroundColor);
+    root.style.setProperty('--theme-text', theme.textColor);
 };
 
 export const ThemeStore = {
-    getTheme: async (): Promise<Theme> => await LS.get('theme', defaultTheme),
-    setTheme: async (theme: Theme) => await LS.save('theme', theme),
-    clearTheme: async () => await LS.remove('theme'),
+    getTheme: async (): Promise<Theme> => {
+        const saved = await LS.get('theme', defaultTheme);
+        return {
+            primaryColor: saved?.primaryColor ?? defaultTheme.primaryColor,
+            secondaryColor: saved?.secondaryColor ?? defaultTheme.secondaryColor,
+            backgroundColor: saved?.backgroundColor ?? defaultTheme.backgroundColor,
+            textColor: saved?.textColor ?? defaultTheme.textColor,
+            primaryOpacity: saved?.primaryOpacity ?? defaultTheme.primaryOpacity,
+        };
+    },
+    setTheme: async (theme: Theme) => {
+        await LS.save('theme', theme);
+        applyTheme(theme);
+    },
+    clearTheme: async () => {
+        await LS.remove('theme');
+        applyTheme(defaultTheme);
+    },
 }
 
 
