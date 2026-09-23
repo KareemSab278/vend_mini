@@ -1,5 +1,6 @@
 import { RemoveButton } from "./Button";
 import { QuantityBadge } from "./QuantityBadge";
+import { getProductIcon } from "../Pages/App/Helpers";
 
 export { ProductCard };
 
@@ -7,6 +8,7 @@ type ProductCardProps = {
   product: {
     product_name: string;
     product_price: number;
+    product_category?: string;
   };
   title?: string;
   onClick: ((product: any, action: string) => void) | null; // on click basically just add the product to the basket, and on remove removes it from the basket, the action is just a string that indicates whether it's an add or remove action
@@ -32,6 +34,9 @@ const ProductCard = ({
   return (
     <div style={styles.card} onClick={() => onClick && onClick(product, "+")}>
       <div style={styles.titleRow}>
+        <span style={styles.iconWrapper}>
+          {getProductIcon(product.product_name, product.product_category)}
+        </span>
         <h3 style={styles.title}>{displayTitle} - £{product.product_price.toFixed(2)}</h3>
         <QuantityBadge count={count} />
       </div>

@@ -4,10 +4,6 @@ import { CategoryIndicator } from "../../../Components/CategoryIndicator";
 import { styles } from "../styles";
 import { Products, type ProductType } from "../../../Helpers/Products";
 
-// will need to get the live categories formt he db
-
-const CATEGORIES = ["All", "Drinks", "Snacks", "Food", "Other"];
-
 interface ProductsWithCategoriesProps {
   products: ProductType[];
   appendProduct: ({ product, action }: { product: ProductType; action: string }) => void;
@@ -37,7 +33,7 @@ const ProductsWithCategories = ({
             prod.product_availability,
         );
 
-  return (
+  return products.length > 0 && categories && categories.length > 0 ? (
     <>
       <div style={styles.topContainer}>
         <section style={styles.categoryIndicatorContainer}>
@@ -75,6 +71,8 @@ const ProductsWithCategories = ({
         )}
       </section>
     </>
+  ) : (
+    <div style={styles.noProductsMessage}>Seems like you haven't added any products yet. You can set them up in the admin products page.</div>
   );
 };
 

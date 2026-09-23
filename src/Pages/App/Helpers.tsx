@@ -1,3 +1,7 @@
+/*
+  this helper returns the appropriate icon for a product based on its category.
+*/
+
 export {
   statusIcon,
   totalPrice,
@@ -11,11 +15,53 @@ import {
   IconCircleCheck,
   IconDoor,
   IconCircleX,
-  IconBread,
+  IconApple,
+  IconAvocado,
+  IconBabyBottle,
+  IconBandage,
+  IconBasket,
+  IconBattery,
+  IconBolt,
   IconBottle,
+  IconBox,
+  IconBread,
+  IconBurger,
+  IconCake,
   IconCandy,
+  IconCarrot,
+  IconCheese,
+  IconCoffee,
   IconCookie,
+  IconCup,
+  IconDeviceGamepad,
+  IconDog,
+  IconEgg,
+  IconFish,
+  IconFlame,
+  IconGift,
+  IconGlass,
+  IconGlassFull,
+  IconHeadphones,
+  IconIceCream,
+  IconLeaf,
+  IconLemon,
+  IconLighter,
+  IconMeat,
+  IconMilk,
+  IconMug,
+  IconPackage,
+  IconPaw,
+  IconPepper,
+  IconPhone,
+  IconPill,
+  IconPizza,
+  IconSalad,
+  IconSausage,
   IconShoppingBag,
+  IconSmoking,
+  IconSnowflake,
+  IconTeapot,
+  IconUsb,
 } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api/core";
 import { TbNfc } from "react-icons/tb";
@@ -45,33 +91,97 @@ const totalPrice = (selectedProducts: { product_price: number; count: number }[]
 const isPiOs = async () => {
   const res = await invoke("is_raspberry_pi");
   return res as boolean;
-}
+};
 
-const getProductIcon = (productName: string, productCategory: string, size = 26) => {
-  const name = (productName || "").toLowerCase();
+const getProductIcon = (
+  _productName: string,
+  productCategory?: string,
+  size = 26,
+) => {
+  const category = (productCategory || "").toLowerCase();
   const iconProps = { size, stroke: 1.5, style: { flexShrink: 0 } };
 
-  if (/sandwich|sub|wrap|baguette|panini/.test(name))
-    return <IconBread {...iconProps} />;
-  if (/crisp|chip|pringles|cookie|biscuit|brownie/.test(name))
-    return <IconCookie {...iconProps} />;
-  if (/chocolate|choc|kit.?kat|twix|snickers|sweet|candy|haribo/.test(name))
-    return <IconCandy {...iconProps} />;
-  if (
-    /cola|coke|pepsi|soda|lemonade|juice|water|milk|energy|monster|redbull|lucozade/.test(
-      name,
-    )
-  )
-    return <IconBottle {...iconProps} />;
+  if (!category) return <IconShoppingBag {...iconProps} />;
 
-  const category = (productCategory || "").toLowerCase();
-  if (category === "sandwich") return <IconBread {...iconProps} />;
-  if (category === "drink" || category === "drinks")
+  // Hot drinks
+  if (/hot drink|coffee|tea|espresso|latte|cappuccino|americano|mocha/.test(category))
+    return <IconCoffee {...iconProps} />;
+  if (/mug|hot choc|hot chocolate/.test(category)) return <IconMug {...iconProps} />;
+
+  // Cold drinks
+  if (/drink|beverage|cold|soft|soda|fizzy|pop/.test(category))
     return <IconBottle {...iconProps} />;
-  if (category === "snack" || category === "snacks")
+  if (/water/.test(category)) return <IconGlass {...iconProps} />;
+  if (/milk|shake|milkshake/.test(category)) return <IconMilk {...iconProps} />;
+  if (/energy|sport|isotonic/.test(category)) return <IconBolt {...iconProps} />;
+  if (/juice|smoothie/.test(category)) return <IconGlassFull {...iconProps} />;
+
+  // Savoury food
+  if (/sandwich|sub|wrap|baguette|panini|savoury|savory|lunch/.test(category))
+    return <IconBread {...iconProps} />;
+  if (/burger/.test(category)) return <IconBurger {...iconProps} />;
+  if (/pizza/.test(category)) return <IconPizza {...iconProps} />;
+  if (/salad|healthy|vegan|vegetarian|fruit/.test(category))
+    return <IconSalad {...iconProps} />;
+  if (/sausage|bacon|ham/.test(category)) return <IconSausage {...iconProps} />;
+  if (/cheese/.test(category)) return <IconCheese {...iconProps} />;
+  if (/egg|breakfast|morning/.test(category)) return <IconEgg {...iconProps} />;
+  if (/fish/.test(category)) return <IconFish {...iconProps} />;
+  if (/meat|beef|chicken|steak|turkey|hot dog/.test(category))
+    return <IconMeat {...iconProps} />;
+  if (/spicy|chilli|chili|pepper|hot/.test(category))
+    return <IconPepper {...iconProps} />;
+
+  // Fruit / healthy extras
+  if (/apple/.test(category)) return <IconApple {...iconProps} />;
+  if (/carrot/.test(category)) return <IconCarrot {...iconProps} />;
+  if (/avocado/.test(category)) return <IconAvocado {...iconProps} />;
+  if (/lemon|orange|lime|grapefruit/.test(category))
+    return <IconLemon {...iconProps} />;
+  if (/plant|organic|green/.test(category)) return <IconLeaf {...iconProps} />;
+
+  // Snacks
+  if (/snack|crisp|chip|biscuit|cracker|nut|seed/.test(category))
     return <IconCookie {...iconProps} />;
-  if (category === "sweet" || category === "sweets")
+
+  // Treats / sweets
+  if (/cake|pastry|dessert|bakery|donut|doughnut|muffin|cupcake/.test(category))
+    return <IconCake {...iconProps} />;
+  if (/frozen|ice cream|icecream|yoghurt|yogurt/.test(category))
+    return <IconSnowflake {...iconProps} />;
+  if (/chocolate/.test(category)) return <IconCandy {...iconProps} />;
+  if (/sweet|candy|confectionery|gum|lolly/.test(category))
     return <IconCandy {...iconProps} />;
+
+  // Pets / baby / smoking
+  if (/pet|dog|cat|animal/.test(category)) return <IconPaw {...iconProps} />;
+  if (/baby|child|toddler|nursery/.test(category))
+    return <IconBabyBottle {...iconProps} />;
+  if (/smoking|tobacco|vape|cigarette/.test(category))
+    return <IconSmoking {...iconProps} />;
+  if (/lighter/.test(category)) return <IconLighter {...iconProps} />;
+
+  // Medical / health
+  if (/medical|medicine|health|pharmacy|first aid|vitamin/.test(category))
+    return <IconPill {...iconProps} />;
+  if (/bandage|plaster/.test(category)) return <IconBandage {...iconProps} />;
+
+  // Tech / accessories
+  if (/tech|electronics|phone|accessory|gadget|charger/.test(category))
+    return <IconPhone {...iconProps} />;
+  if (/headphone|earbud/.test(category)) return <IconHeadphones {...iconProps} />;
+  if (/battery/.test(category)) return <IconBattery {...iconProps} />;
+  if (/usb|memory stick|flash drive/.test(category))
+    return <IconUsb {...iconProps} />;
+  if (/game|controller|console/.test(category))
+    return <IconDeviceGamepad {...iconProps} />;
+
+  // General / packaging / gifts
+  if (/gift|present/.test(category)) return <IconGift {...iconProps} />;
+  if (/box|multipack|crate|case/.test(category)) return <IconBox {...iconProps} />;
+  if (/package|parcel/.test(category)) return <IconPackage {...iconProps} />;
+  if (/basket|hamper/.test(category)) return <IconBasket {...iconProps} />;
+
   return <IconShoppingBag {...iconProps} />;
 };
 

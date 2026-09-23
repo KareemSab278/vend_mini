@@ -58,6 +58,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     color: "var(--theme-text, #d4d4d4)",
     fontSize: "1.2rem",
     marginTop: "2rem",
+    padding: "2rem",
   },
   productsSection: {
     display: "flex",

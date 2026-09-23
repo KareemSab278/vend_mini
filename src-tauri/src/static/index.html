@@ -206,19 +206,18 @@
       padding: 0 0.75rem 0.75rem;
     }
     .image-upload-zone {
-      border: 2px dashed #3f3f46;
       border-radius: 0.75rem;
-      padding: 2rem;
+      padding: 1rem;
       text-align: center;
       color: #71717a;
       margin-bottom: 1.5rem;
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
     }
-    .image-upload-zone:hover, .image-upload-zone.dragover {
+    /* .image-upload-zone:hover, .image-upload-zone.dragover {
       border-color: #6366f1;
       background: #1f1f23;
-    }
+    } */
     .image-upload-zone input { display: none; }
 
     /* ── Tabs ── */
@@ -440,7 +439,7 @@
   <div class="form-card" style="margin-bottom: 2rem">
     <h2>Upload Images</h2>
     <label class="image-upload-zone" id="upload-zone">
-      <input type="file" id="image-input" accept="image/png,image/jpeg,image/webp,image/gif" multiple onchange="uploadImages(this.files)" />
+      <input type="file" id="image-input" accept="image/png,image/jpeg,image/webp,image/gif,image/jpg" multiple onchange="uploadImages(this.files)" />
       <div>Click or drag images here to upload</div>
       <div style="font-size: 0.75rem; margin-top: 0.5rem; color: #52525b">PNG, JPG, WEBP, GIF</div>
     </label>
