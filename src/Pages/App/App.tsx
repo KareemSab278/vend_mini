@@ -53,6 +53,14 @@ const App = () => {
 
   const [paymentMethod, setPaymentMethod] = useState<"card" | "nfc" | null>(null);
 
+  document.addEventListener("touchstart", e => {
+  console.log("TOUCH START", e.touches.length);
+});
+
+document.addEventListener("touchmove", e => {
+  console.log("TOUCH MOVE");
+});
+
   // required refs for nfc.
   const modalOpenRef = useRef(modalOpen);
   const checkoutActiveRef = useRef(checkoutActive);
