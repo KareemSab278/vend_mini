@@ -47,7 +47,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     padding: 0,
     width: "100px",
     height: "4px",
+    touchAction: "pan-x",
     backgroundColor: "#fff",
     transition: "left 0.3s",
+    WebkitOverflowScrolling: "touch",
+    overflowX: "scroll",
   },
 };
