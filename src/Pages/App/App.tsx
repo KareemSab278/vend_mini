@@ -181,8 +181,7 @@ const App = () => {
   const startFullScreen = async (): Promise<void> => {
     setTimeout(async () => {
       const isPi = await isPiOs();
-      // Temporarily disabled for touch-scroll diagnostic on Pi.
-      // await getCurrentWindow().setFullscreen(isPi);
+      await getCurrentWindow().setFullscreen(isPi);
       console.log("[vend_mini fullscreen] skipped fullscreen on Pi:", isPi);
     }, 1000);
   };

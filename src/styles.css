@@ -10,7 +10,7 @@ body,
 body {
   background: var(--theme-background, #1b2136);
   color: var(--theme-text, #fff);
-  overflow-x: hidden;
+  overflow-x: auto;
   overflow-y: auto;
   touch-action: pan-y;
   -webkit-overflow-scrolling: touch;
