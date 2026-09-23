@@ -53,13 +53,6 @@ const App = () => {
 
   const [paymentMethod, setPaymentMethod] = useState<"card" | "nfc" | null>(null);
 
-  document.addEventListener("touchstart", e => {
-  console.log("TOUCH START", e.touches.length);
-});
-
-document.addEventListener("touchmove", e => {
-  console.log("TOUCH MOVE");
-});
 
   // required refs for nfc.
   const modalOpenRef = useRef(modalOpen);
@@ -188,7 +181,9 @@ document.addEventListener("touchmove", e => {
   const startFullScreen = async (): Promise<void> => {
     setTimeout(async () => {
       const isPi = await isPiOs();
-      await getCurrentWindow().setFullscreen(isPi);
+      // Temporarily disabled for touch-scroll diagnostic on Pi.
+      // await getCurrentWindow().setFullscreen(isPi);
+      console.log("[vend_mini fullscreen] skipped fullscreen on Pi:", isPi);
     }, 1000);
   };
 

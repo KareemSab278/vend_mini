@@ -8,6 +8,7 @@ import { App } from "./Pages/App/App";
 import { Setup } from "./Pages/Setup/Setup";
 import { Admin } from "./Pages/Admin/Admin";
 import { applyTheme, defaultTheme, ThemeStore, type Theme } from "./Helpers/theme";
+import "./styles.css";
 
 const ThemedApp = () => {
   const [theme, setTheme] = useState<Theme | null>(null);

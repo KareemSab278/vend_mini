@@ -2,24 +2,13 @@ export { styles };
 
 const styles: { [key: string]: React.CSSProperties } = {
   body: {
-    background: "var(--theme-background, #1b2136)",
-    color: "var(--theme-text, #fff)",
     fontFamily:
       'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-    height: "100vh",
-    minHeight: "100vh",
-    padding: 0,
-    margin: 0,
-    boxSizing: "border-box",
     display: "flex",
     flexDirection: "column",
     alignItems: "center",
     justifyContent: "flex-start",
     paddingTop: "7rem",
-    overflowX: "auto",
-    overflowY: "auto",
-    touchAction: "pan-x pan-y",
-    WebkitOverflowScrolling: "touch",
   },
   adminTrigger: {
     position: "fixed",
