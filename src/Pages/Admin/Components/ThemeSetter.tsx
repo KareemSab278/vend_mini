@@ -4,10 +4,22 @@
     they will set the theme here and it will use the methods in theme.ts for save it for later.
 */
 
+import { ColorPicker } from '@mantine/core';
+import type {Theme} from '../../../Helpers/theme';
+import {defaultTheme, ThemeStore} from '../../../Helpers/theme';
+import { useState } from 'react';
+
 const ThemeSetter = () => {
+    const [theme, setTheme] = useState<Theme>(defaultTheme);
+
+    const saveTheme = async () => await ThemeStore.setTheme(theme);
+    const resetTheme = async () => {await ThemeStore.clearTheme(); setTheme(defaultTheme);}
+    const getTheme = async () => await ThemeStore.getTheme().then(setTheme);
+
+
     return (
         <div>
-            {/* Color selector components will go here */}
+            <ColorPicker size="xl" value={theme.primaryColor} onChange={(color) => setTheme({...theme, primaryColor: color})} />
         </div>
     );
 };
