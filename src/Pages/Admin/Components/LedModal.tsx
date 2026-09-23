@@ -1,6 +1,7 @@
 import { Modal } from "@mantine/core";
 import { PrimaryButton } from "../../../Components/Button";
 import { LEDs } from "../../../Helpers/LED";
+import { IconCircleFilled } from '@tabler/icons-react';
 
 export { LedModal };
 
@@ -9,7 +10,7 @@ interface LedModalProps {
   onClose: () => void;
 }
 interface PrimaryButtonProps {
-  title: string;
+  title: string|React.ReactNode;
   onClick: () => void;
   color?: string;
   textColor?: string;
@@ -19,37 +20,29 @@ interface PrimaryButtonProps {
 
 const btns: { [key: string]: PrimaryButtonProps } = {
   white: {
-    title: "White",
+    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FFFFFF" />White</div>,
     onClick: () => LEDs.setWhite(),
-    color: "#FFFFFF",
-    textColor: "#000000",
-    size: "xl"
+    color: "white",
   },
   green: {
-    title: "Green",
+    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#00FF00" />Green</div>,
     onClick: () => LEDs.setGreen(),
-    color: "#00FF00",
-    textColor: "#000000",
-    size: "xl"
+    color: "green",
   },
   red: {
-    title: "Red",
+    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FF0000" />Red</div>,
     onClick: () => LEDs.setRed(),
-    color: "#FF0000",
-    size: "xl"
+    color: "red",
   },
   blue: {
-    title: "Blue",
+    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#0000FF" />Blue</div>,
     onClick: () => LEDs.setBlue(),
-    color: "#0000FF",
-    size: "xl"
+    color: "blue",
   },
   yellow: {
-    title: "Yellow",
+    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FFFF00" />Yellow</div>,
     onClick: () => LEDs.setYellow(),
-    color: "#FFFF00",
-    textColor: "#000000",
-    size: "xl"
+    color: "yellow",
   }
 }
 
@@ -59,10 +52,9 @@ const LedModal = ({ opened, onClose }: LedModalProps) => {
       <div style={styles.grid}>
         {Object.values(btns).map((btn) => (
           <PrimaryButton
-            key={btn.title}
+            key={btn.color}
             title={btn.title}
             onClick={btn.onClick}
-            color={btn.color}
             textColor={btn.textColor}
             size={btn.size}
           />

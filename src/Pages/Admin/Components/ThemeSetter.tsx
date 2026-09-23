@@ -10,7 +10,6 @@ import type { Theme } from '../../../Helpers/theme';
 import { defaultTheme, hexToRgba, ThemeStore } from '../../../Helpers/theme';
 import { PrimaryButton } from '../../../Components/Button';
 
-
 interface ThemeModalProps {
     opened: boolean;
     onClose: () => void;

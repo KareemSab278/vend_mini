@@ -14,6 +14,15 @@ import { UrlModal } from "./Components/UrlModal";
 import { UpdateModal } from "./Components/UpdateModal";
 import { ThemeSetter } from "./Components/ThemeSetter";
 
+import { IconWorldUpload } from '@tabler/icons-react';
+import { IconProgressDown } from '@tabler/icons-react';
+import { IconBrush } from '@tabler/icons-react';
+import { IconAdjustmentsCog } from '@tabler/icons-react';
+import { IconUserExclamation } from '@tabler/icons-react';
+import { IconDoor } from '@tabler/icons-react';
+import { IconSun } from '@tabler/icons-react';
+import { IconLogout2 } from '@tabler/icons-react';
+
 export { Admin };
 
 type AdminModalType = "addAdmin" | "door" | "led" | "system" | "url" | "update" | "theme" | null;
@@ -44,34 +53,35 @@ const Admin = () => {
 
     initialize();
   }, []);
+  const optionTheme = { display: "flex", alignItems: "center", gap: "0.5rem" };
 
   const options: { [key: string]: PrimaryButtonProps } = {
     theme: {
-      title: "Theme Setter",
+      title: <div style={optionTheme}><IconBrush size={30} stroke={2} />Theme</div>,
       onClick: () => setActiveModal("theme"),
     },
     addAdmin: {
-      title: "Add Admin",
+      title: <div style={optionTheme}><IconUserExclamation size={30} stroke={2} />Admins</div>,
       onClick: () => setActiveModal("addAdmin"),
     },
     led: {
-      title: "LED Controls",
+      title: <div style={optionTheme}><IconSun size={30} stroke={2} />LED</div>,
       onClick: () => setActiveModal("led"),
     },
     door: {
-      title: "Door Controls",
+      title: <div style={optionTheme}><IconDoor size={30} stroke={2} />Door</div>,
       onClick: () => setActiveModal("door"),
     },
     system: {
-      title: "System",
+      title: <div style={optionTheme}><IconAdjustmentsCog size={30} stroke={2} />System</div>,
       onClick: () => setActiveModal("system"),
     },
     url: {
-      title: "URL",
+      title: <div style={optionTheme}><IconWorldUpload size={30} stroke={2} />Editor</div>,
       onClick: () => setActiveModal("url"),
     },
     update: {
-      title: "Update",
+      title: <div style={optionTheme}><IconProgressDown size={30} stroke={2} /> Update</div>,
       onClick: () => setActiveModal("update"),
     },
   };
@@ -92,7 +102,12 @@ const Admin = () => {
         </div>
 
         <PrimaryButton
-          title="EXIT ADMIN"
+          title={
+            <div style={optionTheme}>
+              <IconLogout2 size={30} color="#a50000" stroke={2} />
+              <p style={{ color: "#a50000" }}>Back</p>
+            </div>
+          }
           onClick={() => navigate("/")}
           size="xl"
         />

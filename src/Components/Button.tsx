@@ -3,7 +3,7 @@ import { IconX } from "@tabler/icons-react";
 export { PrimaryButton, RemoveButton };
 
 export interface PrimaryButtonProps {
-  title: string;
+  title: string|React.ReactNode;
   onClick?: () => void;
   color?: string;
   textColor?: string;

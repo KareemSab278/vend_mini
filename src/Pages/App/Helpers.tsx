@@ -26,23 +26,18 @@ import {
   IconBox,
   IconBread,
   IconBurger,
-  IconCake,
   IconCandy,
   IconCarrot,
   IconCheese,
   IconCoffee,
   IconCookie,
-  IconCup,
   IconDeviceGamepad,
-  IconDog,
   IconEgg,
   IconFish,
-  IconFlame,
   IconGift,
   IconGlass,
   IconGlassFull,
   IconHeadphones,
-  IconIceCream,
   IconLeaf,
   IconLemon,
   IconLighter,
@@ -60,7 +55,7 @@ import {
   IconShoppingBag,
   IconSmoking,
   IconSnowflake,
-  IconTeapot,
+  IconCakeRoll,
   IconUsb,
 } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api/core";
@@ -96,7 +91,7 @@ const isPiOs = async () => {
 const getProductIcon = (
   _productName: string,
   productCategory?: string,
-  size = 26,
+  size = 30,
 ) => {
   const category = (productCategory || "").toLowerCase();
   const iconProps = { size, stroke: 1.5, style: { flexShrink: 0 } };
@@ -146,7 +141,7 @@ const getProductIcon = (
 
   // Treats / sweets
   if (/pies?|pastries|pastry|cake|dessert|bakery|donut|doughnut|muffin|cupcake/.test(category))
-    return <IconCake {...iconProps} />;
+    return <IconCakeRoll {...iconProps} />;
   if (/frozen|ice cream|icecream|yoghurt|yogurt/.test(category))
     return <IconSnowflake {...iconProps} />;
   if (/chocolate/.test(category)) return <IconCandy {...iconProps} />;
