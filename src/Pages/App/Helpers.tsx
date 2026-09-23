@@ -109,7 +109,7 @@ const getProductIcon = (
   if (/mug|hot choc|hot chocolate/.test(category)) return <IconMug {...iconProps} />;
 
   // Cold drinks
-  if (/drink|beverage|cold|soft|soda|fizzy|pop/.test(category))
+  if (/drinks|drink|beverage|cold|soft|soda|fizzy|pop/.test(category))
     return <IconBottle {...iconProps} />;
   if (/water/.test(category)) return <IconGlass {...iconProps} />;
   if (/milk|shake|milkshake/.test(category)) return <IconMilk {...iconProps} />;
@@ -117,7 +117,7 @@ const getProductIcon = (
   if (/juice|smoothie/.test(category)) return <IconGlassFull {...iconProps} />;
 
   // Savoury food
-  if (/sandwich|sub|wrap|baguette|panini|savoury|savory|lunch/.test(category))
+  if (/food|sandwich|sub|wrap|baguette|panini|savoury|savory|lunch/.test(category))
     return <IconBread {...iconProps} />;
   if (/burger/.test(category)) return <IconBurger {...iconProps} />;
   if (/pizza/.test(category)) return <IconPizza {...iconProps} />;
@@ -145,12 +145,12 @@ const getProductIcon = (
     return <IconCookie {...iconProps} />;
 
   // Treats / sweets
-  if (/cake|pastry|dessert|bakery|donut|doughnut|muffin|cupcake/.test(category))
+  if (/pies?|pastries|pastry|cake|dessert|bakery|donut|doughnut|muffin|cupcake/.test(category))
     return <IconCake {...iconProps} />;
   if (/frozen|ice cream|icecream|yoghurt|yogurt/.test(category))
     return <IconSnowflake {...iconProps} />;
   if (/chocolate/.test(category)) return <IconCandy {...iconProps} />;
-  if (/sweet|candy|confectionery|gum|lolly/.test(category))
+  if (/confectionary|confectionery|sweet|candy|gum|lolly/.test(category))
     return <IconCandy {...iconProps} />;
 
   // Pets / baby / smoking
