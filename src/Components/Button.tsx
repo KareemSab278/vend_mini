@@ -44,12 +44,12 @@ const RemoveButton = ({ onClick }: { onClick: () => void }) => {
   return (
     <section >
       <Button
-        variant="outline"
-        size="lg"
+        variant="subtle"
+        size="sm"
         radius="xl"
         onClick={onClick}
       >
-        <IconX size={20} stroke={5} color="red"/>
+        <IconX size={30} stroke={3} color="red"/>
       </Button>
     </section>
   );
