@@ -44,8 +44,21 @@ const labelFor = (key: keyof Theme) => {
     }
 };
 
+const ResetPrompt = ({ opened, onConfirm, onCancel }: { opened: boolean; onConfirm: () => void; onCancel: () => void }) => (
+    <Modal opened={opened} onClose={onCancel} title="Reset Theme" size="sm">
+        <Stack>
+            <Text>Are you sure you want to reset the theme to default?</Text>
+            <Group style={{ justifyContent: 'center' }}>
+                <PrimaryButton onClick={onCancel} title="Cancel" />
+                <PrimaryButton onClick={onConfirm} title="Confirm" />
+            </Group>
+        </Stack>
+    </Modal>
+);
+
 export const ThemeSetter = ({ opened, onClose }: ThemeModalProps) => {
     const [theme, setTheme] = useState<Theme>(defaultTheme);
+    const [resetPromptOpen, setResetPromptOpen] = useState(false);
 
     useEffect(() => {
         ThemeStore.getTheme().then(setTheme);
@@ -56,6 +69,7 @@ export const ThemeSetter = ({ opened, onClose }: ThemeModalProps) => {
     const resetTheme = async () => {
         await ThemeStore.clearTheme();
         setTheme(defaultTheme);
+        onClose();
     };
 
     const updateColor = (key: keyof Theme, color: string) => {
@@ -140,9 +154,17 @@ export const ThemeSetter = ({ opened, onClose }: ThemeModalProps) => {
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: "16px" }}>
                     <PrimaryButton onClick={saveTheme} title="Apply Theme" color='#00ff0071' />
                     <PrimaryButton onClick={onClose} title="Close" color='#ff000095' />
-                    <PrimaryButton onDoubleClick={resetTheme} title="Reset (Double Click)" />
+                    <PrimaryButton onClick={() => setResetPromptOpen(true)} title="Reset Theme" />
                 </div>
             </Stack>
+            <ResetPrompt
+                opened={resetPromptOpen}
+                onConfirm={() => {
+                    resetTheme();
+                    setResetPromptOpen(false);
+                }}
+                onCancel={() => setResetPromptOpen(false)}
+            />
         </Modal>
     );
 };
