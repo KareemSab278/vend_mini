@@ -325,7 +325,6 @@ const App = () => {
     setCheckoutActive(false);
     setPayStatus("idle");
     setPayMessage("");
-    setSelectedProducts([]);
   };
 
 

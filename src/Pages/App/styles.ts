@@ -71,7 +71,7 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   paymentSection: {
     display: "flex",
-    flexDirection: "row",
+    flexDirection: "column",
     alignItems: "center",
     gap: "4rem",
     padding: "0.5rem 0 1rem",
