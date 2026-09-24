@@ -10,7 +10,7 @@ interface CheckoutModalProps {
   payMessage: string;
   payStatus: PayStatus;
   onDismiss: () => void;
-  onCancel: () => void;
+  onCancel: () => Promise<void>;
   paymentType: "card" | "nfc" | null;
 }
 
@@ -22,16 +22,20 @@ const CheckoutModal = ({
   onCancel,
   paymentType,
 }: CheckoutModalProps) => {
-  const blockClose = payStatus === "waiting_door";
+
+  // added code for friday 25th sep
+  // Determine if the modal should block closing based on the current payment status
+  // if the payment status is one of the blocking statuses, prevent the modal from closing unless
+  // the user explicitly cancels using the "Cancel" button or the payment process completes.
 
   return (
     <Modal
       opened={opened}
-      onClose={blockClose ? () => {} : onDismiss}
+      onClose={()=>{}}
       title={`${paymentType === "card" ? "Card" : "NFC"} Contactless Payment`}
-      withCloseButton={!blockClose}
-      closeOnClickOutside={!blockClose}
-      closeOnEscape={!blockClose}
+      withCloseButton={false}
+      closeOnClickOutside={false}
+      closeOnEscape={false}
       size="xl"
     >
       <section style={styles.paymentSection}>
@@ -48,7 +52,7 @@ const CheckoutModal = ({
         )}
 
         {payStatus === "paying" && (
-          <PrimaryButton title="Cancel" onClick={onCancel} size="xl" />
+          <PrimaryButton title="Cancel" onClick={async () => await onCancel()} size="xl" />
         )}
       </section>
     </Modal>

@@ -86,7 +86,6 @@ const App = () => {
     }
   }, [payStatus]);
 
-
   const handleNFCCheckout = async () => {
     if (selectedProducts.length === 0 || checkoutActive) return;
 
@@ -102,9 +101,11 @@ const App = () => {
         () => { },
         () => { }
       );
+      if (cancelledRef.current) return;
       setSelectedProducts([]);
       await openDoorAndWaitForClose(newBalance.toFixed(2));
     } catch (error) {
+      if (cancelledRef.current) return;
       setPayStatus("error");
       setPayMessage(`Payment failed: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -314,16 +315,17 @@ const App = () => {
     });
   };
 
-  const handleCardCheckoutCancel = async () => {
+  const handleCheckoutCancel = async () => {
+    setPayMessage("Cancelling payment...");
     cancelledRef.current = true;
-    setCheckoutActive(false);
-    setPayStatus("idle");
-    setPayMessage("");
-    await Payment.cancel();
+    if (paymentMethod === "card") {
+      await Payment.cancel();
+    }
+    resetCheckoutState();
+    setPaymentMethod(null);
   };
 
   const resetCheckoutState = () => {
-    cancelledRef.current = false;
     setCheckoutActive(false);
     setPayStatus("idle");
     setPayMessage("");
@@ -410,7 +412,7 @@ const App = () => {
         payMessage={payMessage}
         payStatus={payStatus}
         onDismiss={resetCheckoutState}
-        onCancel={handleCardCheckoutCancel}
+        onCancel={handleCheckoutCancel}
         paymentType={paymentMethod}
       />
 
