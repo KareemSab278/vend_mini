@@ -33,14 +33,6 @@
     ]
   },
   "plugins": {
-    "updater": {
-      "active": true,
-      "endpoints": [
-        "https://KareemSab278.github.io/ordering_system/updates.json"
-      ],
-      "dialog": true,
-      "pubkey": "RWR8xRaB9RUC0HDKRcXm20jwsGw4ry5l1KdwHtT1M65gdfQpmlVUjJff"
-    },
     "fs": {}
   }
 }

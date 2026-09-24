@@ -34,7 +34,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     position: "relative",
     display: "flex",
     overflowX: "scroll",
-    overflowY: "auto",
+    // overflowY: "auto",
     borderRadius: "50px",
     scrollbarWidth: "none",
     msOverflowStyle: "none",
