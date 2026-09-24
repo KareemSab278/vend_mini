@@ -2,7 +2,6 @@ const dev = import.meta.env.DEV;
 
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useLocation } from "wouter";
 import { totalPrice, isPiOs } from "./Helpers";
 import { styles } from "./styles";
@@ -178,14 +177,6 @@ const App = () => {
     }
   };
 
-  const startFullScreen = async (): Promise<void> => {
-    setTimeout(async () => {
-      const isPi = await isPiOs();
-      await getCurrentWindow().setFullscreen(isPi);
-      console.log("[vend_mini fullscreen] skipped fullscreen on Pi:", isPi);
-    }, 1000);
-  };
-
   useEffect(() => {
     listenToNfc();
     getProductsOnMount();
@@ -200,8 +191,6 @@ const App = () => {
 
     window.addEventListener("pointerdown", handleUserActivity);
     window.addEventListener("keydown", handleUserActivity);
-
-    startFullScreen();
 
     adminPresentCheck(); // check for admin AFTER fullscreen mode to avoid tearing
 

@@ -4,7 +4,6 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PrimaryButton } from "../../../Components/Button";
 import { Payment } from "../../../Helpers/Payment";
-import { isPiOs } from "../../App/Helpers";
 
 export { SystemModal };
 
@@ -21,8 +20,7 @@ const SystemModal = ({ opened, onClose }: SystemModalProps) => {
     const next = !fullScreen;
     setFullScreen(next);
     try {
-      const isPi = await isPiOs();
-      await getCurrentWindow().setFullscreen(isPi && next);
+      await getCurrentWindow().setFullscreen(next);
     } catch (e) {
       console.error("Failed to toggle fullscreen:", e);
     }
@@ -38,7 +36,7 @@ const SystemModal = ({ opened, onClose }: SystemModalProps) => {
     <Modal opened={opened} onClose={onClose} title="System" size="lg">
       <div style={styles.grid}>
         <PrimaryButton
-          title={fullScreen ? "Exit Full Screen" : "Enter Full Screen"}
+          title={"Toggle Full Screen"}
           onClick={toggleFullScreen}
           size="xl"
         />

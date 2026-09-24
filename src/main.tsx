@@ -7,8 +7,14 @@ import "@mantine/core/styles.css";
 import { App } from "./Pages/App/App";
 import { Setup } from "./Pages/Setup/Setup";
 import { Admin } from "./Pages/Admin/Admin";
-import { applyTheme, defaultTheme, ThemeStore, type Theme } from "./Helpers/theme";
+import { applyTheme, ThemeStore, type Theme } from "./Helpers/theme";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./styles.css";
+
+const startFullScreen = async (): Promise<void> => {
+  // const isPi = await isPiOs();
+  await getCurrentWindow().setFullscreen(true);
+};
 
 const ThemedApp = () => {
   const [theme, setTheme] = useState<Theme | null>(null);
@@ -17,6 +23,7 @@ const ThemedApp = () => {
     ThemeStore.getTheme().then((loadedTheme) => {
       applyTheme(loadedTheme);
       setTheme(loadedTheme);
+      startFullScreen();
     });
   }, []);
 

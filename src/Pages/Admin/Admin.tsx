@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PrimaryButton, PrimaryButtonProps } from "../../Components/Button";
 import { KeyPressListener } from "../../Helpers/KeyPressListener";
-import { isPiOs } from "../App/Helpers";
 import { styles as appStyles } from "../App/styles";
 import { AdminModal } from "./Components/AdminModal";
 import { DoorModal } from "./Components/DoorModal";
@@ -41,13 +39,6 @@ const Admin = () => {
         setEditorUrl(url ?? "Could not get url");
       } catch (e) {
         console.error("Failed to initialize static page server:", e);
-      }
-
-      try {
-        const isPi = await isPiOs();
-        await getCurrentWindow().setFullscreen(isPi);
-      } catch (e) {
-        console.error("Failed to set fullscreen:", e);
       }
     };
 
