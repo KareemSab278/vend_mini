@@ -3,6 +3,7 @@ import { ProductCard } from "../../../Components/ProductCard";
 import { CategoryIndicator } from "../../../Components/CategoryIndicator";
 import { styles } from "../styles";
 import { Products, type ProductType } from "../../../Helpers/Products";
+import { ThemeStore } from "../../../Helpers/theme";
 
 interface ProductsWithCategoriesProps {
   products: ProductType[];
@@ -17,11 +18,13 @@ const ProductsWithCategories = ({
 }: ProductsWithCategoriesProps) => {
   const [activeCategory, setActiveCategory] = useState<string>("All");
   const [categories, setCategories] = useState<string[]>();
+  const [layout, setLayout] = useState<"grid" | "list">("list");
 
   useEffect(() => {
     Products.fetchCategories().then((fetchedCategories) => {
       setCategories(["All", ...fetchedCategories]);
     });
+    ThemeStore.getTheme().then((theme) => setLayout(theme.products_layout));
   }, []);
   
   const filteredProducts =
@@ -63,6 +66,7 @@ const ProductsWithCategories = ({
                 count={inBasket?.count || 0}
                 showRemoveButton={false}
                 onRemove={null}
+                layout={layout}
               />
             );
           })

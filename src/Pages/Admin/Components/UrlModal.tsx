@@ -13,12 +13,12 @@ interface UrlModalProps {
 
 const UrlModal = ({ opened, onClose, editorUrl }: UrlModalProps) => {
   return (
-    <Modal opened={opened} onClose={onClose} title="URL Editor" size="lg">
+    <Modal opened={opened} onClose={onClose} title="URL Editor" size="xl">
       <div style={styles.inner}>
         <p style={styles.label}>Editor URL:</p>
         <p style={styles.url}>{editorUrl || "Loading…"}</p>
         <div style={styles.QRContainer}>
-          <QRCodeSVG value={editorUrl || ''} size={256} />
+          <QRCodeSVG value={editorUrl || ''} size={256*1.5} />
         </div>
         <PrimaryButton
           title="Open Admin Page"

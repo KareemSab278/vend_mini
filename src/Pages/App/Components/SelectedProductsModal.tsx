@@ -18,24 +18,30 @@ const SelectedProductsModal = ({
   onRemove,
   onClearAll,
 }: SelectedProductsModalProps) => (
-  <Modal opened={opened} onClose={onClose} title="Selected Products">
+  <Modal opened={opened} onClose={onClose} title="Selected Products" size="xl">
     {selectedProducts.length === 0 ? (
       <div style={styles.noProductsMessage}>No products selected.</div>
     ) : (
-      <section style={styles.productsSection}>
-        {selectedProducts.map((prod) => (
-          <ProductCard
-            key={prod.product_id}
-            product={prod}
-            title={`${prod.product_name} x${prod.count}`}
-            selected
-            showRemoveButton
-            onRemove={() => onRemove(prod)}
-            onClick={null}
-          />
-        ))}
+      <>
+
+        <section style={styles.productsSection}>
+          {selectedProducts.map((prod) => (
+            <ProductCard
+              key={prod.product_id}
+              product={prod}
+              title={`${prod.product_name} x${prod.count}`}
+              selected
+              showRemoveButton
+              onRemove={() => onRemove(prod)}
+              onClick={null}
+              isCheckOut
+            />
+          ))}
+        </section>
+        <div style={{ marginTop: "1rem", textAlign: "center" }}>
         <PrimaryButton title="Clear All" onClick={onClearAll} />
-      </section>
+        </div>
+      </>
     )}
   </Modal>
 );

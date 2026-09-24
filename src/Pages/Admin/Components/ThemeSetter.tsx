@@ -4,7 +4,7 @@
     they will set the theme here and it will use the methods in theme.ts for save it for later.
 */
 
-import { Accordion, ColorPicker, Group, Modal, Slider, Stack, Text } from '@mantine/core';
+import { Accordion, Checkbox, ColorPicker, Group, Modal, Slider, Stack, Text } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import type { Theme } from '../../../Helpers/theme';
 import { defaultTheme, hexToRgba, ThemeStore } from '../../../Helpers/theme';
@@ -51,7 +51,7 @@ export const ThemeSetter = ({ opened, onClose }: ThemeModalProps) => {
         ThemeStore.getTheme().then(setTheme);
     }, []);
 
-    const saveTheme = async () => await ThemeStore.setTheme(theme);
+    const saveTheme = async () => {await ThemeStore.setTheme(theme).then(onClose);}
 
     const resetTheme = async () => {
         await ThemeStore.clearTheme();
@@ -63,7 +63,7 @@ export const ThemeSetter = ({ opened, onClose }: ThemeModalProps) => {
     };
 
     return (
-        <Modal opened={opened} onClose={onClose} title={"Theme Setter"} size="lg">
+        <Modal opened={opened} onClose={onClose} title={"Theme Setter"} size="xl">
             <Stack>
                 <Accordion defaultValue="">
                     {colorKeys.map((key) => (
@@ -126,9 +126,21 @@ export const ThemeSetter = ({ opened, onClose }: ThemeModalProps) => {
                         </Accordion.Item>
                     ))}
                 </Accordion>
+                <Checkbox
+                    label="Grid layout for products"
+                    checked={theme.products_layout === 'grid'}
+                    onChange={(event) => {
+                        const checked = event.target?.checked ?? event.currentTarget?.checked ?? false;
+                        setTheme((prev) => ({
+                            ...prev,
+                            products_layout: checked ? 'grid' : 'list',
+                        }));
+                    }}
+                />
                 <div style={{ display: "flex", justifyContent: "space-between", marginTop: "16px" }}>
                     <PrimaryButton onClick={saveTheme} title="Apply Theme" color='#00ff0071' />
-                    <PrimaryButton onDoubleClick={resetTheme} title="Reset (Double Click)" color='#ff000095' />
+                    <PrimaryButton onClick={onClose} title="Close" color='#ff000095' />
+                    <PrimaryButton onDoubleClick={resetTheme} title="Reset (Double Click)" />
                 </div>
             </Stack>
         </Modal>

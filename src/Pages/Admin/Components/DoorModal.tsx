@@ -19,7 +19,7 @@ const DoorModal = ({ opened, onClose }: DoorModalProps) => {
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Door Controls" size="lg">
+    <Modal opened={opened} onClose={onClose} title="Door Controls" size="xl">
       <div style={styles.grid}>
         <PrimaryButton
           title="Unlock"

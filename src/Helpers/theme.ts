@@ -21,6 +21,7 @@ export interface Theme {
     backgroundColor: string;
     textColor: string;
     primaryOpacity: number;
+    products_layout: "grid" | "list";
 }
 
 export const defaultTheme: Theme = {
@@ -29,6 +30,7 @@ export const defaultTheme: Theme = {
     backgroundColor: '#1b2136',
     textColor: '#ffffff',
     primaryOpacity: 0.42,
+    products_layout: "list",
 };
 
 export const hexToRgba = (hex: string, alpha: number) => {
@@ -46,6 +48,11 @@ export const applyTheme = (theme: Theme) => {
     root.style.setProperty('--theme-secondary', theme.secondaryColor);
     root.style.setProperty('--theme-background', theme.backgroundColor);
     root.style.setProperty('--theme-text', theme.textColor);
+    root.style.setProperty('--theme-products-layout', theme.products_layout);
+    root.style.setProperty(
+        '--theme-card-width',
+        theme.products_layout === 'grid' ? 'calc(33.333% - 0.67rem)' : '90%'
+    );
 };
 
 export const ThemeStore = {
@@ -57,6 +64,7 @@ export const ThemeStore = {
             backgroundColor: saved?.backgroundColor ?? defaultTheme.backgroundColor,
             textColor: saved?.textColor ?? defaultTheme.textColor,
             primaryOpacity: saved?.primaryOpacity ?? defaultTheme.primaryOpacity,
+            products_layout: saved?.products_layout ?? defaultTheme.products_layout,
         };
     },
     setTheme: async (theme: Theme) => {

@@ -48,7 +48,7 @@ const btns: { [key: string]: PrimaryButtonProps } = {
 
 const LedModal = ({ opened, onClose }: LedModalProps) => {
   return (
-    <Modal opened={opened} onClose={onClose} title="LED Controls" size="lg">
+    <Modal opened={opened} onClose={onClose} title="LED Controls" size="xl">
       <div style={styles.grid}>
         {Object.values(btns).map((btn) => (
           <PrimaryButton

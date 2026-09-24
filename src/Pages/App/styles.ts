@@ -9,6 +9,8 @@ const styles: { [key: string]: React.CSSProperties } = {
     alignItems: "center",
     justifyContent: "flex-start",
     paddingTop: "7rem",
+    paddingLeft: "1rem",
+    paddingRight: "1rem",
   },
   adminTrigger: {
     position: "fixed",
@@ -69,10 +71,11 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   paymentSection: {
     display: "flex",
-    flexDirection: "column",
+    flexDirection: "row",
     alignItems: "center",
-    gap: "1.2rem",
+    gap: "4rem",
     padding: "0.5rem 0 1rem",
+    justifyContent: "center",
   },
   statusIcon: {
     fontSize: "3.5rem",

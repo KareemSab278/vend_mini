@@ -76,7 +76,7 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
   const canAddMore = admins.length < MAX_ADMINS;
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Add Admins" size="lg">
+    <Modal opened={opened} onClose={onClose} title="Add Admins" size="xl">
       <div style={styles.inner}>
         <p style={styles.text}>
           Place and hold a new NFC tag on the reader to register an admin.

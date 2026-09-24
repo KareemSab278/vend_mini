@@ -79,7 +79,7 @@ const UpdateModal = ({ opened, onClose }: UpdateModalProps) => {
     };
 
     return (
-        <Modal opened={opened} onClose={onClose} title={"Update"} size="lg">
+        <Modal opened={opened} onClose={onClose} title={"Update"} size="xl">
             <Stack>
                 <div style={styles.grid}>
                     <PrimaryButton

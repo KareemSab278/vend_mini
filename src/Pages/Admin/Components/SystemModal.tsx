@@ -33,7 +33,7 @@ const SystemModal = ({ opened, onClose }: SystemModalProps) => {
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title="System" size="lg">
+    <Modal opened={opened} onClose={onClose} title="System" size="xl">
       <div style={styles.grid}>
         <PrimaryButton
           title={"Toggle Full Screen"}

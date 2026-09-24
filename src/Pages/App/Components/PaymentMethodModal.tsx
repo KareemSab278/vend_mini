@@ -15,7 +15,7 @@ const PaymentMethodModal = ({
   onSelectCard,
   onSelectNFC,
 }: PaymentMethodModalProps) => (
-  <Modal opened={opened} onClose={onClose} title="Select Payment Method">
+  <Modal opened={opened} onClose={onClose} title="Select Payment Method" size="lg">
     <section style={styles.paymentSection}>
       <PrimaryButton
         title="Card"

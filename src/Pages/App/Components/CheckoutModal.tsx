@@ -32,6 +32,7 @@ const CheckoutModal = ({
       withCloseButton={!blockClose}
       closeOnClickOutside={!blockClose}
       closeOnEscape={!blockClose}
+      size="xl"
     >
       <section style={styles.paymentSection}>
         <div style={styles.statusIcon}>

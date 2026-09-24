@@ -1,3 +1,4 @@
+import * as React from "react";
 import { RemoveButton } from "./Button";
 import { QuantityBadge } from "./QuantityBadge";
 import { getProductIcon } from "../Pages/App/Helpers";
@@ -17,6 +18,8 @@ type ProductCardProps = {
   selected?: boolean;
   count?: number;
   showRemoveButton?: boolean;
+  layout?: "grid" | "list";
+  isCheckOut?: boolean;
 };
 
 const ProductCard = ({
@@ -28,18 +31,35 @@ const ProductCard = ({
   selected,
   count = 0,
   showRemoveButton = false,
+  layout = "list",
+  isCheckOut = false,
 }: ProductCardProps) => {
   const displayTitle = title || (product.product_name.length > 20 ? `${product.product_name.substring(0, 20)}...` : product.product_name);
+  const isGrid = !isCheckOut && layout === "grid";
+  const cardStyle = isCheckOut ? styles.checkoutCard : isGrid ? styles.gridCard : styles.card;
 
   return (
-    <div style={styles.card} onClick={() => onClick && onClick(product, "+")}>
-      <div style={styles.titleRow}>
-        <span style={styles.iconWrapper}>
-          {getProductIcon(product.product_name, product.product_category)}
-        </span>
-        <h3 style={styles.title}>{displayTitle} - £{product.product_price.toFixed(2)}</h3>
-        <QuantityBadge count={count} />
-      </div>
+    <div style={cardStyle} onClick={() => onClick && onClick(product, "+")}>
+      {isGrid ? (
+        <div style={styles.gridContent}>
+          <span style={styles.iconWrapper}>
+            {getProductIcon(product.product_name, product.product_category, 48)}
+          </span>
+          <div style={styles.gridTitleRow}>
+            <h3 style={styles.gridTitle}>{displayTitle}</h3>
+            <p style={styles.gridPrice}>£{product.product_price.toFixed(2)}</p>
+          </div>
+          <QuantityBadge count={count} />
+        </div>
+      ) : (
+        <div style={styles.titleRow}>
+          <span style={styles.iconWrapper}>
+            {getProductIcon(product.product_name, product.product_category)}
+          </span>
+          <h3 style={styles.title}>{displayTitle} - £{product.product_price.toFixed(2)}</h3>
+          <QuantityBadge count={count} />
+        </div>
+      )}
       {selected && showRemoveButton && onRemove && (
         <RemoveButton onClick={() => onRemove(product, "-")} />
       )}
@@ -82,5 +102,66 @@ const styles: { [key: string]: React.CSSProperties } = {
     fontSize: "2rem",
     fontWeight: "bold",
     marginTop: -5
+  },
+  gridCard: {
+    position: "relative",
+    backgroundColor: "var(--theme-primary-rgb, rgba(99, 99, 99, 0.42))",
+    fontFamily:
+      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    color: "var(--theme-text, #fff)",
+    padding: "1rem",
+    borderRadius: "24px",
+    cursor: "pointer",
+    width: "var(--theme-card-width, 90%)",
+    minHeight: "200px",
+    boxSizing: "border-box",
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.75rem",
+  },
+  gridContent: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.75rem",
+  },
+  gridTitleRow: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.25rem",
+  },
+  gridTitle: {
+    fontSize: "1.25rem",
+    margin: 0,
+    lineHeight: 1.2,
+  },
+  gridPrice: {
+    fontSize: "1.5rem",
+    fontWeight: "bold",
+    margin: 0,
+  },
+  checkoutCard: {
+    position: "relative",
+    backgroundColor: "var(--theme-primary-rgb, rgba(99, 99, 99, 0.42))",
+    fontFamily:
+      'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+    color: "var(--theme-text, #fff)",
+    padding: "0.5rem 1rem",
+    borderRadius: "40px",
+    cursor: "pointer",
+    width: "90%",
+    boxSizing: "border-box",
+    textAlign: "center",
+    display: "flex",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: "0.6rem",
   },
 };

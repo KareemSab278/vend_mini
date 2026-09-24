@@ -53,7 +53,7 @@ const AdminModal = ({
   ];
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Admin Panel">
+    <Modal opened={opened} onClose={onClose} title="Admin Panel" size='xl'>
       <section>
         {adminOptions.map((opt, idx) => (
           <PrimaryButton
