@@ -102,6 +102,7 @@ const App = () => {
         () => { },
         () => { }
       );
+      setSelectedProducts([]);
       await openDoorAndWaitForClose(newBalance.toFixed(2));
     } catch (error) {
       setPayStatus("error");
@@ -304,6 +305,7 @@ const App = () => {
       if (cancelledRef.current) return;
 
       if (success) {
+        setSelectedProducts([]);
         await openDoorAndWaitForClose();
       } else {
         setPayStatus("error");
