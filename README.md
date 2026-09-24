@@ -1552,6 +1552,51 @@ last_error: "VNDAPP timeout after 30.0s"
 - The Tauri capability `core:window:allow-set-fullscreen` must be present in `src-tauri/capabilities/default.json`.
 - On some Linux window managers, fullscreen requests may be ignored. Try a different window manager or use the admin panel toggle.
 
+### Touch Display Does Not Scroll in Web View / Tauri
+
+**Symptom:** Scrolling does not work on the touchscreen when the app is running in Tauri.
+
+**Cause:** The touch display is being treated as a mouse (mouse emulation is enabled), which prevents native touch scrolling in the WebKit view.
+
+**Fix:** Disable mouse emulation for the touch device in the `labwc` compositor configuration.
+
+1. Open the `labwc` configuration file:
+
+   ```bash
+   sudo micro /etc/xdg/labwc/rc.xml
+   ```
+
+2. Find the `<touch>` entries and set `mouseEmulation="no"` for the plugged-in touch devices. For example:
+
+   ```xml
+   <touch deviceName="your-touch-device" mouseEmulation="no" />
+   ```
+
+3. Apply the new configuration:
+
+   ```bash
+   labwc --reconfigure
+   ```
+
+   > If you are connected over SSH, a reboot may be easier:
+   > ```bash
+   > sudo reboot
+   > ```
+
+4. After reconfiguring (or rebooting), confirm the change is in place:
+
+   ```bash
+   grep "mouseEmulation" /etc/xdg/labwc/rc.xml
+   ```
+
+   or inspect the full file with:
+
+   ```bash
+   cat /etc/xdg/labwc/rc.xml
+   ```
+
+Once mouse emulation is disabled, the touchscreen should send proper touch events and scrolling should work inside the Tauri WebView.
+
 ---
 
 ## Development Notes
