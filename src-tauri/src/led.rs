@@ -27,25 +27,26 @@ pub enum Color {
 }
 
 impl Color {
-    fn to_rgbw(&self) -> [u8; 4] {
+    fn to_rgb(&self) -> [u8; 4] {
         match self {
-            Color::Red => [255, 0, 0, 0],
-            Color::Green => [0, 255, 0, 0],
-            Color::Blue => [0, 0, 255, 0],
-            Color::White => [0, 0, 0, 255],
-            Color::Yellow => [255, 255, 0, 0],
+            Color::Red    => [0, 0, 255, 0],
+            Color::Green  => [0, 255, 0, 0],
+            Color::Blue   => [255, 0, 0, 0],
+            Color::White  => [255, 255, 255, 0],
+            Color::Yellow => [0, 255, 255, 0],
         }
     }
 }
+
 
 #[cfg(target_os = "linux")]
 #[tauri::command]
 pub fn set_color(color: Color) -> Result<(), String> {
     let mut controller = ControllerBuilder::new()
         .freq(800_000)
-        .dma(5)
+        .dma(10)
         .channel(
-            0,
+            0, // Channel Index
             ChannelBuilder::new()
                 .pin(GPIO_SPI0_MOSI_PIN as i32)
                 .count(LED_COUNT as i32)
@@ -58,7 +59,7 @@ pub fn set_color(color: Color) -> Result<(), String> {
 
     let leds = controller.leds_mut(0);
     for led in leds.iter_mut() {
-        *led = color.to_rgbw();
+        *led = color.to_rgb(); 
     }
 
     controller.render().map_err(|e| e.to_string())
