@@ -13,8 +13,8 @@ use rs_ws281x::ControllerBuilder;
 use rs_ws281x::StripType;
 use serde::{Deserialize, Serialize};
 
-const LED_COUNT: u8 = 64;
-const GPIO_SPI0_MOSI_PIN: u8 = 18;
+const LED_COUNT: u8 = 148;
+const GPIO_PIN: u8 = 18;
 
 #[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
@@ -48,7 +48,7 @@ pub fn set_color(color: Color) -> Result<(), String> {
         .channel(
             0, // Channel Index
             ChannelBuilder::new()
-                .pin(GPIO_SPI0_MOSI_PIN as i32)
+                .pin(GPIO_PIN as i32)
                 .count(LED_COUNT as i32)
                 .strip_type(StripType::Ws2812)
                 .brightness(255)
