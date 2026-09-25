@@ -1,4 +1,5 @@
 import { Modal } from "@mantine/core";
+import { useState, useEffect } from "react";
 import { PrimaryButton } from "../../../Components/Button";
 import { styles } from "../styles";
 import * as helpers from "../Helpers";
@@ -22,11 +23,23 @@ const CheckoutModal = ({
   onCancel,
   paymentType,
 }: CheckoutModalProps) => {
+  const [showDismissDoorButton, setShowDismissDoorButton] = useState(false);
 
-  // added code for friday 25th sep
-  // Determine if the modal should block closing based on the current payment status
-  // if the payment status is one of the blocking statuses, prevent the modal from closing unless
-  // the user explicitly cancels using the "Cancel" button or the payment process completes.
+  useEffect(() => {
+    if (payStatus !== "waiting_door") {
+      setShowDismissDoorButton(false);
+      return;
+    }
+
+    // waiting_door: start the 30s timer
+    const id = setTimeout(() => setShowDismissDoorButton(true), 30000);
+    return () => clearTimeout(id);
+  }, [payStatus]);
+
+  const canDismiss =
+    payStatus === "error" ||
+    payStatus === "done" ||
+    (payStatus === "waiting_door" && showDismissDoorButton);
 
   return (
     <Modal
@@ -47,12 +60,12 @@ const CheckoutModal = ({
 
         <p style={styles.statusMessage}>{payMessage}</p>
 
-        {(payStatus === "error" || payStatus === "done") && (
+        {canDismiss && (
           <PrimaryButton title="Dismiss" onClick={onDismiss} size="xl" />
         )}
 
         {payStatus === "paying" && (
-          <PrimaryButton title="Cancel" onClick={async () => await onCancel()} size="xl" />
+          <PrimaryButton title="Cancel" onClick={onCancel} size="xl" />
         )}
       </section>
     </Modal>
