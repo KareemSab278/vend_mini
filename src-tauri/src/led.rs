@@ -5,14 +5,18 @@
     max brightness is 255 min is 0. defaults to 255 is empty
 */
 
-use rs_ws281x::ControllerBuilder;
+#[cfg(target_os = "linux")]
 use rs_ws281x::ChannelBuilder;
+#[cfg(target_os = "linux")]
+use rs_ws281x::ControllerBuilder;
+#[cfg(target_os = "linux")]
 use rs_ws281x::StripType;
+use serde::{Deserialize, Serialize};
 
 const LED_COUNT: u8 = 64;
 const GPIO_SPI0_MOSI_PIN: u8 = 18;
 
-#[derive(Clone, Copy, Debug, Deserialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Color {
     Red,
@@ -34,6 +38,7 @@ impl Color {
     }
 }
 
+#[cfg(target_os = "linux")]
 #[tauri::command]
 pub fn set_color(color: Color) -> Result<(), String> {
     let mut controller = ControllerBuilder::new()
@@ -59,8 +64,9 @@ pub fn set_color(color: Color) -> Result<(), String> {
     controller.render().map_err(|e| e.to_string())
 }
 
+#[cfg(target_os = "linux")]
 #[tauri::command]
-pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Result<(), String> {
     set_color(color)?;
     let t_out = timeout_secs.unwrap_or(3);
     tokio::time::sleep(std::time::Duration::from_secs(t_out as u64)).await;

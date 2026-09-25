@@ -69,7 +69,9 @@ pub fn run() {
             server::initialize_static_page_server,
             server::return_editor_url,
             images::list_images_command,
+            #[cfg(target_os = "linux")]
             led::set_color,
+            #[cfg(target_os = "linux")]
             led::set_color_w_timeout,
             is_raspberry_pi
         ])

@@ -21,7 +21,9 @@ pub struct DoorStatus {
 
 #[tauri::command]
 pub async fn unlock_door() -> Result<(), String> {
+    #[cfg(target_os = "linux")]
     SRL_CMS::broadcast_cmd_to_all_ports("u");
+    #[cfg(target_os = "linux")]
     let _ = led::set_color_w_timeout(led::Color::Green, None).await; // defaults to 3 secs
     Ok(())
 }
@@ -43,6 +45,7 @@ pub async fn paid_unlock() -> Result<(), String> {
 
     let seconds_before_lock = 30;
     SRL_CMS::broadcast_cmd_to_all_ports(&format!("{}pu {}", door_number, seconds_before_lock))?;
+    #[cfg(target_os = "linux")]
     let _ = led::set_color_w_timeout(led::Color::Green, None).await;
     Ok(())
 }
@@ -109,6 +112,7 @@ fn parse_door_status(raw: &str) -> DoorStatus {
 
     if door_closed && locked {
         // Door is closed and locked so set to white
+        #[cfg(target_os = "linux")]
         let _ = led::set_color(led::Color::White);
     }
 
@@ -157,6 +161,7 @@ pub async fn monitor_door_status() {
         if let Ok(status) = get_door_status().await {
             if status.door_closed {
                 door_open_timestamp = None;
+                #[cfg(target_os = "linux")]
                 let _ = led::set_color(led::Color::White);
             } else {
                 if door_open_timestamp.is_none() {
@@ -166,8 +171,10 @@ pub async fn monitor_door_status() {
                 if let Some(open_time) = door_open_timestamp {
                     let duration = open_time.elapsed().as_secs();
                     if duration > DOOR_OPEN_DURATION_THRESHOLD as u64 {
+                        #[cfg(target_os = "linux")]
                         let _ = led::set_color(led::Color::Red);
                     } else {
+                        #[cfg(target_os = "linux")]
                         let _ = led::set_color(led::Color::White);
                     }
                 }
