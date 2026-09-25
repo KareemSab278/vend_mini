@@ -1,19 +1,12 @@
 const dev = import.meta.env.DEV;
+import { invoke } from "@tauri-apps/api/core";
 
 interface LEDsFunctions {
-    setWhite: () => Promise<Response | undefined>;
-    setGreen: () => Promise<Response | undefined>;
-    setRed: () => Promise<Response | undefined>;
-    setBlue: () => Promise<Response | undefined>;
-    setYellow: () => Promise<Response | undefined>;
+    set: (color: Color) => Promise<unknown>;
 }
 
 export const LEDs: LEDsFunctions = {
-    setWhite: async () => await setLightsColor("white"),
-    setGreen: async () => await setLightsColor("green"),
-    setRed: async () => await setLightsColor("red"),
-    setBlue: async () => await setLightsColor("blue"),
-    setYellow: async () => await setLightsColor("yellow"),
+    set: async (color: Color) => await setLightsColor(color),
 };
 
 const COLORS = {
@@ -26,7 +19,12 @@ const COLORS = {
 
 type Color = keyof typeof COLORS;
 
-const setLightsColor = async (color: Color): Promise<Response | undefined> => {
+const setLightsColor = async (color: Color) => {
+    console.log("Setting lights color to:", color);
+    return await invoke("set_color", { color });
+};
+
+const setShellyLightsColor = async (color: Color): Promise<Response | undefined> => {
     const authKey = import.meta.env.VITE_LIGHT_AUTHENTICATION_KEY;
     const lightId = import.meta.env.VITE_LIGHT_ID;
     const url = buildShellyCloudUrl(authKey);

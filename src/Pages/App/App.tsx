@@ -281,7 +281,7 @@ const App = () => {
     } else {
       setPayStatus("error");
       setPayMessage("Door did not close. Please close the door.");
-      LEDs.setRed();
+      LEDs.set('red');
 
       setTimeout(() => {
         if (!cancelledRef.current) {

@@ -21,27 +21,27 @@ interface PrimaryButtonProps {
 const btns: { [key: string]: PrimaryButtonProps } = {
   white: {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FFFFFF" />White</div>,
-    onClick: () => LEDs.setWhite(),
+    onClick: () => LEDs.set("white"),
     color: "white",
   },
   green: {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#00FF00" />Green</div>,
-    onClick: () => LEDs.setGreen(),
+    onClick: () => LEDs.set("green"),
     color: "green",
   },
   red: {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FF0000" />Red</div>,
-    onClick: () => LEDs.setRed(),
+    onClick: () => LEDs.set("red"),
     color: "red",
   },
   blue: {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#0000FF" />Blue</div>,
-    onClick: () => LEDs.setBlue(),
+    onClick: () => LEDs.set("blue"),
     color: "blue",
   },
   yellow: {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FFFF00" />Yellow</div>,
-    onClick: () => LEDs.setYellow(),
+    onClick: () => LEDs.set("yellow"),
     color: "yellow",
   }
 }

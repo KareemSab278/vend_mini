@@ -2,6 +2,7 @@ mod config;
 mod database;
 mod door;
 mod images;
+mod led;
 pub mod nfc;
 mod pay;
 mod serial_comms;
@@ -63,11 +64,13 @@ pub fn run() {
             nfc::get_tag_id,
             // Utility
             kill_app,
-            update::install_update, // get latest updates
+            update::install_update,               // get latest updates
             update::install_update_with_password, // sudo password fallback
             server::initialize_static_page_server,
             server::return_editor_url,
             images::list_images_command,
+            led::set_color,
+            led::set_color_w_timeout,
             is_raspberry_pi
         ])
         .setup(|app| {
@@ -77,6 +80,10 @@ pub fn run() {
                 .plugin(tauri_plugin_updater::Builder::new().build());
 
             nfc::start_nfc_listener(app.handle().clone());
+
+            tauri::async_runtime::spawn(async move {
+                door::monitor_door_status().await;
+            });
 
             Ok(())
         })
