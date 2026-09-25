@@ -31,8 +31,8 @@ const CheckoutModal = ({
       return;
     }
 
-    // waiting_door: start the 30s timer
-    const id = setTimeout(() => setShowDismissDoorButton(true), 30000);
+    // waiting_door: start the 10s timer
+    const id = setTimeout(() => setShowDismissDoorButton(true), 10000);
     return () => clearTimeout(id);
   }, [payStatus]);
 
