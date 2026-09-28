@@ -57,7 +57,7 @@ const App = () => {
 
   // if any modals are open set a global state for nfc listening to false to make life easier. wrap it in a 2 seconds timeout after the modal closes.
 
-  const NFCListeningEnabledRef = useRef<boolean>(true);
+  const NFCListeningEnabledRef = useRef<boolean>(false);
   const nfcEnableTimerRef = useRef<number | null>(null);
 
 
@@ -73,8 +73,9 @@ const App = () => {
       nfcEnableTimerRef.current = null;
     }
 
+    NFCListeningEnabledRef.current = false;
+
     if (blocked) {
-      NFCListeningEnabledRef.current = false;
       return;
     }
 
@@ -189,8 +190,13 @@ const App = () => {
       showNfcNotification(`Unknown NFC tag: ${tagId}`);
     });
     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
-      if (!NFCListeningEnabledRef.current) {
-        console.log("Ignoring admin NFC");
+      if (
+        modalOpen ||
+        checkoutActive ||
+        paymentMethodModalOpen ||
+        payStatus !== "idle" ||
+        !NFCListeningEnabledRef.current
+      ) {
         return;
       }
 
