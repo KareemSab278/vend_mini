@@ -43,6 +43,11 @@ const btns: { [key: string]: PrimaryButtonProps } = {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FFFF00" />Yellow</div>,
     onClick: () => LEDs.set("yellow"),
     color: "yellow",
+  },
+  none: {
+    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#808080" />None</div>,
+    onClick: () => LEDs.set("none"),
+    color: "none",
   }
 }
 
