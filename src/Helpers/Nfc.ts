@@ -42,12 +42,12 @@ export const NFC: NfcFunctions = {
             // must be tagId for tag_id in rust tauri backend because it is enforced to be camelCase in js and snake_case in rust under tauri.
             const balance = (await invoke("get_balance_by_tag_id", { tagId })) as number | null;
             if (balance === null) {
-                await LEDs.setWithTimeout("red", 6);
+                await LEDs.setWithTimeout("red", 2);
                 throw new Error("Tag not recognised")
             };
             
             if (balance < amount) {
-                await LEDs.setWithTimeout("red", 6);
+                await LEDs.setWithTimeout("red", 2);
                 throw new Error("Insufficient balance");
             };
 
