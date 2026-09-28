@@ -6,14 +6,15 @@ import { listen } from "@tauri-apps/api/event";
 import { LEDs } from "./LED";
 
 interface NfcFunctions {
-    listenAdminFound: (onAdminFound: () => void) => Promise<() => void>, // subscribe to nfc-admin-found, returns the unlisten fn
-    listenUnknownTag: (onUnknown: (tagId: string) => void) => Promise<() => void>, // subscribe to nfc-unknown-tag, returns the unlisten fn
+    listenAdminFound: (onAdminFound: () => void, enabled: boolean) => Promise<() => void>, // subscribe to nfc-admin-found, returns the unlisten fn
+    listenUnknownTag: (onUnknown: (tagId: string) => void, enabled: boolean) => Promise<() => void>, // subscribe to nfc-unknown-tag, returns the unlisten fn
     payment: (amount: number, onSuccess: (newBalance: number) => void, onError: (error: Error) => void) => Promise<number>, // read tag, check balance, deduct amount
     listenTags: () => Promise<string | undefined>, // read a single tag id
 }
 
 export const NFC: NfcFunctions = {
-    listenAdminFound: async (onAdminFound: () => void): Promise<() => void> => {
+    listenAdminFound: async (onAdminFound: () => void, enabled: boolean): Promise<() => void> => {
+        if (!enabled) return async () => {};
         const unlisten = await listen("nfc-admin-found", () => {
             dev && console.log("[NFC] Admin tag detected!");
             onAdminFound();
@@ -21,7 +22,8 @@ export const NFC: NfcFunctions = {
         return unlisten;
     },
 
-    listenUnknownTag: async (onUnknown: (tagId: string) => void): Promise<() => void> => {
+    listenUnknownTag: async (onUnknown: (tagId: string) => void, enabled: boolean): Promise<() => void> => {
+        if (!enabled) return async () => {};
         const unlisten = await listen("nfc-unknown-tag", (event) => {
             const tagId = String((event as any).payload ?? event);
             dev && console.log(`NFC unknown tag: ${tagId}`);

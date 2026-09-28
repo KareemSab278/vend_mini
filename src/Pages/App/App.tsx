@@ -55,29 +55,23 @@ const App = () => {
   const [paymentMethod, setPaymentMethod] = useState<"card" | "nfc" | null>(null);
 
   const [nfcListeningEnabled, setNfcListeningEnabled] = useState<boolean>(true);
-  const nfcEnableTimerRef = useRef<number | null>(null);
 
   const nfcListenStateHelper = (state: boolean) => {
-    if (nfcEnableTimerRef.current) {
-      clearTimeout(nfcEnableTimerRef.current);
-      nfcEnableTimerRef.current = null;
+    if (state) {
+      setTimeout(() => {
+        setNfcListeningEnabled(true);
+      }, NFC_ENABLE_DELAY_MS);
     }
-
     if (!state) {
       setNfcListeningEnabled(false);
-      return;
     }
-
-    nfcEnableTimerRef.current = setTimeout(() => {
-      setNfcListeningEnabled(true);
-      nfcEnableTimerRef.current = null;
-    }, NFC_ENABLE_DELAY_MS) as unknown as number;
-  };
-
+  }
   // if any modals are open set a global state for nfc listening to false to make life easier. wrap it in a 2 seconds timeout after the modal closes.
 
   useEffect(() => {
-    nfcListenStateHelper(!(modalOpen || checkoutActive || paymentMethodModalOpen || payStatus !== "idle"));
+    if (modalOpen || checkoutActive || paymentMethodModalOpen || payStatus !== "idle") {
+      nfcListenStateHelper(false);
+    }
   }, [modalOpen, checkoutActive, paymentMethodModalOpen, payStatus]);
 
   const adminPresentCheck = async (): Promise<void> => {
@@ -163,53 +157,6 @@ const App = () => {
     }
   };
 
-  const listenToNfc = async () => {
-    unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {
-      showNfcNotification(`Unknown NFC tag: ${tagId}`);
-    });
-
-    unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
-      setScreenSaverActive(false);
-      navigate("/admin");
-    });
-  };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    const setup = async () => {
-      if (unlistenNfcAdminRef.current) {
-        unlistenNfcAdminRef.current();
-        unlistenNfcAdminRef.current = null;
-      }
-
-      if (unlistenNfcUnknownRef.current) {
-        unlistenNfcUnknownRef.current();
-        unlistenNfcUnknownRef.current = null;
-      }
-
-      if (nfcListeningEnabled && !cancelled) {
-        await listenToNfc();
-      }
-    };
-
-    setup();
-
-    return () => {
-      cancelled = true;
-
-      if (unlistenNfcAdminRef.current) {
-        unlistenNfcAdminRef.current();
-        unlistenNfcAdminRef.current = null;
-      }
-
-      if (unlistenNfcUnknownRef.current) {
-        unlistenNfcUnknownRef.current();
-        unlistenNfcUnknownRef.current = null;
-      }
-    };
-  }, [nfcListeningEnabled]);
-
 
   const showNfcNotification = (message: string) => {
     if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
@@ -218,6 +165,18 @@ const App = () => {
       setNfcNotification(null);
       nfcNotificationTimerRef.current = null;
     }, 5000) as unknown as number;
+  };
+
+
+  const listenToNfc = async () => {
+    unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {
+      showNfcNotification(`Unknown NFC tag: ${tagId}`);
+    }, nfcListeningEnabled);
+
+    unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
+      setScreenSaverActive(false);
+      navigate("/admin");
+    }, nfcListeningEnabled);
   };
 
 
@@ -237,7 +196,7 @@ const App = () => {
   };
 
   useEffect(() => {
-
+    listenToNfc();
     getProductsOnMount();
     fetchProducts();
     initializePayDevice();
@@ -256,13 +215,11 @@ const App = () => {
     return () => {
       clearInactivityTimer();
 
-      if (nfcEnableTimerRef.current) {
-        clearTimeout(nfcEnableTimerRef.current);
-      }
-
       window.removeEventListener("pointerdown", handleUserActivity);
       window.removeEventListener("keydown", handleUserActivity);
       if (pollRef.current) clearInterval(pollRef.current);
+      if (unlistenNfcAdminRef.current) unlistenNfcAdminRef.current();
+      if (unlistenNfcUnknownRef.current) unlistenNfcUnknownRef.current();
       if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
     };
   }, []);
