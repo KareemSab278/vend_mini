@@ -9,6 +9,9 @@ interface LEDsFunctions {
 
 export const LEDs: LEDsFunctions = {
     set: async (color: LEDColor) => {
+        if (color === "none") {
+            DEV && console.log("Turning off lights");
+        }
         DEV && console.log("Setting lights color to:", color);
         return await invoke("set_color", { color });
     },
