@@ -24,7 +24,7 @@ pub async fn unlock_door() -> Result<(), String> {
     #[cfg(target_os = "linux")]
     SRL_CMS::broadcast_cmd_to_all_ports("u");
     #[cfg(target_os = "linux")]
-    let _ = led::set_color_w_timeout(led::Color::Green, None).await; // defaults to 3 secs
+    let _ = led::set_color_w_timeout(led::Color::Green, None).await; // defaults to 6 secs
     Ok(())
 }
 

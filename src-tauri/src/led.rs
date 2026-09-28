@@ -43,7 +43,7 @@ pub fn set_color(color: Color) {
 pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Result<(), String> {
     let led = serial_comms::led_connection()?;
     led.send(color.as_str())?;
-    let t_out = timeout_secs.unwrap_or(3);
+    let t_out = timeout_secs.unwrap_or(6);
     tokio::time::sleep(std::time::Duration::from_secs(t_out as u64)).await;
     led.send(Color::White.as_str())?;
     Ok(())
@@ -56,7 +56,7 @@ pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Resu
 
     #define NUM_LEDS 148
     #define DIN_PIN 23
-    #define BRIGHTNESS 150
+    #define BRIGHTNESS 30
 
     CRGB leds[NUM_LEDS];
 

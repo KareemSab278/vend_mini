@@ -348,7 +348,7 @@ const App = () => {
         setSelectedProducts([]);
         await openDoorAndWaitForClose();
       } else {
-        await LEDs.setWithTimeout("red", 3);
+        await LEDs.setWithTimeout("red", 6);
         setPayStatus("error");
         setPayMessage("Payment failed. Please try again.");
       }
