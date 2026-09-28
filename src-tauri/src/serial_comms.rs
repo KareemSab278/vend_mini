@@ -27,6 +27,7 @@ static REGISTRY: OnceLock<Mutex<DeviceRegistry>> = OnceLock::new();
 enum DeviceRole {
     Payment,
     Door,
+    Led,
 }
 
 #[allow(dead_code)]
@@ -251,6 +252,7 @@ impl Drop for DeviceConnection {
 struct DeviceRegistry {
     payment: Option<Arc<DeviceConnection>>,
     doors: HashMap<String, Arc<DeviceConnection>>,
+    led: Option<Arc<DeviceConnection>>,
 }
 
 impl DeviceRegistry {
@@ -292,12 +294,20 @@ impl DeviceRegistry {
             connection.is_connected() && available_identities.contains(identity)
         });
 
+        if self.led.as_ref().is_some_and(|connection| {
+            !connection.is_connected()
+                || !available_identities.contains(&connection.descriptor.identity)
+        }) {
+            self.led = None;
+        }
+
         for (info, identity) in identified_ports {
             let already_managed = self
                 .payment
                 .as_ref()
                 .is_some_and(|connection| connection.descriptor.identity == identity)
-                || self.doors.contains_key(&identity);
+                || self.doors.contains_key(&identity)
+                || self.led.as_ref().is_some_and(|connection| connection.descriptor.identity == identity);
             if already_managed {
                 continue;
             }
@@ -313,9 +323,18 @@ impl DeviceRegistry {
                         DeviceRole::Door => {
                             self.doors.insert(identity, connection);
                         }
+                        DeviceRole::Led if self.led.is_none() => {
+                            self.led = Some(connection);
+                        }
                         DeviceRole::Payment => {
                             eprintln!(
                                 "Ignoring additional payment bridge on {} because one is already assigned",
+                                connection.port_name()
+                            );
+                        }
+                        DeviceRole::Led => {
+                            eprintln!(
+                                "Ignoring additional LED controller on {} because one is already assigned",
                                 connection.port_name()
                             );
                         }
@@ -344,6 +363,17 @@ pub(crate) fn payment_connection() -> Result<Arc<DeviceConnection>, String> {
         .payment
         .clone()
         .ok_or_else(|| "PicoVend payment bridge not found".to_string())
+}
+
+pub(crate) fn led_connection() -> Result<Arc<DeviceConnection>, String> {
+    let mut registry = registry()
+        .lock()
+        .map_err(|_| "Serial registry poisoned".to_string())?;
+    registry.refresh()?;
+    registry
+        .led
+        .clone()
+        .ok_or_else(|| "LED controller not found".to_string())
 }
 
 fn door_connections() -> Result<Vec<Arc<DeviceConnection>>, String> {
@@ -515,6 +545,19 @@ fn probe_device(
             identity,
             port_name,
             role: DeviceRole::Payment,
+            device_id: None,
+        };
+        return Ok((descriptor, port, lines));
+    }
+
+    write_protocol_line(&mut *port, "ident?")?;
+    if read_probe_lines(&mut port, &mut lines, PROBE_TIMEOUT_MS, |line| {
+        line.starts_with("LEDACK")
+    })? {
+        let descriptor = DeviceDescriptor {
+            identity,
+            port_name,
+            role: DeviceRole::Led,
             device_id: None,
         };
         return Ok((descriptor, port, lines));

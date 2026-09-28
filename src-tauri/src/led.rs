@@ -33,15 +33,18 @@ impl Color {
 
 #[tauri::command]
 pub fn set_color(color: Color) {
-    serial_comms::broadcast_cmd_to_all_ports(color.as_str());
+    if let Ok(led) = serial_comms::led_connection() {
+        let _ = led.send(color.as_str());
+    }
 }
 
 #[tauri::command]
 pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Result<(), String> {
-    set_color(color);
+    let led = serial_comms::led_connection()?;
+    led.send(color.as_str())?;
     let t_out = timeout_secs.unwrap_or(3);
     tokio::time::sleep(std::time::Duration::from_secs(t_out as u64)).await;
-    set_color(Color::White);
+    led.send(Color::White.as_str())?;
     Ok(())
 }
 
@@ -148,6 +151,10 @@ pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Resu
 
         else if (command == "none") {
             fadeToColour(CRGB::Black);
+        }
+
+        else if (command == "ident?") {
+            Serial.println("LEDACK");
         }
 
         else {
