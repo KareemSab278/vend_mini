@@ -59,6 +59,26 @@ const App = () => {
 
   const NFCListeningEnabledRef = useRef<boolean>(false);
   const nfcEnableTimerRef = useRef<number | null>(null);
+  const modalOpenRef = useRef(false);
+  const checkoutActiveRef = useRef(false);
+  const paymentMethodModalOpenRef = useRef(false);
+  const payStatusRef = useRef<PayStatus>("idle");
+
+  useEffect(() => {
+    modalOpenRef.current = modalOpen;
+  }, [modalOpen]);
+
+  useEffect(() => {
+    checkoutActiveRef.current = checkoutActive;
+  }, [checkoutActive]);
+
+  useEffect(() => {
+    paymentMethodModalOpenRef.current = paymentMethodModalOpen;
+  }, [paymentMethodModalOpen]);
+
+  useEffect(() => {
+    payStatusRef.current = payStatus;
+  }, [payStatus]);
 
 
   useEffect(() => {
@@ -122,6 +142,8 @@ const App = () => {
 
   const handleNFCCheckout = async () => {
     if (selectedProducts.length === 0 || checkoutActive) return;
+
+    NFCListeningEnabledRef.current = false;
 
     cancelledRef.current = false;
     setCheckoutActive(true);
@@ -190,20 +212,26 @@ const App = () => {
       showNfcNotification(`Unknown NFC tag: ${tagId}`);
     });
     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
-      if (
-        modalOpen ||
-        checkoutActive ||
-        paymentMethodModalOpen ||
-        payStatus !== "idle" ||
-        !NFCListeningEnabledRef.current
-      ) {
+      const blocked =
+        modalOpenRef.current ||
+        checkoutActiveRef.current ||
+        paymentMethodModalOpenRef.current ||
+        payStatusRef.current !== "idle" ||
+        !NFCListeningEnabledRef.current;
+
+      if (blocked) {
+        console.log("Ignoring admin NFC during checkout/modal");
         return;
       }
 
+      NFCListeningEnabledRef.current = false;
+
       setScreenSaverActive(false);
-      if (!modalOpen && !checkoutActive && !paymentMethodModalOpen && payStatus === "idle" && NFCListeningEnabledRef.current) {
-        navigate("/admin")
-      }
+      navigate("/admin");
+
+      setTimeout(() => {
+        NFCListeningEnabledRef.current = true;
+      }, NFC_ENABLE_DELAY);
     });
   };
 
@@ -378,6 +406,10 @@ const App = () => {
     setCheckoutActive(false);
     setPayStatus("idle");
     setPayMessage("");
+
+    setTimeout(() => {
+      NFCListeningEnabledRef.current = true;
+    }, NFC_ENABLE_DELAY);
   };
 
 
