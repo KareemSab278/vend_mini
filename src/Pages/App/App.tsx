@@ -56,6 +56,13 @@ const App = () => {
 
   const [nfcListeningEnabled, setNfcListeningEnabled] = useState<boolean>(true);
 
+  const checkoutActiveRef = useRef(false);
+
+  useEffect(() => {
+    checkoutActiveRef.current = checkoutActive;
+  }, [checkoutActive]);
+
+
   const nfcListenStateDisabled = (disabled: boolean) => {
     if (disabled) {
       setNfcListeningEnabled(false);
@@ -178,8 +185,13 @@ const App = () => {
     });
 
     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
+      if (checkoutActiveRef.current) {
+        console.log("Ignoring admin tag during payment");
+        return;
+      }
+
       setScreenSaverActive(false);
-      nfcListeningEnabled && navigate("/admin");
+      navigate("/admin");
     });
   };
 
