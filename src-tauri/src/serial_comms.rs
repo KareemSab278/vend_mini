@@ -4,6 +4,10 @@
 // port with an identifying command, then keeps a background reader thread
 // per device so commands and status lines never block each other.
 
+
+
+// Serial device /dev/ttyUSB2 was not assigned: Unable to open /dev/serial/by-path/platform-xhci-hcd.0-usb-0:1:1.0-port0: Device or resource busy
+
 use crate::config as C;
 use serde_json::Value;
 use serialport::{
@@ -341,7 +345,8 @@ impl DeviceRegistry {
                     }
                 }
                 Err(error) => {
-                    eprintln!("Serial device {} was not assigned: {error}", info.port_name);
+                    // ignore the error here for now.
+                    // eprintln!("Serial device {} was not assigned: {error}", info.port_name);
                 }
             }
         }

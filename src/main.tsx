@@ -10,7 +10,6 @@ import { Admin } from "./Pages/Admin/Admin";
 import { applyTheme, ThemeStore, type Theme } from "./Helpers/theme";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./styles.css";
-import { LEDs } from "./Helpers/LED";
 
 const startFullScreen = async (): Promise<void> => {
   // const isPi = await isPiOs();
@@ -19,13 +18,11 @@ const startFullScreen = async (): Promise<void> => {
 
 const ThemedApp = () => {
   const [theme, setTheme] = useState<Theme | null>(null);
-  const initilaizeLed = async () => { await LEDs.set('white') }
 
   useEffect(() => {
     ThemeStore.getTheme().then((loadedTheme) => {
       applyTheme(loadedTheme);
       setTheme(loadedTheme);
-      initilaizeLed();
       startFullScreen();
     });
   }, []);

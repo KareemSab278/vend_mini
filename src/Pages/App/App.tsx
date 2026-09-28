@@ -70,9 +70,12 @@ const App = () => {
     }
   };
 
+  const initilaizeLedAfter2Sec = async () => { setTimeout(async () => { await LEDs.set('white') }, 2000); }
+
   useEffect(() => { modalOpenRef.current = modalOpen; }, [modalOpen]);
   useEffect(() => { checkoutActiveRef.current = checkoutActive; }, [checkoutActive]);
   useEffect(() => { payStatusRef.current = payStatus; }, [payStatus]);
+  useEffect(() => { initilaizeLedAfter2Sec(); }, []);
 
   useEffect(() => {
     if (payStatus === "paying") {
