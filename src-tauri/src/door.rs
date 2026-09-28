@@ -110,12 +110,6 @@ fn parse_door_status(raw: &str) -> DoorStatus {
     let door_closed = door.eq_ignore_ascii_case("CLOSED");
     let locked = lock.eq_ignore_ascii_case("LOCKED");
 
-    if door_closed && locked {
-        // Door is closed and locked so set to white
-        #[cfg(target_os = "linux")]
-        let _ = led::set_color(led::Color::White);
-    }
-
     DoorStatus {
         door: door_number,
         door_number,
@@ -156,13 +150,17 @@ pub async fn get_all_doors_status() -> Result<Vec<DoorStatus>, String> {
 pub async fn monitor_door_status() {
     use std::time::{Duration, Instant};
     let mut door_open_timestamp: Option<Instant> = None;
+    let mut is_red = false; // tracks last LED state so we only send a command on change
 
     loop {
         if let Ok(status) = get_door_status().await {
             if status.door_closed {
                 door_open_timestamp = None;
-                // #[cfg(target_os = "linux")]
-                // let _ = led::set_color(led::Color::White);
+                if is_red {
+                    #[cfg(target_os = "linux")]
+                    let _ = led::set_color(led::Color::White);
+                    is_red = false;
+                }
             } else {
                 if door_open_timestamp.is_none() {
                     door_open_timestamp = Some(Instant::now());
@@ -170,13 +168,15 @@ pub async fn monitor_door_status() {
 
                 if let Some(open_time) = door_open_timestamp {
                     let duration = open_time.elapsed().as_secs();
-                    if duration > DOOR_OPEN_DURATION_THRESHOLD as u64 {
+                    let should_be_red = duration > DOOR_OPEN_DURATION_THRESHOLD as u64;
+                    if should_be_red != is_red {
                         #[cfg(target_os = "linux")]
-                        let _ = led::set_color(led::Color::Red);
-                    }
-                    else {
-                        #[cfg(target_os = "linux")]
-                        let _ = led::set_color(led::Color::White);
+                        let _ = led::set_color(if should_be_red {
+                            led::Color::Red
+                        } else {
+                            led::Color::White
+                        });
+                        is_red = should_be_red;
                     }
                 }
             }
