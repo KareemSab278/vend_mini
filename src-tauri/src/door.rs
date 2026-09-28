@@ -174,10 +174,10 @@ pub async fn monitor_door_status() {
                         #[cfg(target_os = "linux")]
                         let _ = led::set_color(led::Color::Red);
                     }
-                    // else {
-                    //     #[cfg(target_os = "linux")]
-                    //     let _ = led::set_color(led::Color::White);
-                    // }
+                    else {
+                        #[cfg(target_os = "linux")]
+                        let _ = led::set_color(led::Color::White);
+                    }
                 }
             }
         }
