@@ -185,12 +185,13 @@ const App = () => {
     });
 
     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
+      console.log("ADMIN LISTENER FIRED", Date.now());
+
       if (checkoutActiveRef.current) {
         console.log("Ignoring admin tag during payment");
         return;
       }
 
-      setScreenSaverActive(false);
       navigate("/admin");
     });
   };
