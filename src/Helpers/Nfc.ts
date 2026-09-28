@@ -3,6 +3,7 @@ const TAG_POLL_INTERVAL_MS = 250;
 
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
+import { LEDs } from "./LED";
 
 interface NfcFunctions {
     listenAdminFound: (onAdminFound: () => void) => Promise<() => void>, // subscribe to nfc-admin-found, returns the unlisten fn
@@ -40,8 +41,15 @@ export const NFC: NfcFunctions = {
 
             // must be tagId for tag_id in rust tauri backend because it is enforced to be camelCase in js and snake_case in rust under tauri.
             const balance = (await invoke("get_balance_by_tag_id", { tagId })) as number | null;
-            if (balance === null) throw new Error("Tag not recognised");
-            if (balance < amount) throw new Error("Insufficient balance");
+            if (balance === null) {
+                await LEDs.setWithTimeout("red", 3);
+                throw new Error("Tag not recognised")
+            };
+            
+            if (balance < amount) {
+                await LEDs.setWithTimeout("red", 3);
+                throw new Error("Insufficient balance");
+            };
 
             const newBalance = (await invoke("update_balance_by_tag_id", { tagId, amount })) as number;
             onSuccess(newBalance);

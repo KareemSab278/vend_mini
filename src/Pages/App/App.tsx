@@ -309,6 +309,7 @@ const App = () => {
         setSelectedProducts([]);
         await openDoorAndWaitForClose();
       } else {
+        await LEDs.setWithTimeout("red", 3);
         setPayStatus("error");
         setPayMessage("Payment failed. Please try again.");
       }
