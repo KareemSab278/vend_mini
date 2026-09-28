@@ -201,7 +201,9 @@ const App = () => {
       }
 
       setScreenSaverActive(false);
-      navigate("/admin");
+      if (!modalOpen && !checkoutActive && !paymentMethodModalOpen && payStatus === "idle" && NFCListeningEnabledRef.current) {
+        navigate("/admin")
+      }
     });
   };
 
