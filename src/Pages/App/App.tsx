@@ -21,7 +21,7 @@ import { Admin } from "../../Helpers/Admins";
 import type { ProductType } from "../../Helpers/Products";
 import { Products } from "../../Helpers/Products";
 
-const NFC_ENABLE_DELAY_MS = 5000;
+const NFC_ENABLE_DELAY_MS = 30_000;
 
 export { App };
 
