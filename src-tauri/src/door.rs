@@ -152,28 +152,17 @@ pub async fn get_all_doors_status() -> Result<Vec<DoorStatus>, String> {
     door open timestamp - door close timestamp = duration the door was open.
     if duration > 30 seconds then set light red.
 */
-#[derive(Clone, Copy, PartialEq, Eq, Debug)]
-enum DoorLedState {
-    Closed,
-    Open,
-    OpenTooLong,
-}
-
 #[tauri::command]
 pub async fn monitor_door_status() {
     use std::time::{Duration, Instant};
     let mut door_open_timestamp: Option<Instant> = None;
-    let mut last_led_state: Option<DoorLedState> = None;
 
     loop {
         if let Ok(status) = get_door_status().await {
             if status.door_closed {
                 door_open_timestamp = None;
-                if last_led_state != Some(DoorLedState::Closed) {
-                    #[cfg(target_os = "linux")]
-                    let _ = led::set_color(led::Color::White);
-                    last_led_state = Some(DoorLedState::Closed);
-                }
+                // #[cfg(target_os = "linux")]
+                // let _ = led::set_color(led::Color::White);
             } else {
                 if door_open_timestamp.is_none() {
                     door_open_timestamp = Some(Instant::now());
@@ -181,20 +170,14 @@ pub async fn monitor_door_status() {
 
                 if let Some(open_time) = door_open_timestamp {
                     let duration = open_time.elapsed().as_secs();
-                    let desired_state = if duration > DOOR_OPEN_DURATION_THRESHOLD as u64 {
-                        DoorLedState::OpenTooLong
-                    } else {
-                        DoorLedState::Open
-                    };
-
-                    if last_led_state != Some(desired_state) {
+                    if duration > DOOR_OPEN_DURATION_THRESHOLD as u64 {
                         #[cfg(target_os = "linux")]
-                        let _ = led::set_color(match desired_state {
-                            DoorLedState::OpenTooLong => led::Color::Red,
-                            _ => led::Color::White,
-                        });
-                        last_led_state = Some(desired_state);
+                        let _ = led::set_color(led::Color::Red);
                     }
+                    // else {
+                    //     #[cfg(target_os = "linux")]
+                    //     let _ = led::set_color(led::Color::White);
+                    // }
                 }
             }
         }
