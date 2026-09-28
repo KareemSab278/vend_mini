@@ -46,10 +46,10 @@ const AdminModal = ({
           setPaymentResult(success);
         }),
     },
-    { title: "Set Light Green", onClick: () => LEDs.set("green") },
-    { title: "Set Light Red", onClick: () => LEDs.set("red") },
-    { title: "Set Light Blue", onClick: () => LEDs.set("blue") },
-    { title: "Set Light White", onClick: () => LEDs.set("white") },
+    { title: "Set Light Green", onClick: async () => await LEDs.set("green") },
+    { title: "Set Light Red", onClick: async () => await LEDs.set("red") },
+    { title: "Set Light Blue", onClick: async () => await LEDs.set("blue") },
+    { title: "Set Light White", onClick: async () => await LEDs.set("white") },
   ];
 
   return (

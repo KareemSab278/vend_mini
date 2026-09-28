@@ -21,32 +21,32 @@ interface PrimaryButtonProps {
 const btns: { [key: string]: PrimaryButtonProps } = {
   white: {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FFFFFF" />White</div>,
-    onClick: () => LEDs.set("white"),
+    onClick: async () => await LEDs.set("white"),
     color: "white",
   },
   green: {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#00FF00" />Green</div>,
-    onClick: () => LEDs.set("green"),
+    onClick: async () => await LEDs.set("green"),
     color: "green",
   },
   red: {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FF0000" />Red</div>,
-    onClick: () => LEDs.set("red"),
+    onClick: async () => await LEDs.set("red"),
     color: "red",
   },
   blue: {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#0000FF" />Blue</div>,
-    onClick: () => LEDs.set("blue"),
+    onClick: async () => await LEDs.set("blue"),
     color: "blue",
   },
   yellow: {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FFFF00" />Yellow</div>,
-    onClick: () => LEDs.set("yellow"),
+    onClick: async () => await LEDs.set("yellow"),
     color: "yellow",
   },
   none: {
     title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#808080" />None</div>,
-    onClick: () => LEDs.set("none"),
+    onClick: async () => await LEDs.set("none"),
     color: "none",
   }
 }

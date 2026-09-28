@@ -52,7 +52,7 @@ export const Door: DoorFunctions = {
     isClosed: async (): Promise<boolean> => {
         const statuses = await Door.status();
         const closed = statuses.length > 0 && statuses.every((s) => s.door_closed);
-        if (closed) { LEDs.set("white"); } // if found as closed then just set to white
+        if (closed) { await LEDs.set("white"); } // if found as closed then just set to white
         return closed;
     },
 

@@ -33,24 +33,40 @@ impl Color {
 }
 
 #[tauri::command]
-pub fn set_color(color: Color) {
+pub async fn set_color(color: Color) {
+    let command = color.as_str().to_string();
+
     if let Ok(led) = serial_comms::led_connection() {
-        let _ = led.send(color.as_str());
+        let _ = tokio::task::spawn_blocking(move || {
+            let _ = led.send(&command);
+        });
     }
 }
 
 #[tauri::command]
 pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Result<(), String> {
     let led = serial_comms::led_connection()?;
-    led.send(color.as_str())?;
+    let led2 = led.clone();
+
+    let command = color.as_str().to_string();
+
+    let _ = tokio::task::spawn_blocking(move || {
+        let _ = led.send(&command);
+    })
+    .await;
+
     let t_out = timeout_secs.unwrap_or(6);
     tokio::time::sleep(std::time::Duration::from_secs(t_out as u64)).await;
-    led.send(Color::White.as_str())?;
+
+    tokio::task::spawn_blocking(move || {
+        let _ = led2.send("white");
+    });
+
     Ok(())
 }
 
 /*
-// LED RUST CODE LIB RS_WS281X DOES NOT WORK ON THE RASPBERRY PI 5 - NEEDS WORK. USE esp32 INSTEAD WITH CODE: 
+// LED RUST CODE LIB RS_WS281X DOES NOT WORK ON THE RASPBERRY PI 5 - NEEDS WORK. USE esp32 INSTEAD WITH CODE:
 
     #include <FastLED.h>
 

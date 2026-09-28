@@ -181,6 +181,6 @@ pub async fn monitor_door_status() {
                 }
             }
         }
-        tokio::time::sleep(Duration::from_secs(3)).await;
+        tokio::time::sleep(Duration::from_secs(2)).await;
     }
 }
