@@ -6,8 +6,10 @@
 */
 
 use crate::serial_comms;
+use serde::Deserialize;
 
-enum Color {
+#[derive(Deserialize, Debug)]
+pub enum Color {
     Red,
     Green,
     Blue,
@@ -29,13 +31,11 @@ impl Color {
     }
 }
 
-#[cfg(target_os = "linux")]
 #[tauri::command]
 pub fn set_color(color: Color) {
     serial_comms::broadcast_cmd_to_all_ports(color.as_str());
 }
 
-#[cfg(target_os = "linux")]
 #[tauri::command]
 pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Result<(), String> {
     set_color(color);
