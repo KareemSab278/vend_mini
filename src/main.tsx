@@ -19,7 +19,7 @@ const startFullScreen = async (): Promise<void> => {
 
 const ThemedApp = () => {
   const [theme, setTheme] = useState<Theme | null>(null);
-  const initilaizeLed = async () => {LEDs.set('white')}
+  const initilaizeLed = async () => { await LEDs.set('white') }
 
   useEffect(() => {
     ThemeStore.getTheme().then((loadedTheme) => {
