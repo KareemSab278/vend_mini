@@ -107,6 +107,8 @@ const App = () => {
   const handleNFCCheckout = async () => {
     if (selectedProducts.length === 0 || checkoutActive) return;
 
+    nfcListenStateDisabled(true);
+
     cancelledRef.current = false;
     setCheckoutActive(true);
     setScreenSaverActive(false);
@@ -344,6 +346,7 @@ const App = () => {
   };
 
   const resetCheckoutState = () => {
+    if (nfcListeningEnabled) nfcListenStateDisabled(false);
     setCheckoutActive(false);
     setPayStatus("idle");
     setPayMessage("");
