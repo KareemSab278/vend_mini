@@ -56,21 +56,23 @@ const App = () => {
 
   const [nfcListeningEnabled, setNfcListeningEnabled] = useState<boolean>(true);
 
-  const nfcListenStateHelper = (state: boolean) => {
-    if (state) {
+  const nfcListenStateDisabled = (disabled: boolean) => {
+    if (disabled) {
+      setNfcListeningEnabled(false);
+    }
+    if (!disabled) {
       setTimeout(() => {
         setNfcListeningEnabled(true);
       }, NFC_ENABLE_DELAY_MS);
-    }
-    if (!state) {
-      setNfcListeningEnabled(false);
     }
   }
   // if any modals are open set a global state for nfc listening to false to make life easier. wrap it in a 2 seconds timeout after the modal closes.
 
   useEffect(() => {
     if (modalOpen || checkoutActive || paymentMethodModalOpen || payStatus !== "idle") {
-      nfcListenStateHelper(false);
+      nfcListenStateDisabled(true);
+    } else if (!modalOpen || !checkoutActive) {
+      nfcListenStateDisabled(false);
     }
   }, [modalOpen, checkoutActive, paymentMethodModalOpen, payStatus]);
 
@@ -170,10 +172,10 @@ const App = () => {
 
   const listenToNfc = async () => {
     unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {
-       nfcListeningEnabled && showNfcNotification(`Unknown NFC tag: ${tagId}`);
+      nfcListeningEnabled && showNfcNotification(`Unknown NFC tag: ${tagId}`);
     });
 
-     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
+    unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
       setScreenSaverActive(false);
       nfcListeningEnabled && navigate("/admin");
     });
@@ -189,8 +191,6 @@ const App = () => {
     try {
       await Payment.initialize();
     } catch (e) {
-      // Don't block the kiosk screen if the payment device isn't connected yet;
-      // card checkout will simply fail later if attempted.
       dev && console.error("Failed to initialize payment device:", e);
     }
   };
@@ -210,7 +210,7 @@ const App = () => {
     window.addEventListener("pointerdown", handleUserActivity);
     window.addEventListener("keydown", handleUserActivity);
 
-    adminPresentCheck(); // check for admin AFTER fullscreen mode to avoid tearing
+    adminPresentCheck();
 
     return () => {
       clearInactivityTimer();
