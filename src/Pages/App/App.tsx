@@ -115,7 +115,7 @@ const App = () => {
       const newBalance: number = await NFC.payment(
         totalPrice(selectedProducts),
         () => { },
-        () => { }
+        () => { },
       );
       if (cancelledRef.current) return;
       setSelectedProducts([]);
@@ -170,13 +170,13 @@ const App = () => {
 
   const listenToNfc = async () => {
     unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {
-      showNfcNotification(`Unknown NFC tag: ${tagId}`);
-    }, nfcListeningEnabled);
+       nfcListeningEnabled && showNfcNotification(`Unknown NFC tag: ${tagId}`);
+    });
 
-    unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
+     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
       setScreenSaverActive(false);
-      navigate("/admin");
-    }, nfcListeningEnabled);
+      nfcListeningEnabled && navigate("/admin");
+    });
   };
 
 
@@ -391,7 +391,7 @@ const App = () => {
       {!NFC_ONLY_MODE && <div
         style={styles.adminTrigger}
         onClick={() => {
-          !modalOpen && !checkoutActive && !paymentMethodModalOpen && (navigate("/admin"), setScreenSaverActive(false));
+          !modalOpen && !checkoutActive && !paymentMethodModalOpen && nfcListeningEnabled && (navigate("/admin"), setScreenSaverActive(false));
         }}
       />}
 
