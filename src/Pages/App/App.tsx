@@ -21,6 +21,8 @@ import { Admin } from "../../Helpers/Admins";
 import type { ProductType } from "../../Helpers/Products";
 import { Products } from "../../Helpers/Products";
 
+const NFC_ENABLE_DELAY = 2000;
+
 export { App };
 
 type PayStatus = "paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle" | "nfc";
@@ -53,10 +55,41 @@ const App = () => {
   const [paymentMethod, setPaymentMethod] = useState<"card" | "nfc" | null>(null);
 
 
-  // required refs for nfc.
-  const modalOpenRef = useRef(modalOpen);
-  const checkoutActiveRef = useRef(checkoutActive);
-  const payStatusRef = useRef(payStatus);
+  // if any modals are open set a global state for nfc listening to false to make life easier. wrap it in a 2 seconds timeout after the modal closes.
+
+  const NFCListeningEnabledRef = useRef<boolean>(true);
+  const nfcEnableTimerRef = useRef<number | null>(null);
+
+
+  useEffect(() => {
+    const blocked =
+      modalOpen ||
+      checkoutActive ||
+      paymentMethodModalOpen ||
+      payStatus !== "idle";
+
+    if (nfcEnableTimerRef.current) {
+      clearTimeout(nfcEnableTimerRef.current);
+      nfcEnableTimerRef.current = null;
+    }
+
+    if (blocked) {
+      NFCListeningEnabledRef.current = false;
+      return;
+    }
+
+    nfcEnableTimerRef.current = window.setTimeout(() => {
+      NFCListeningEnabledRef.current = true;
+      console.log("NFC admin listening enabled");
+    }, NFC_ENABLE_DELAY);
+
+    return () => {
+      if (nfcEnableTimerRef.current) {
+        clearTimeout(nfcEnableTimerRef.current);
+      }
+    };
+  }, [modalOpen, checkoutActive, paymentMethodModalOpen, payStatus]);
+
 
   const adminPresentCheck = async (): Promise<void> => {
     const isPi = await isPiOs();
@@ -72,9 +105,6 @@ const App = () => {
 
   const initilaizeLedAfter2Sec = async () => { setTimeout(async () => { await LEDs.set('white') }, 2000); }
 
-  useEffect(() => { modalOpenRef.current = modalOpen; }, [modalOpen]);
-  useEffect(() => { checkoutActiveRef.current = checkoutActive; }, [checkoutActive]);
-  useEffect(() => { payStatusRef.current = payStatus; }, [payStatus]);
   useEffect(() => { initilaizeLedAfter2Sec(); }, []);
 
   useEffect(() => {
@@ -159,10 +189,13 @@ const App = () => {
       showNfcNotification(`Unknown NFC tag: ${tagId}`);
     });
     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
-      if (!modalOpenRef.current && !checkoutActiveRef.current && payStatusRef.current === "idle") {
-        setScreenSaverActive(false);
-        navigate("/admin");
+      if (!NFCListeningEnabledRef.current) {
+        console.log("Ignoring admin NFC");
+        return;
       }
+
+      setScreenSaverActive(false);
+      navigate("/admin");
     });
   };
 
@@ -201,6 +234,10 @@ const App = () => {
 
     return () => {
       clearInactivityTimer();
+      if (nfcEnableTimerRef.current) {
+        clearTimeout(nfcEnableTimerRef.current);
+      }
+
       window.removeEventListener("pointerdown", handleUserActivity);
       window.removeEventListener("keydown", handleUserActivity);
       if (pollRef.current) clearInterval(pollRef.current);
