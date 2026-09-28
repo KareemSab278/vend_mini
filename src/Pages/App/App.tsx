@@ -57,23 +57,25 @@ const App = () => {
   const [nfcListeningEnabled, setNfcListeningEnabled] = useState<boolean>(true);
 
   const checkoutActiveRef = useRef(false);
+  const nfcListeningEnabledRef = useRef(true);
 
-  useEffect(() => {
-    checkoutActiveRef.current = checkoutActive;
-  }, [checkoutActive]);
-
+  const setCheckoutActiveSynced = (value: boolean) => {
+    checkoutActiveRef.current = value;  // sync FIRST, before any await can lose the race
+    setCheckoutActive(value);
+  };
 
   const nfcListenStateDisabled = (disabled: boolean) => {
     if (disabled) {
+      nfcListeningEnabledRef.current = false;
       setNfcListeningEnabled(false);
+      return;
     }
-    if (!disabled) {
-      setTimeout(() => {
-        setNfcListeningEnabled(true);
-      }, NFC_ENABLE_DELAY_MS);
-    }
-  }
-  // if any modals are open set a global state for nfc listening to false to make life easier. wrap it in a 2 seconds timeout after the modal closes.
+    setTimeout(() => {
+      nfcListeningEnabledRef.current = true;
+      setNfcListeningEnabled(true);
+    }, NFC_ENABLE_DELAY_MS);
+  };
+
 
   useEffect(() => {
     if (modalOpen || checkoutActive || paymentMethodModalOpen || payStatus !== "idle") {
@@ -117,6 +119,7 @@ const App = () => {
     nfcListenStateDisabled(true);
 
     cancelledRef.current = false;
+    setCheckoutActiveSynced(true);
     setCheckoutActive(true);
     setScreenSaverActive(false);
     setPaymentMethod("nfc");
@@ -180,19 +183,22 @@ const App = () => {
 
 
   const listenToNfc = async () => {
-    unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {
-      nfcListeningEnabled && showNfcNotification(`Unknown NFC tag: ${tagId}`);
-    });
-
     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
-      console.log("ADMIN LISTENER FIRED", Date.now());
-
       if (checkoutActiveRef.current) {
         console.log("Ignoring admin tag during payment");
         return;
       }
-
+      if (!nfcListeningEnabledRef.current) {
+        console.log("Ignoring admin tag while NFC is paused (modal open / cooldown)");
+        return;
+      }
       navigate("/admin");
+    });
+
+    unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {
+      if (nfcListeningEnabledRef.current) {
+        showNfcNotification(`Unknown NFC tag: ${tagId}`);
+      }
     });
   };
 
@@ -328,6 +334,7 @@ const App = () => {
 
     setScreenSaverActive(false);
     cancelledRef.current = false;
+    setCheckoutActiveSynced(true);
     setCheckoutActive(true);
     setPaymentMethod("card");
     setPayStatus("paying");
@@ -359,8 +366,8 @@ const App = () => {
   };
 
   const resetCheckoutState = () => {
-    if (nfcListeningEnabled) nfcListenStateDisabled(false);
-    setCheckoutActive(false);
+    if (!nfcListeningEnabledRef.current) nfcListenStateDisabled(false);
+    setCheckoutActiveSynced(false);  // ← was setCheckoutActive(false)
     setPayStatus("idle");
     setPayMessage("");
   };
