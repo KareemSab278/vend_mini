@@ -122,9 +122,8 @@ fn parse_door_status(raw: &str) -> DoorStatus {
 
 #[tauri::command]
 pub async fn get_door_status() -> Result<DoorStatus, String> {
-    let all_doors_found = SRL_CMS::status();
-    let raw = all_doors_found.first().ok_or("No doors found")?;
-
+    let door = SRL_CMS::status();
+    let raw = door.first().ok_or("No doors found")?;
     Ok(parse_door_status(raw))
 }
 
@@ -150,52 +149,43 @@ pub async fn get_all_doors_status() -> Result<Vec<DoorStatus>, String> {
 
 #[tauri::command]
 pub async fn monitor_door_status() {
-    const DOOR_OPEN_DURATION_THRESHOLD: u8 = 30;
+    const DOOR_OPEN_DURATION_THRESHOLD: u8 = 28;
     use std::time::{Duration, Instant};
     let mut door_open_timestamp: Option<Instant> = None;
-    let mut is_red = false; // tracks last LED state so we only send a command on change
+
+    let mut door_warning = false;
 
     loop {
         if let Ok(status) = get_door_status().await {
-            if status.door_closed {
-                door_open_timestamp = None;
-                if is_red {
-                    #[cfg(target_os = "linux")]
-                    println!("Door closed, turning LED white");
-                    if let Err(e) = led::set_color(led::Color::White).await {
-                        eprintln!("Failed to set LED white: {}", e);
-                    }
-                    is_red = false;
-                }
-            } else {
+            if !status.door_closed {
                 if door_open_timestamp.is_none() {
                     door_open_timestamp = Some(Instant::now());
                 }
 
                 if let Some(open_time) = door_open_timestamp {
-                    let duration = open_time.elapsed().as_secs();
-                    let should_be_red = duration > DOOR_OPEN_DURATION_THRESHOLD as u64;
-                    if should_be_red != is_red {
-                        #[cfg(target_os = "linux")]
-                        {
-                            println!(
-                                "Door open duration: {}s, turning LED {}",
-                                duration,
-                                if should_be_red { "red" } else { "white" }
-                            );
-                            if let Err(e) = led::set_color(if should_be_red {
-                                led::Color::Red
-                            } else {
-                                led::Color::White
-                            }).await {
-                                eprintln!("Failed to set LED color: {}", e);
-                            }
+                    if open_time.elapsed().as_secs() >= DOOR_OPEN_DURATION_THRESHOLD as u64 && !door_warning {
+                        door_warning = true;
+
+                        println!("Door has been open too long");
+
+                        if let Err(e) = led::set_color(led::Color::Red).await {
+                            eprintln!("Failed to set LED red: {}", e);
                         }
-                        is_red = should_be_red;
+                    }
+                }
+            } else {
+                door_open_timestamp = None;
+
+                if door_warning {
+                    door_warning = false;
+
+                    if let Err(e) = led::set_color(led::Color::White).await {
+                        eprintln!("Failed to set LED white: {}", e);
                     }
                 }
             }
         }
+
         tokio::time::sleep(Duration::from_secs(3)).await;
     }
 }

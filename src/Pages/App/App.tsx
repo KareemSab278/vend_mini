@@ -284,7 +284,7 @@ const App = () => {
           if (success) {
             await openDoorAndWaitForClose();
           } else {
-            await LEDs.setWithTimeout("red", 2);
+            await LEDs.set("red");
             setPayStatus("error");
             setPayMessage("Payment failed. Please try again.");
           }
