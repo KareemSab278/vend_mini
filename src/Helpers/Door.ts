@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { LEDs } from "./LED";
 const dev = import.meta.env.DEV;
 
 export interface DoorStatus {
@@ -68,8 +67,7 @@ export const Door: DoorFunctions = {
     // right after unlocking, the sensor can briefly report "closed" before the user actually opens it,
     // so we require an open sighting first and only then wait for it to close again.
     // We also debounce: a single flaky "open" or "closed" reading should not count.
-    waitForOpenedThenClosed: async (timeoutMs = 180_000, pollIntervalMs = 1000): Promise<boolean> => {
-        // 180_000 ms = 3 minutes timeout. long but necessary
+    waitForOpenedThenClosed: async (timeoutMs = 30000, pollIntervalMs = 1000): Promise<boolean> => {
         const startTime = Date.now();
         let wasOpened = false;
         let openStreak = 0;

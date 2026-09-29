@@ -21,11 +21,10 @@ import { Admin } from "../../Helpers/Admins";
 import type { ProductType } from "../../Helpers/Products";
 import { Products } from "../../Helpers/Products";
 
-const NFC_ENABLE_DELAY_MS = 30_000;
-
 export { App };
 
 type PayStatus = "paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle" | "nfc";
+type PaymentType = "card" | "nfc";
 
 const SCREENSAVER_TIMEOUT_MINUTES: number = 1;
 const FETCH_PRODUCTS_INTERVAL: number = 6000;
@@ -36,14 +35,14 @@ const App = () => {
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [screenSaverActive, setScreenSaverActive] = useState<boolean>(false);
   const [checkoutActive, setCheckoutActive] = useState<boolean>(false);
-  const [paymentMethodModalOpen, setPaymentMethodModalOpen] = useState<boolean>(false);
 
   const [selectedProducts, setSelectedProducts] = useState<ProductType[]>([]);
   const [products, setProducts] = useState<ProductType[]>([]);
 
+  const [paymentMethodModalOpen, setPaymentMethodModalOpen] = useState<boolean>(false);
   const [payStatus, setPayStatus] = useState<PayStatus>("idle");
   const [payMessage, setPayMessage] = useState<string>("");
-  const [nfcNotification, setNfcNotification] = useState<string | null>(null);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "nfc" | null>(null);
 
   const unlistenNfcAdminRef = useRef<(() => void) | null>(null);
   const unlistenNfcUnknownRef = useRef<(() => void) | null>(null);
@@ -52,54 +51,27 @@ const App = () => {
   const inactivityTimerRef = useRef<number | null>(null);
   const cancelledRef = useRef<boolean>(false);
 
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "nfc" | null>(null);
-
-  const [nfcListeningEnabled, setNfcListeningEnabled] = useState<boolean>(true);
-
-  const checkoutActiveRef = useRef(false);
-  const nfcListeningEnabledRef = useRef(true);
-
-  const setCheckoutActiveSynced = (value: boolean) => {
-    checkoutActiveRef.current = value;  // sync FIRST, before any await can lose the race
-    setCheckoutActive(value);
-  };
-
-  const nfcListenStateDisabled = (disabled: boolean) => {
-    if (disabled) {
-      nfcListeningEnabledRef.current = false;
-      setNfcListeningEnabled(false);
-      return;
-    }
-    setTimeout(() => {
-      nfcListeningEnabledRef.current = true;
-      setNfcListeningEnabled(true);
-    }, NFC_ENABLE_DELAY_MS);
-  };
-
-
+  const [nfcNotification, setNfcNotification] = useState<string | null>(null);
+  const [nfcListeningEnabled, setNfcListeningEnabled] = useState<boolean>(false);
   useEffect(() => {
-    if (modalOpen || checkoutActive || paymentMethodModalOpen || payStatus !== "idle") {
-      nfcListenStateDisabled(true);
-    } else if (!modalOpen || !checkoutActive) {
-      nfcListenStateDisabled(false);
-    }
-  }, [modalOpen, checkoutActive, paymentMethodModalOpen, payStatus]);
+    setNfcListeningEnabled(
+      paymentMethodModalOpen === false
+      && paymentMethod !== null
+      && payStatus === 'idle'
+      && modalOpen === false
+      && checkoutActive === false
+    );
+  }, [paymentMethod, payStatus, paymentMethodModalOpen, modalOpen, checkoutActive]);
 
   const adminPresentCheck = async (): Promise<void> => {
-    const isPi = await isPiOs();
     const present = await Admin.areAdminsPresent();
-
-    if (!present && isPi) {
-      console.log("No admins present on pi, opening setup page");
+    if (!present) {
       navigate("/setup");
-    } else {
-      console.log("Admins are present or not running on pi");
     }
   };
 
-  const initilaizeLedAfter2Sec = async () => { setTimeout(async () => { await LEDs.set('white') }, 2000); }
-
-  useEffect(() => { initilaizeLedAfter2Sec(); }, []);
+  const initilaizeLed = async () => { setTimeout(async () => { await LEDs.set('white') }, 2000); }
+  useEffect(() => { initilaizeLed(); }, []);
 
   useEffect(() => {
     if (payStatus === "paying") {
@@ -111,35 +83,7 @@ const App = () => {
     if (payStatus === "waiting_door") {
       setPayMessage("Please take your items and close the door.");
     }
-  }, [payStatus]);
-
-  const handleNFCCheckout = async () => {
-    if (selectedProducts.length === 0 || checkoutActive) return;
-
-    nfcListenStateDisabled(true);
-
-    cancelledRef.current = false;
-    setCheckoutActiveSynced(true);
-    setCheckoutActive(true);
-    setScreenSaverActive(false);
-    setPaymentMethod("nfc");
-    setPayStatus("paying");
-
-    try {
-      const newBalance: number = await NFC.payment(
-        totalPrice(selectedProducts),
-        () => { },
-        () => { },
-      );
-      if (cancelledRef.current) return;
-      setSelectedProducts([]);
-      await openDoorAndWaitForClose(newBalance.toFixed(2));
-    } catch (error) {
-      if (cancelledRef.current) return;
-      setPayStatus("error");
-      setPayMessage(`Payment failed: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  };
+  }, [payStatus, paymentMethod, modalOpen, checkoutActive]);
 
 
   const clearInactivityTimer = () => {
@@ -184,21 +128,11 @@ const App = () => {
 
   const listenToNfc = async () => {
     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
-      if (checkoutActiveRef.current) {
-        console.log("Ignoring admin tag during payment");
-        return;
-      }
-      if (!nfcListeningEnabledRef.current) {
-        console.log("Ignoring admin tag while NFC is paused (modal open / cooldown)");
-        return;
-      }
-      navigate("/admin");
+      nfcListeningEnabled && navigate("/admin");
     });
 
     unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {
-      if (nfcListeningEnabledRef.current) {
-        showNfcNotification(`Unknown NFC tag: ${tagId}`);
-      }
+      nfcListeningEnabled && showNfcNotification(`Unknown NFC tag: ${tagId}`);
     });
   };
 
@@ -227,9 +161,6 @@ const App = () => {
     const handleUserActivity = () => {
       resetInactivityTimer();
     };
-
-    window.addEventListener("pointerdown", handleUserActivity);
-    window.addEventListener("keydown", handleUserActivity);
 
     adminPresentCheck();
 
@@ -285,6 +216,9 @@ const App = () => {
     if (cancelledRef.current) return;
     setPayStatus("dispensing");
 
+    // disable nfc reader while door is open
+    setNfcListeningEnabled(false);
+
     try {
       if (paymentMethod === "card") {
         await Payment.end(true);
@@ -310,6 +244,7 @@ const App = () => {
         newBalance ? `Payment successful. New balance: ${newBalance}`
           : "Payment successful.\nThank you for your purchase."
       );
+      setSelectedProducts([]);
 
       setTimeout(() => {
         if (!cancelledRef.current) {
@@ -329,31 +264,51 @@ const App = () => {
     }
   };
 
-  const handleCardCheckout = async () => {
-    if (selectedProducts.length === 0) return;
 
-    setScreenSaverActive(false);
-    cancelledRef.current = false;
-    setCheckoutActiveSynced(true);
-    setCheckoutActive(true);
-    setPaymentMethod("card");
-    setPayStatus("paying");
-
+  const handleCheckout = async (type: PaymentType) => {
+    if (selectedProducts.length === 0 || (type === "nfc" && checkoutActive)) return;
     const amount = totalPrice(selectedProducts);
 
-    await Payment.start(amount, async (success: boolean) => {
+    setScreenSaverActive(false);
+    setPaymentMethod(type);
+    cancelledRef.current = false;
+    setCheckoutActive(true);
+    setPayStatus("paying");
+
+    if (cancelledRef.current) return;
+
+    try {
+      if (type === "card") {
+
+        await Payment.start(amount, async (success: boolean) => {
+          if (success) {
+            await openDoorAndWaitForClose();
+          } else {
+            await LEDs.setWithTimeout("red", 2);
+            setPayStatus("error");
+            setPayMessage("Payment failed. Please try again.");
+          }
+        });
+
+      } else if (type === "nfc") {
+
+        const newBalance = await NFC.payment(
+          amount, () => { }, () => { },
+        );
+        await openDoorAndWaitForClose(newBalance.toFixed(2));
+
+      }
+
+    } catch (error) {
       if (cancelledRef.current) return;
 
-      if (success) {
-        setSelectedProducts([]);
-        await openDoorAndWaitForClose();
-      } else {
-        await LEDs.setWithTimeout("red", 2);
-        setPayStatus("error");
-        setPayMessage("Payment failed. Please try again.");
-      }
-    });
+      setPayStatus("error");
+      setPayMessage(
+        `Payment failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   };
+
 
   const handleCheckoutCancel = async () => {
     setPayMessage("Cancelling payment...");
@@ -366,8 +321,7 @@ const App = () => {
   };
 
   const resetCheckoutState = () => {
-    if (!nfcListeningEnabledRef.current) nfcListenStateDisabled(false);
-    setCheckoutActiveSynced(false);  // ← was setCheckoutActive(false)
+    setCheckoutActive(false);
     setPayStatus("idle");
     setPayMessage("");
   };
@@ -461,12 +415,12 @@ const App = () => {
         opened={paymentMethodModalOpen}
         onClose={() => setPaymentMethodModalOpen(false)}
         onSelectCard={() => {
-          handleCardCheckout();
+          handleCheckout("card");
           setPaymentMethod("card");
         }}
         onSelectNFC={() => {
+          handleCheckout("nfc");
           setPaymentMethod("nfc");
-          handleNFCCheckout();
         }}
       />
 

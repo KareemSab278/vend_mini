@@ -82,6 +82,8 @@ pub fn run() {
                 .plugin(tauri_plugin_updater::Builder::new().build());
 
             nfc::start_nfc_listener(app.handle().clone());
+            #[cfg(target_os = "linux")]
+            led::find_led_port().await.expect("Failed to find LED port");
 
             tauri::async_runtime::spawn(async move {
                 door::monitor_door_status().await;

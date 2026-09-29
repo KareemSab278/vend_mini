@@ -32,35 +32,52 @@ impl Color {
     }
 }
 
-#[tauri::command]
-pub async fn set_color(color: Color) {
-    let command = color.as_str().to_string();
+// need to make them share the same led port once found
+use serial_comms::DeviceConnection;
+use std::sync::Arc;
+use std::sync::OnceLock;
+// should have a global mutex available to share the LED connection across tasks
+static LED_CONNECTION: OnceLock<Arc<DeviceConnection>> = OnceLock::new();
 
-    if let Ok(led) = serial_comms::led_connection() {
-        let _ = tokio::task::spawn_blocking(move || {
-            let _ = led.send(&command);
-        });
-    }
+#[tauri::command]
+pub async fn find_led_port() -> Result<(), String> {
+    let led =
+        serial_comms::led_connection()
+            .map_err(|_| "Failed to get LED connection".to_string())?;
+
+    LED_CONNECTION
+        .set(led)
+        .map_err(|_| "LED already initialized".to_string())?;
+
+    Ok(())
+}
+
+#[tauri::command]
+pub async fn set_color(color: Color) -> Result<(), String> {
+    let command = color.as_str();
+
+    println!("Sending LED command: {}", command);
+
+    let led = LED_CONNECTION
+        .get()
+        .ok_or_else(|| "LED connection not found".to_string())?;
+
+    led.send(command)
+        .map_err(|e| format!("LED send failed: {:?}", e))?;
+
+    Ok(())
 }
 
 #[tauri::command]
 pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Result<(), String> {
-    let led = serial_comms::led_connection()?;
-    let led2 = led.clone();
+    set_color(color).await?;
 
-    let command = color.as_str().to_string();
-
-    let _ = tokio::task::spawn_blocking(move || {
-        let _ = led.send(&command);
-    })
+    tokio::time::sleep(std::time::Duration::from_secs(
+        timeout_secs.unwrap_or(6) as u64
+    ))
     .await;
 
-    let t_out = timeout_secs.unwrap_or(6);
-    tokio::time::sleep(std::time::Duration::from_secs(t_out as u64)).await;
-
-    tokio::task::spawn_blocking(move || {
-        let _ = led2.send("white");
-    });
+    set_color(Color::White).await?;
 
     Ok(())
 }
