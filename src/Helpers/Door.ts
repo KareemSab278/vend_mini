@@ -1,5 +1,4 @@
 import { invoke } from "@tauri-apps/api/core";
-import { LEDs } from "./LED";
 const dev = import.meta.env.DEV;
 
 export interface DoorStatus {

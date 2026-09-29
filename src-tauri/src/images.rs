@@ -162,7 +162,6 @@ pub async fn upload_image(mut multipart: Multipart) -> impl IntoResponse {
             )
                 .into_response();
         }
-        println!("Image saved successfully at {:?}", output_path);
     }
 
     (StatusCode::CREATED, "ok").into_response()

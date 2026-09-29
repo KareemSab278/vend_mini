@@ -51,6 +51,7 @@ const App = () => {
   const inactivityTimerRef = useRef<number | null>(null);
   const cancelledRef = useRef<boolean>(false);
 
+  const nfcInitializedRef = useRef(false);
   const [nfcNotification, setNfcNotification] = useState<string | null>(null);
   const [nfcListeningEnabled, setNfcListeningEnabled] = useState<boolean>(true);
   useEffect(() => {
@@ -127,6 +128,8 @@ const App = () => {
 
 
   const listenToNfc = async () => {
+    if (nfcInitializedRef.current) return;
+    nfcInitializedRef.current = true;
     unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
       nfcListeningEnabled && navigate("/admin");
     });
@@ -228,7 +231,7 @@ const App = () => {
       setPayMessage(`Failed to settle payment: ${e}`);
       return;
     }
-    
+
     await Door.paidUnlock();
 
     await insertOrderToDB();

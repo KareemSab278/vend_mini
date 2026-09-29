@@ -165,8 +165,6 @@ pub fn start_nfc_listener(app_handle: tauri::AppHandle) {
                         .map(|hex| format!("{:02x}", hex)) // we only work with lowercase hex. not the id array. the db auto holds it as lowercase anyway.
                         .collect::<String>();
 
-                    println!("SCANNED UID: {}", &uid_hex);
-
                     match users_database::get_user_by_tag_id(&uid_hex) {
                         Ok(Some(user)) if user.is_admin => {
                             println!("nfc-admin-found");

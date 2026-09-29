@@ -166,8 +166,6 @@ pub async fn monitor_door_status() {
                     if open_time.elapsed().as_secs() >= DOOR_OPEN_DURATION_THRESHOLD as u64 && !door_warning {
                         door_warning = true;
 
-                        println!("Door has been open too long");
-
                         if let Err(e) = led::set_color(led::Color::Red).await {
                             eprintln!("Failed to set LED red: {}", e);
                         }

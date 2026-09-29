@@ -56,8 +56,6 @@ pub async fn find_led_port() -> Result<(), String> {
 pub async fn set_color(color: Color) -> Result<(), String> {
     let command = color.as_str();
 
-    println!("Sending LED command: {}", command);
-
     let led = LED_CONNECTION
         .get()
         .ok_or_else(|| "LED connection not found".to_string())?;
