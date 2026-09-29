@@ -38,8 +38,8 @@ const CheckoutModal = ({
 
   const canDismiss =
     payStatus === "error" ||
-    payStatus === "done" ||
-    (payStatus === "waiting_door");
+    payStatus === "done";
+    // (payStatus === "waiting_door");
 
   return (
     <Modal
