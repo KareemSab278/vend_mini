@@ -1,0 +1,1 @@
+best working version for pay and door led: ba3bec4bbd27c0b5f8ca2c73dcc2900e6230d9c4
