@@ -16,7 +16,7 @@ interface DoorFunctions {
     lock: () => Promise<void>,
     paidUnlock: () => Promise<void>,
     paidUnlockAll: () => Promise<void>,
-    status: () => Promise<DoorStatus[]>,
+    status: () => Promise<DoorStatus | null>,
     isClosed: () => Promise<boolean>,
     waitForClosed: (timeoutMs?: number, pollIntervalMs?: number) => Promise<boolean>,
     waitForOpenedThenClosed: (timeoutMs?: number, pollIntervalMs?: number) => Promise<boolean>,
@@ -39,19 +39,18 @@ export const Door: DoorFunctions = {
         await invoke("paid_unlock_all_doors");
     },
 
-    status: async (): Promise<DoorStatus[]> => {
+    status: async (): Promise<DoorStatus | null> => {
         try {
-            const result = await invoke<DoorStatus[]>("get_all_doors_status");
-            return Array.isArray(result) ? result : [];
+            return await invoke<DoorStatus>("get_door_status");
         } catch (error) {
             dev && console.error("Failed to get door status:", error);
-            return [];
+            return null;
         }
     },
 
     isClosed: async (): Promise<boolean> => {
-        const statuses = await Door.status();
-        return statuses.length > 0 && statuses.every((s) => s.door_closed);
+        const status = await Door.status();
+        return status !== null && status.door_closed;
     },
 
     waitForClosed: async (timeoutMs = 30000, pollIntervalMs = 1000): Promise<boolean> => {
@@ -65,54 +64,33 @@ export const Door: DoorFunctions = {
         return false; // door did not close within the timeout
     },
 
-    // right after unlocking, the sensor can briefly report "closed" before the user actually opens it,
-    // so we require an open sighting first and only then wait for it to close again.
-    // We also debounce: a single flaky "open" or "closed" reading should not count.
-    // This will listen forever until the door is closed
-    waitForOpenedThenClosed: async (timeoutMs = Infinity, pollIntervalMs = 1000): Promise<boolean> => {
-        const startTime = Date.now();
-        let wasOpened = false;
-        let openStreak = 0;
+    waitForOpenedThenClosed: async (timeoutMs = Infinity, pollIntervalMs = 1500): Promise<boolean> => {
         let closedStreak = 0;
         const requiredStreak = 2;
 
-        await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+        // allow time to ensure the door has been opened before we start checking for it to close again.
+        await new Promise((resolve) => setTimeout(resolve, 1000));
+
+        const startTime = Date.now();
 
         while (Date.now() - startTime < timeoutMs) {
             const closed = await Door.isClosed();
-            dev && console.log(`[door] waiting: closed=${closed}, wasOpened=${wasOpened}, openStreak=${openStreak}, closedStreak=${closedStreak}`);
-            if (closed) {
-                console.log("[door] door is closed, setting LED to white");
-                // await LEDs.set("white");
-            }
 
-            if (!wasOpened) {
-                if (closed) {
-                    openStreak = 0;
-                } else {
-                    openStreak += 1;
-                    if (openStreak >= requiredStreak) {
-                        wasOpened = true;
-                        openStreak = 0;
-                        dev && console.log("[door] door detected as opened");
-                    }
+            if (!closed) closedStreak = 0;
+
+            if (closed) {
+                closedStreak++;
+
+                if (closedStreak >= requiredStreak) {
+                    return true;
                 }
             } else {
-                if (closed) {
-                    closedStreak += 1;
-                    if (closedStreak >= requiredStreak) {
-                        dev && console.log("[door] door detected as closed after being opened");
-                        return true;
-                    }
-                } else {
-                    closedStreak = 0;
-                }
+                closedStreak = 0;
             }
 
             await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
-
         }
-        dev && console.warn("[door] timed out waiting for opened-then-closed");
-        return false; // door was never opened+closed within the timeout
+
+        return false;
     },
 };

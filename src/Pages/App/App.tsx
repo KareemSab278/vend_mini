@@ -228,7 +228,7 @@ const App = () => {
       setPayMessage(`Failed to settle payment: ${e}`);
       return;
     }
-
+    
     await Door.paidUnlock();
 
     await insertOrderToDB();
@@ -312,10 +312,10 @@ const App = () => {
   const handleCheckoutCancel = async () => {
     setPayMessage("Cancelling payment...");
     cancelledRef.current = true;
+    resetCheckoutState(); // dont wait for pay cancel forever - just close the modal now
     if (paymentMethod === "card") {
       await Payment.cancel();
     }
-    resetCheckoutState();
     setPaymentMethod(null);
   };
 
