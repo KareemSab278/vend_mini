@@ -52,7 +52,7 @@ const App = () => {
   const cancelledRef = useRef<boolean>(false);
 
   const [nfcNotification, setNfcNotification] = useState<string | null>(null);
-  const [nfcListeningEnabled, setNfcListeningEnabled] = useState<boolean>(false);
+  const [nfcListeningEnabled, setNfcListeningEnabled] = useState<boolean>(true);
   useEffect(() => {
     setNfcListeningEnabled(
       paymentMethodModalOpen === false
