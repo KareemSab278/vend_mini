@@ -1,6 +1,6 @@
 import { Modal } from "@mantine/core";
 import { PrimaryButton } from "../../../Components/Button";
-import { LEDs } from "../../../Helpers/LED";
+import { LEDColor, LEDs } from "../../../Helpers/LED";
 import { IconCircleFilled } from '@tabler/icons-react';
 
 export { LedModal };
@@ -10,45 +10,28 @@ interface LedModalProps {
   onClose: () => void;
 }
 interface PrimaryButtonProps {
-  title: string|React.ReactNode;
+  title: string | React.ReactNode;
   onClick: () => void;
   color?: string;
   textColor?: string;
   onDoubleClick?: () => void;
   size?: "sm" | "md" | "lg" | "xl";
 }
+const btnStyle = { display: "flex", alignItems: "center" };
+
+const genBtn = (color: LEDColor, hex: string) => ({
+  title: <div style={btnStyle}><IconCircleFilled size={30} color={hex} /></div>,
+  onClick: async () => await LEDs.set(color),
+  color: color,
+});
 
 const btns: { [key: string]: PrimaryButtonProps } = {
-  white: {
-    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FFFFFF" />White</div>,
-    onClick: async () => await LEDs.set("white"),
-    color: "white",
-  },
-  green: {
-    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#00FF00" />Green</div>,
-    onClick: async () => await LEDs.set("green"),
-    color: "green",
-  },
-  red: {
-    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FF0000" />Red</div>,
-    onClick: async () => await LEDs.set("red"),
-    color: "red",
-  },
-  blue: {
-    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#0000FF" />Blue</div>,
-    onClick: async () => await LEDs.set("blue"),
-    color: "blue",
-  },
-  yellow: {
-    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#FFFF00" />Yellow</div>,
-    onClick: async () => await LEDs.set("yellow"),
-    color: "yellow",
-  },
-  none: {
-    title: <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}><IconCircleFilled size={30} color="#808080" />None</div>,
-    onClick: async () => await LEDs.set("none"),
-    color: "none",
-  }
+  white: genBtn("white", "#FFFFFF"),
+  green: genBtn("green", "#00FF00"),
+  red: genBtn("red", "#FF0000"),
+  blue: genBtn("blue", "#0000FF"),
+  yellow: genBtn("yellow", "#FFFF00"),
+  none: genBtn("none", "#000000")
 }
 
 const LedModal = ({ opened, onClose }: LedModalProps) => {
@@ -61,7 +44,6 @@ const LedModal = ({ opened, onClose }: LedModalProps) => {
             title={btn.title}
             onClick={btn.onClick}
             textColor={btn.textColor}
-            size={btn.size}
           />
         ))}
       </div>
@@ -75,5 +57,6 @@ const styles: { [key: string]: React.CSSProperties } = {
     flexWrap: "wrap",
     justifyContent: "center",
     gap: "1rem",
+    padding: "1rem",
   },
 };

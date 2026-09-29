@@ -3,7 +3,7 @@ const dev = import.meta.env.DEV;
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { useLocation } from "wouter";
-import { totalPrice, isPiOs } from "./Helpers";
+import { totalPrice } from "./Helpers";
 import { styles } from "./styles";
 import { SelectedProductsModal } from "./Components/SelectedProductsModal";
 import { CheckoutModal } from "./Components/CheckoutModal";
@@ -28,7 +28,6 @@ type PaymentType = "card" | "nfc";
 
 const SCREENSAVER_TIMEOUT_MINUTES: number = 1;
 const FETCH_PRODUCTS_INTERVAL: number = 6000;
-const NFC_ONLY_MODE: boolean = false;
 
 const App = () => {
   const [, navigate] = useLocation();
@@ -67,7 +66,7 @@ const App = () => {
   const adminPresentCheck = async (): Promise<void> => {
     const present = await Admin.areAdminsPresent();
     if (!present) {
-      dev && navigate("/setup");
+      !dev && navigate("/setup");
     }
   };
 
@@ -315,7 +314,7 @@ const App = () => {
   const handleCheckoutCancel = async () => {
     setPayMessage("Cancelling payment...");
     cancelledRef.current = true;
-    resetCheckoutState(); // dont wait for pay cancel forever - just close the modal now
+    resetCheckoutState();
     if (paymentMethod === "card") {
       await Payment.cancel();
     }
@@ -367,10 +366,10 @@ const App = () => {
     <main style={styles.body}>
       <KeyPressListener />
 
-      {!NFC_ONLY_MODE && <div
+      {dev && <div // only allow corner trigger for admin in dev mode
         style={styles.adminTrigger}
         onClick={() => {
-          !modalOpen && !checkoutActive && !paymentMethodModalOpen && nfcListeningEnabled && (navigate("/admin"), setScreenSaverActive(false));
+          !modalOpen && !checkoutActive && !paymentMethodModalOpen && (navigate("/admin"), setScreenSaverActive(false));
         }}
       />}
 

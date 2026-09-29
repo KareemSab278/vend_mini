@@ -3,7 +3,6 @@ import { useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { PrimaryButton } from "../../../Components/Button";
-import { styles } from "../styles";
 import { Door } from "../../../Helpers/Door";
 import { Payment } from "../../../Helpers/Payment";
 import { LEDs } from "../../../Helpers/LED";

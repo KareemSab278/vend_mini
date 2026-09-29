@@ -16,7 +16,7 @@ const Products = {
             const products = await invoke("query_products") as ProductType[];
             return products;
         } catch (e) {
-            console.error("Failed to fetch products:", e);
+            dev && console.error("Failed to fetch products:", e);
             return [];
         }
     },
@@ -25,7 +25,7 @@ const Products = {
             const categories = await invoke("get_categories") as string[];
             return categories;
         } catch (e) {
-            console.error("Failed to fetch categories:", e);
+            dev && console.error("Failed to fetch categories:", e);
             return [];
         }
     }

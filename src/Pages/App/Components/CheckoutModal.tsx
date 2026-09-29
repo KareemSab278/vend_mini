@@ -23,23 +23,8 @@ const CheckoutModal = ({
   onCancel,
   paymentType,
 }: CheckoutModalProps) => {
-  // const [showDismissDoorButton, setShowDismissDoorButton] = useState(false);
 
-  // useEffect(() => {
-  //   if (payStatus !== "waiting_door") {
-  //     setShowDismissDoorButton(false);
-  //     return;
-  //   }
-
-  //   // waiting_door: start the 10s timer
-  //   const id = setTimeout(() => setShowDismissDoorButton(true), 10000);
-  //   return () => clearTimeout(id);
-  // }, [payStatus]);
-
-  const canDismiss =
-    payStatus === "error" ||
-    payStatus === "done";
-    // (payStatus === "waiting_door");
+  const canDismiss = payStatus === "error" || payStatus === "done" || payStatus === "idle";
 
   return (
     <Modal
