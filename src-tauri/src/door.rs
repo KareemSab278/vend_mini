@@ -125,7 +125,6 @@ pub async fn get_door_status() -> Result<DoorStatus, String> {
     let all_doors_found = SRL_CMS::status();
     let raw = all_doors_found.first().ok_or("No doors found")?;
 
-    println!("Raw door status: {}", raw);
     Ok(parse_door_status(raw))
 }
 
