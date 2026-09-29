@@ -34,10 +34,6 @@ async fn update_user_by_tag_id(
     Json(payload): Json<NewUser>,
 ) -> impl IntoResponse {
     if let Some(tag_id) = params.tag_id {
-        println!(
-            "PUT /users?tag_id={} payload: full_name='{}' is_admin={} balance={}",
-            tag_id, payload.full_name, payload.is_admin, payload.balance
-        );
         match users_database::update_user_by_tag_id(
             &tag_id,
             &payload.full_name,
@@ -51,7 +47,6 @@ async fn update_user_by_tag_id(
             }
         }
     } else {
-        println!("PUT /users with no tag_id");
         (
             StatusCode::BAD_REQUEST,
             "Missing tag_id query parameter".to_string(),
@@ -68,7 +63,6 @@ struct TagQuery {
 async fn get_user_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoResponse {
     // this fn will probably bite me later because of into_response.
     if let Some(tag_id) = params.tag_id {
-        println!("GET /users?tag_id={}", tag_id);
         match users_database::get_user_by_tag_id(&tag_id) {
             Ok(Some(user)) => (StatusCode::OK, Json(user)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND, "User not found".to_string()).into_response(),
@@ -78,7 +72,6 @@ async fn get_user_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoResponse
             }
         }
     } else {
-        println!("GET /users with no tag_id");
         (
             StatusCode::BAD_REQUEST,
             "Missing tag_id query parameter".to_string(),
@@ -90,7 +83,6 @@ async fn get_user_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoResponse
 // this really is more of a lib.rs tauri fn but added here just in case
 async fn get_balance_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoResponse {
     if let Some(tag_id) = params.tag_id {
-        println!("GET /balance?tag_id={}", tag_id);
         match users_database::fetch_balance_by_tag_id(&tag_id) {
             Ok(Some(balance)) => (StatusCode::OK, Json(balance)).into_response(),
             Ok(None) => (StatusCode::NOT_FOUND, Json(0.00)).into_response(),
@@ -100,7 +92,6 @@ async fn get_balance_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoRespo
             }
         }
     } else {
-        println!("GET /balance with no tag_id");
         (
             StatusCode::BAD_REQUEST,
             "Missing tag_id query parameter".to_string(),
@@ -114,10 +105,6 @@ async fn update_balance_by_tag_id(
     Json(payload): Json<f64>,
 ) -> impl IntoResponse {
     if let Some(tag_id) = params.tag_id {
-        println!(
-            "PUT /balance?tag_id={} payload: balance={}",
-            tag_id, payload
-        );
         match users_database::deduct_balance_by_tag_id(&tag_id, payload) {
             Ok(_) => (StatusCode::OK, "Balance updated".to_string()).into_response(),
             Err(e) => {
@@ -126,7 +113,6 @@ async fn update_balance_by_tag_id(
             }
         }
     } else {
-        println!("PUT /balance with no tag_id");
         (
             StatusCode::BAD_REQUEST,
             "Missing tag_id query parameter".to_string(),
@@ -137,7 +123,6 @@ async fn update_balance_by_tag_id(
 
 async fn delete_user_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoResponse {
     if let Some(tag_id) = params.tag_id {
-        println!("DELETE /users?tag_id={}", tag_id);
         match users_database::delete_user_by_tag_id(&tag_id) {
             Ok(_) => (StatusCode::OK, "User deleted".to_string()).into_response(),
             Err(e) => {
@@ -146,7 +131,6 @@ async fn delete_user_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoRespo
             }
         }
     } else {
-        println!("DELETE /users with no tag_id");
         (
             StatusCode::BAD_REQUEST,
             "Missing tag_id query parameter".to_string(),
@@ -156,7 +140,6 @@ async fn delete_user_by_tag_id(Query(params): Query<TagQuery>) -> impl IntoRespo
 }
 
 async fn search_users_by_name(Path(name): Path<String>) -> impl IntoResponse {
-    println!("GET /users/name/{}", name);
     match users_database::search_users_by_name(&name) {
         Ok(users) => (StatusCode::OK, Json(users)).into_response(),
         Err(e) => {
@@ -191,7 +174,6 @@ async fn get_categories() -> Json<Vec<String>> {
 }
 
 async fn create_category(Json(payload): Json<NewCategory>) -> impl IntoResponse {
-    println!("POST /categories payload: name='{}'", payload.category_name);
     match database::create_category(&payload.category_name) {
         Ok(_) => (StatusCode::CREATED, "ok".to_string()),
         Err(e) => {
@@ -202,13 +184,6 @@ async fn create_category(Json(payload): Json<NewCategory>) -> impl IntoResponse 
 }
 
 async fn create_product(Json(payload): Json<NewProduct>) -> impl IntoResponse {
-    println!(
-        "POST /products payload: name='{}' category='{}' price={} avail={}",
-        payload.product_name,
-        payload.product_category,
-        payload.product_price,
-        payload.product_availability
-    );
     match database::add_product(
         &payload.product_name,
         &payload.product_category,
@@ -224,7 +199,6 @@ async fn create_product(Json(payload): Json<NewProduct>) -> impl IntoResponse {
 }
 
 async fn remove_product(Path(id): Path<i32>) -> impl IntoResponse {
-    println!("DELETE /products/{}", id);
     match database::remove_product(id) {
         Ok(_) => (StatusCode::OK, "deleted".to_string()),
         Err(e) => {
@@ -257,14 +231,6 @@ async fn view_orders_detail(
 }
 
 async fn edit_product(Path(id): Path<i32>, Json(payload): Json<NewProduct>) -> impl IntoResponse {
-    println!(
-        "PUT /products/{} payload: name='{}' category='{}' price={} avail={}",
-        id,
-        payload.product_name,
-        payload.product_category,
-        payload.product_price,
-        payload.product_availability
-    );
     match database::update_product(
         id,
         &payload.product_name,
@@ -351,7 +317,6 @@ pub async fn start() {
             return;
         }
     };
-    println!("Server listener bound on {}", addr);
     if let Err(e) = axum::serve(listener, app).await {
         eprintln!("Static page server error: {}", e);
     }
