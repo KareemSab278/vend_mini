@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { LEDs } from "./LED";
 const dev = import.meta.env.DEV;
 
 export interface DoorStatus {
@@ -79,6 +80,10 @@ export const Door: DoorFunctions = {
         while (Date.now() - startTime < timeoutMs) {
             const closed = await Door.isClosed();
             dev && console.log(`[door] waiting: closed=${closed}, wasOpened=${wasOpened}, openStreak=${openStreak}, closedStreak=${closedStreak}`);
+            if (closed) {
+                console.log("[door] door is closed, setting LED to white");
+                // await LEDs.set("white");
+            }
 
             if (!wasOpened) {
                 if (closed) {
