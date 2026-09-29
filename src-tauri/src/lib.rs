@@ -10,6 +10,8 @@ mod server;
 mod update;
 mod users_database;
 
+// to test on mac for pi: cargo check --target aarch64-unknown-linux-gnu
+
 #[tauri::command]
 async fn kill_app() -> Result<(), String> {
     std::process::exit(0);
@@ -82,8 +84,15 @@ pub fn run() {
                 .plugin(tauri_plugin_updater::Builder::new().build());
 
             nfc::start_nfc_listener(app.handle().clone());
+
             #[cfg(target_os = "linux")]
-            led::find_led_port().await.expect("Failed to find LED port");
+            {
+                tauri::async_runtime::block_on(async {
+                    if let Err(e) = led::find_led_port().await {
+                        eprintln!("LED unavailable: {}", e);
+                    }
+                });
+            }
 
             tauri::async_runtime::spawn(async move {
                 door::monitor_door_status().await;

@@ -4,6 +4,7 @@
     If there is more than one door then youre on your own.
 */
 
+use crate::led;
 use crate::serial_comms as SRL_CMS;
 use serde::Serialize;
 use serde_json::Value;
@@ -152,19 +153,19 @@ pub async fn get_all_doors_status() -> Result<Vec<DoorStatus>, String> {
 pub async fn monitor_door_status() {
     const DOOR_OPEN_DURATION_THRESHOLD: u8 = 30;
     use std::time::{Duration, Instant};
-    use crate::led;
     let mut door_open_timestamp: Option<Instant> = None;
     let mut is_red = false; // tracks last LED state so we only send a command on change
 
     loop {
         if let Ok(status) = get_door_status().await {
-
             if status.door_closed {
                 door_open_timestamp = None;
                 if is_red {
                     #[cfg(target_os = "linux")]
                     println!("Door closed, turning LED white");
-                    led::set_color(led::Color::White).await;
+                    if let Err(e) = led::set_color(led::Color::White).await {
+                        eprintln!("Failed to set LED white: {}", e);
+                    }
                     is_red = false;
                 }
             } else {
@@ -183,11 +184,13 @@ pub async fn monitor_door_status() {
                                 duration,
                                 if should_be_red { "red" } else { "white" }
                             );
-                            let _ = led::set_color(if should_be_red {
+                            if let Err(e) = led::set_color(if should_be_red {
                                 led::Color::Red
                             } else {
                                 led::Color::White
-                            });
+                            }).await {
+                                eprintln!("Failed to set LED color: {}", e);
+                            }
                         }
                         is_red = should_be_red;
                     }
