@@ -67,7 +67,7 @@ const App = () => {
   const adminPresentCheck = async (): Promise<void> => {
     const present = await Admin.areAdminsPresent();
     if (!present) {
-      navigate("/setup");
+      dev && navigate("/setup");
     }
   };
 

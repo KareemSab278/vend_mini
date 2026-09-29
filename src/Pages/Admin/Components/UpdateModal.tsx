@@ -4,6 +4,7 @@ import { Modal, PasswordInput, Stack } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
 import { PrimaryButton } from "../../../Components/Button";
 import type { CSSProperties } from "react";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 
 const dev = import.meta.env.DEV;
 const NO_AUTH_AGENT_ERROR = "NO_AUTH_AGENT:";
@@ -56,6 +57,10 @@ const UpdateModal = ({ opened, onClose }: UpdateModalProps) => {
         setMessage(null);
         setNeedsPassword(false);
         try {
+            // make not full screen here so they user can input password.
+            const window = getCurrentWindow();
+            await window.setFullscreen(false);
+
             await invoke("install_update");
             handleUpdateSuccess();
         } catch (error) {
