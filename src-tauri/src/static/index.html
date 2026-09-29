@@ -1,11 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Admin — Products</title>
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     body {
       font-family: system-ui, sans-serif;
@@ -15,10 +22,24 @@
       padding: 2rem 1rem;
     }
 
-    h1 { font-size: 1.5rem; font-weight: 700; margin-bottom: 1.5rem; color: #fff; }
-    h2 { font-size: 1.1rem; font-weight: 600; margin-bottom: 1rem; color: #a1a1aa; }
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 1.5rem;
+      color: #fff;
+    }
 
-    .container { max-width: 860px; margin: 0 auto; }
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: #a1a1aa;
+    }
+
+    .container {
+      max-width: 860px;
+      margin: 0 auto;
+    }
 
     /* ── Table ── */
     .table-wrap {
@@ -29,9 +50,15 @@
       margin-bottom: 2rem;
     }
 
-    table { width: 100%; border-collapse: collapse; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
 
-    thead { background: #1f1f23; }
+    thead {
+      background: #1f1f23;
+    }
+
     thead th {
       padding: 0.75rem 1rem;
       text-align: left;
@@ -42,10 +69,20 @@
       color: #71717a;
     }
 
-    tbody tr { border-top: 1px solid #27272a; transition: background 0.15s; }
-    tbody tr:hover { background: #1f1f23; }
+    tbody tr {
+      border-top: 1px solid #27272a;
+      transition: background 0.15s;
+    }
 
-    td { padding: 0.75rem 1rem; font-size: 0.875rem; vertical-align: middle; }
+    tbody tr:hover {
+      background: #1f1f23;
+    }
+
+    td {
+      padding: 0.75rem 1rem;
+      font-size: 0.875rem;
+      vertical-align: middle;
+    }
 
     .pill {
       display: inline-block;
@@ -54,8 +91,16 @@
       font-size: 0.7rem;
       font-weight: 600;
     }
-    .pill-active   { background: #14532d; color: #4ade80; }
-    .pill-inactive { background: #450a0a; color: #f87171; }
+
+    .pill-active {
+      background: #14532d;
+      color: #4ade80;
+    }
+
+    .pill-inactive {
+      background: #450a0a;
+      color: #f87171;
+    }
 
     .btn-icon {
       background: none;
@@ -68,10 +113,23 @@
       transition: background 0.15s, color 0.15s;
       margin-left: 4px;
     }
-    .btn-icon:hover { background: #27272a; color: #fff; }
-    .btn-icon.danger:hover { background: #450a0a; border-color: #7f1d1d; color: #f87171; }
 
-    .empty-row td { text-align: center; color: #52525b; padding: 2rem; }
+    .btn-icon:hover {
+      background: #27272a;
+      color: #fff;
+    }
+
+    .btn-icon.danger:hover {
+      background: #450a0a;
+      border-color: #7f1d1d;
+      color: #f87171;
+    }
+
+    .empty-row td {
+      text-align: center;
+      color: #52525b;
+      padding: 2rem;
+    }
 
     /* ── Form ── */
     .form-card {
@@ -88,12 +146,24 @@
       margin-bottom: 0.75rem;
     }
 
-    .field { display: flex; flex-direction: column; gap: 0.3rem; }
-    .field.full { grid-column: 1 / -1; }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+    }
 
-    label { font-size: 0.75rem; color: #71717a; font-weight: 500; }
+    .field.full {
+      grid-column: 1 / -1;
+    }
 
-    input, select {
+    label {
+      font-size: 0.75rem;
+      color: #71717a;
+      font-weight: 500;
+    }
+
+    input,
+    select {
       background: #09090b;
       border: 1px solid #3f3f46;
       border-radius: 0.4rem;
@@ -103,10 +173,21 @@
       outline: none;
       transition: border-color 0.15s;
     }
-    input:focus, select:focus { border-color: #6366f1; }
-    input.error { border-color: #f87171; }
 
-    .error-msg { font-size: 0.7rem; color: #f87171; min-height: 1em; }
+    input:focus,
+    select:focus {
+      border-color: #6366f1;
+    }
+
+    input.error {
+      border-color: #f87171;
+    }
+
+    .error-msg {
+      font-size: 0.7rem;
+      color: #f87171;
+      min-height: 1em;
+    }
 
     .form-footer {
       display: flex;
@@ -134,17 +215,38 @@
       border: none;
       transition: opacity 0.15s;
     }
-    .btn:hover { opacity: 0.85; }
-    .btn-primary { background: #6366f1; color: #fff; }
-    .btn-secondary { background: #27272a; color: #e4e4e7; border: 1px solid #3f3f46; }
 
-    #status, #user-status {
+    .btn:hover {
+      opacity: 0.85;
+    }
+
+    .btn-primary {
+      background: #6366f1;
+      color: #fff;
+    }
+
+    .btn-secondary {
+      background: #27272a;
+      color: #e4e4e7;
+      border: 1px solid #3f3f46;
+    }
+
+    #status,
+    #user-status {
       font-size: 0.8rem;
       color: #a1a1aa;
       margin-left: auto;
     }
-    #status.ok, #user-status.ok  { color: #4ade80; }
-    #status.err, #user-status.err { color: #f87171; }
+
+    #status.ok,
+    #user-status.ok {
+      color: #4ade80;
+    }
+
+    #status.err,
+    #user-status.err {
+      color: #f87171;
+    }
 
     /* ── Orders ── */
     .section-title {
@@ -172,7 +274,10 @@
       color: #a1a1aa;
       white-space: nowrap;
     }
-    .orders-summary strong { color: #e4e4e7; }
+
+    .orders-summary strong {
+      color: #e4e4e7;
+    }
 
     /* ── Images ── */
     .image-grid {
@@ -180,6 +285,7 @@
       grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
       gap: 1rem;
     }
+
     .image-card {
       background: #18181b;
       border: 1px solid #27272a;
@@ -188,6 +294,7 @@
       display: flex;
       flex-direction: column;
     }
+
     .image-card img {
       width: 100%;
       height: 140px;
@@ -195,6 +302,7 @@
       display: block;
       background: #0f0f11;
     }
+
     .image-card .image-info {
       padding: 0.6rem 0.75rem;
       font-size: 0.78rem;
@@ -202,9 +310,11 @@
       word-break: break-all;
       flex: 1;
     }
+
     .image-card .image-actions {
       padding: 0 0.75rem 0.75rem;
     }
+
     .image-upload-zone {
       border-radius: 0.75rem;
       padding: 1rem;
@@ -214,11 +324,14 @@
       cursor: pointer;
       transition: border-color 0.15s, background 0.15s;
     }
+
     /* .image-upload-zone:hover, .image-upload-zone.dragover {
       border-color: #6366f1;
       background: #1f1f23;
     } */
-    .image-upload-zone input { display: none; }
+    .image-upload-zone input {
+      display: none;
+    }
 
     /* ── Tabs ── */
     .tabs {
@@ -229,6 +342,7 @@
       padding-bottom: 0.75rem;
       flex-wrap: wrap;
     }
+
     .tab-btn {
       background: #18181b;
       border: 1px solid #27272a;
@@ -240,35 +354,111 @@
       cursor: pointer;
       transition: background 0.15s, color 0.15s, border-color 0.15s;
     }
-    .tab-btn:hover { background: #27272a; color: #e4e4e7; }
-    .tab-btn.active { background: #6366f1; border-color: #6366f1; color: #fff; }
 
-    .tab-panel { display: none; }
-    .tab-panel.active { display: block; animation: fadeIn 0.2s ease; }
+    .tab-btn:hover {
+      background: #27272a;
+      color: #e4e4e7;
+    }
+
+    .tab-btn.active {
+      background: #6366f1;
+      border-color: #6366f1;
+      color: #fff;
+    }
+
+    .tab-panel {
+      display: none;
+    }
+
+    .tab-panel.active {
+      display: block;
+      animation: fadeIn 0.2s ease;
+    }
+
     @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(4px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     /* ── Mobile ── */
     @media (max-width: 640px) {
-      body { padding: 1rem 0.75rem; }
-      h1 { font-size: 1.25rem; margin-bottom: 1rem; }
-      h2 { font-size: 1rem; }
-      .container { padding: 0; }
-      .form-grid { grid-template-columns: 1fr; }
-      .form-card { padding: 1rem; }
-      .filter-bar { flex-direction: column; align-items: stretch; gap: 0.75rem; padding: 1rem; }
-      .filter-bar .field { width: 100%; }
-      .filter-bar button, .form-footer .btn { width: 100%; }
-      .form-footer { flex-direction: column; align-items: stretch; gap: 0.75rem; }
-      #status, #user-status { margin-left: 0; }
-      thead th, td { padding: 0.6rem 0.75rem; font-size: 0.8rem; }
-      .btn { width: 100%; }
-      .orders-summary { margin-left: 0; white-space: normal; }
+      body {
+        padding: 1rem 0.75rem;
+      }
+
+      h1 {
+        font-size: 1.25rem;
+        margin-bottom: 1rem;
+      }
+
+      h2 {
+        font-size: 1rem;
+      }
+
+      .container {
+        padding: 0;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .form-card {
+        padding: 1rem;
+      }
+
+      .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        padding: 1rem;
+      }
+
+      .filter-bar .field {
+        width: 100%;
+      }
+
+      .filter-bar button,
+      .form-footer .btn {
+        width: 100%;
+      }
+
+      .form-footer {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+      }
+
+      #status,
+      #user-status {
+        margin-left: 0;
+      }
+
+      thead th,
+      td {
+        padding: 0.6rem 0.75rem;
+        font-size: 0.8rem;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      .orders-summary {
+        margin-left: 0;
+        white-space: normal;
+      }
     }
   </style>
 </head>
+
 <body>
   <div class="container">
     <div class="tabs">
@@ -282,178 +472,186 @@
       <h1>Products Admin</h1>
 
       <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Name</th>
-            <th>Category</th>
-            <th>Price</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="product-rows">
-          <tr class="empty-row"><td colspan="6">Loading…</td></tr>
-        </tbody>
-      </table>
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Name</th>
+              <th>Category</th>
+              <th>Price</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="product-rows">
+            <tr class="empty-row">
+              <td colspan="6">Loading…</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="form-card">
+        <h2 id="form-title">Add Product</h2>
+        <input type="hidden" id="edit-id" value="" />
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="name">Name</label>
+            <input id="name" placeholder="e.g. Cola" />
+          </div>
+          <div class="field">
+            <label for="category">Category</label>
+            <select id="category" onchange="toggleCustomCategory()">
+              <option value="" disabled>Loading categories…</option>
+            </select>
+          </div>
+          <div class="field" id="custom-category-field" style="display:none">
+            <label for="custom-category">Custom Category</label>
+            <input id="custom-category" placeholder="e.g. Energy Drinks" />
+          </div>
+          <div class="field">
+            <label for="price">Price (£)</label>
+            <input id="price" placeholder="e.g. 1.50" inputmode="decimal" />
+            <span class="error-msg" id="price-error"></span>
+          </div>
+        </div>
+
+        <div class="form-footer">
+          <label class="checkbox-label">
+            <input type="checkbox" id="availability" checked />
+            Available
+          </label>
+          <button class="btn btn-primary" onclick="submitForm()">Save</button>
+          <button class="btn btn-secondary" id="cancel-btn" style="display:none" onclick="cancelEdit()">Cancel</button>
+          <span id="status"></span>
+        </div>
+      </div>
     </div>
 
-    <div class="form-card">
-      <h2 id="form-title">Add Product</h2>
-      <input type="hidden" id="edit-id" value="" />
+    <div class="tab-panel" id="tab-users">
 
-      <div class="form-grid">
+      <div class="filter-bar">
         <div class="field">
-          <label for="name">Name</label>
-          <input id="name" placeholder="e.g. Cola" />
+          <label for="user-search">Search users</label>
+          <input type="text" id="user-search" placeholder="Search by name or leave blank to load all" />
         </div>
-        <div class="field">
-          <label for="category">Category</label>
-          <select id="category" onchange="toggleCustomCategory()">
-            <option value="" disabled>Loading categories…</option>
-          </select>
-        </div>
-        <div class="field" id="custom-category-field" style="display:none">
-          <label for="custom-category">Custom Category</label>
-          <input id="custom-category" placeholder="e.g. Energy Drinks" />
-        </div>
-        <div class="field">
-          <label for="price">Price (£)</label>
-          <input id="price" placeholder="e.g. 1.50" inputmode="decimal" />
-          <span class="error-msg" id="price-error"></span>
-        </div>
+        <button class="btn btn-primary" onclick="loadUsers()">Search</button>
+        <button class="btn btn-secondary" onclick="clearUserSearch()">Clear</button>
+        <span class="orders-summary" id="users-summary"></span>
       </div>
 
-      <div class="form-footer">
-        <label class="checkbox-label">
-          <input type="checkbox" id="availability" checked />
-          Available
-        </label>
-        <button class="btn btn-primary" onclick="submitForm()">Save</button>
-        <button class="btn btn-secondary" id="cancel-btn" style="display:none" onclick="cancelEdit()">Cancel</button>
-        <span id="status"></span>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Tag ID</th>
+              <th>Name</th>
+              <th>Admin</th>
+              <th>Balance</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="user-rows">
+            <tr class="empty-row">
+              <td colspan="6">Search users to see results.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="form-card">
+        <h2 id="user-form-title">Create User</h2>
+        <input type="hidden" id="user-edit-tag-id" value="" />
+        <div class="form-grid">
+          <div class="field">
+            <label for="user-tag-id">Tag ID</label>
+            <input id="user-tag-id" placeholder="e.g. 04a3b2c1" />
+          </div>
+          <div class="field">
+            <label for="user-full-name">Full Name</label>
+            <input id="user-full-name" placeholder="e.g. Jane Doe" />
+          </div>
+          <div class="field">
+            <label for="user-balance">Balance (£)</label>
+            <input id="user-balance" placeholder="e.g. 10.00" inputmode="decimal" />
+          </div>
+        </div>
+        <div class="form-footer">
+          <label class="checkbox-label">
+            <input type="checkbox" id="user-is-admin" />
+            Admin
+          </label>
+          <button class="btn btn-primary" id="user-submit-btn" onclick="submitUserForm()">Create user</button>
+          <button class="btn btn-secondary" id="user-cancel-btn" style="display:none"
+            onclick="cancelUserEdit()">Cancel</button>
+          <span id="user-status"></span>
+        </div>
       </div>
     </div>
-</div>
 
-<div class="tab-panel" id="tab-users">
+    <div class="tab-panel" id="tab-orders">
 
-    <div class="filter-bar">
-      <div class="field">
-        <label for="user-search">Search users</label>
-        <input type="text" id="user-search" placeholder="Search by name or leave blank to load all" />
-      </div>
-      <button class="btn btn-primary" onclick="loadUsers()">Search</button>
-      <button class="btn btn-secondary" onclick="clearUserSearch()">Clear</button>
-      <span class="orders-summary" id="users-summary"></span>
-    </div>
-
-    <div class="table-wrap">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Tag ID</th>
-            <th>Name</th>
-            <th>Admin</th>
-            <th>Balance</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="user-rows">
-          <tr class="empty-row"><td colspan="6">Search users to see results.</td></tr>
-        </tbody>
-      </table>
-    </div>
-
-    <div class="form-card">
-      <h2 id="user-form-title">Create User</h2>
-      <input type="hidden" id="user-edit-tag-id" value="" />
-      <div class="form-grid">
+      <div class="filter-bar">
         <div class="field">
-          <label for="user-tag-id">Tag ID</label>
-          <input id="user-tag-id" placeholder="e.g. 04a3b2c1" />
+          <label for="start-date">From</label>
+          <input type="date" id="start-date" />
         </div>
         <div class="field">
-          <label for="user-full-name">Full Name</label>
-          <input id="user-full-name" placeholder="e.g. Jane Doe" />
+          <label for="end-date">To</label>
+          <input type="date" id="end-date" />
         </div>
-        <div class="field">
-          <label for="user-balance">Balance (£)</label>
-          <input id="user-balance" placeholder="e.g. 10.00" inputmode="decimal" />
-        </div>
+        <button class="btn btn-primary" onclick="loadOrders()">Filter</button>
+        <button class="btn btn-secondary" onclick="clearOrderFilter()">Clear</button>
+        <button class="btn btn-secondary" onclick="downloadCSV()" id="dl-btn" disabled>⬇ Download CSV</button>
+        <span class="orders-summary" id="orders-summary"></span>
       </div>
-      <div class="form-footer">
-        <label class="checkbox-label">
-          <input type="checkbox" id="user-is-admin" />
-          Admin
-        </label>
-        <button class="btn btn-primary" id="user-submit-btn" onclick="submitUserForm()">Create user</button>
-        <button class="btn btn-secondary" id="user-cancel-btn" style="display:none" onclick="cancelUserEdit()">Cancel</button>
-        <span id="user-status"></span>
-      </div>
-    </div>
-</div>
 
-<div class="tab-panel" id="tab-orders">
-
-    <div class="filter-bar">
-      <div class="field">
-        <label for="start-date">From</label>
-        <input type="date" id="start-date" />
+      <div class="table-wrap" style="margin-bottom: 3rem">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Product</th>
+              <th>Category</th>
+              <th>Qty</th>
+              <th>Price</th>
+              <th>Date &amp; Time</th>
+            </tr>
+          </thead>
+          <tbody id="order-rows">
+            <tr class="empty-row">
+              <td colspan="6">Loading…</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-      <div class="field">
-        <label for="end-date">To</label>
-        <input type="date" id="end-date" />
-      </div>
-      <button class="btn btn-primary" onclick="loadOrders()">Filter</button>
-      <button class="btn btn-secondary" onclick="clearOrderFilter()">Clear</button>
-      <button class="btn btn-secondary" onclick="downloadCSV()" id="dl-btn" disabled>⬇ Download CSV</button>
-      <span class="orders-summary" id="orders-summary"></span>
-    </div>
-
-    <div class="table-wrap" style="margin-bottom: 3rem">
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>Product</th>
-            <th>Category</th>
-            <th>Qty</th>
-            <th>Price</th>
-            <th>Date &amp; Time</th>
-          </tr>
-        </thead>
-        <tbody id="order-rows">
-          <tr class="empty-row"><td colspan="6">Loading…</td></tr>
-        </tbody>
-      </table>
     </div>
   </div>
-</div>
 
-<div class="tab-panel" id="tab-images">
-  <h1>Images Admin</h1>
+  <div class="tab-panel" id="tab-images">
+    <h1>Images Admin</h1>
 
-  <div class="form-card" style="margin-bottom: 2rem">
-    <h2>Upload Images</h2>
-    <label class="image-upload-zone" id="upload-zone">
-      <input type="file" id="image-input" accept="image/png,image/jpeg,image/webp,image/gif,image/jpg" multiple onchange="uploadImages(this.files)" />
-      <div>Click or drag images here to upload</div>
-      <div style="font-size: 0.75rem; margin-top: 0.5rem; color: #52525b">PNG, JPG, WEBP, GIF</div>
-    </label>
-    <span id="image-status"></span>
+    <div class="form-card" style="margin-bottom: 2rem">
+      <h2>Upload Images</h2>
+      <label class="image-upload-zone" id="upload-zone">
+        <input type="file" id="image-input" accept="image/png,image/jpeg,image/webp,image/gif,image/jpg" multiple
+          onchange="uploadImages(this.files)" />
+        <div>Click or drag images here to upload</div>
+        <div style="font-size: 0.75rem; margin-top: 0.5rem; color: #52525b">PNG, JPG, WEBP, GIF</div>
+      </label>
+      <span id="image-status"></span>
+    </div>
+
+    <h2 class="section-title" style="margin-top: 0">Uploaded Images</h2>
+    <div class="image-grid" id="image-grid">
+      <p style="color:#52525b; grid-column: 1 / -1">Loading…</p>
+    </div>
   </div>
 
-  <h2 class="section-title" style="margin-top: 0">Uploaded Images</h2>
-  <div class="image-grid" id="image-grid">
-    <p style="color:#52525b; grid-column: 1 / -1">Loading…</p>
   </div>
-</div>
-
   </div>
-</div>
 
   <script>
     /* ═══════════════════════════════ PRODUCTS ═══════════════════════════════ */
@@ -547,7 +745,7 @@
     }
 
     function esc(str) {
-      return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+      return String(str).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
     function validatePrice(val) {
@@ -677,10 +875,10 @@
 
     async function loadOrders() {
       const start = document.getElementById("start-date").value;
-      const end   = document.getElementById("end-date").value;
+      const end = document.getElementById("end-date").value;
       const params = new URLSearchParams();
       if (start) params.set("start_date", start);
-      if (end)   params.set("end_date",   end);
+      if (end) params.set("end_date", end);
       const url = "/orders/detail" + (params.toString() ? "?" + params.toString() : "");
 
       document.getElementById("order-rows").innerHTML =
@@ -708,7 +906,7 @@
       }
 
       const totalRevenue = orders.reduce((s, o) => s + o.price, 0);
-      const totalQty     = orders.reduce((s, o) => s + o.quantity, 0);
+      const totalQty = orders.reduce((s, o) => s + o.quantity, 0);
       summary.innerHTML =
         `<strong>${orders.length}</strong> orders &nbsp;·&nbsp; ` +
         `<strong>${totalQty}</strong> items &nbsp;·&nbsp; ` +
@@ -746,10 +944,10 @@
       ]);
       const csv = [header, ...rows].map(r => r.join(",")).join("\r\n");
       const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url  = URL.createObjectURL(blob);
-      const a    = document.createElement("a");
-      const now  = new Date().toISOString().slice(0, 10);
-      a.href     = url;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const now = new Date().toISOString().slice(0, 10);
+      a.href = url;
       a.download = `orders_${now}.csv`;
       document.body.appendChild(a);
       a.click();
@@ -768,6 +966,18 @@
 
       const tbody = document.getElementById("user-rows");
       tbody.innerHTML = '<tr class="empty-row"><td colspan="6">Searching…</td></tr>';
+
+      document.getElementById("user-is-admin").addEventListener("change", function () {
+        const balanceInput = document.getElementById("user-balance");
+
+        if (this.checked) {
+          balanceInput.value = "0";
+          balanceInput.closest(".field").style.display = "none";
+        } else {
+          balanceInput.closest(".field").style.display = "";
+        }
+      });
+
       try {
         const res = await fetch(url);
         users = await res.json();
@@ -860,7 +1070,19 @@
       document.getElementById("user-tag-id").disabled = true;
       document.getElementById("user-full-name").value = user.full_name;
       document.getElementById("user-balance").value = user.balance.toFixed(2);
-      document.getElementById("user-is-admin").checked = user.is_admin;
+
+      const adminCheckbox = document.getElementById("user-is-admin");
+      adminCheckbox.checked = user.is_admin;
+
+      const balanceField = document.getElementById("user-balance").closest(".field");
+
+      if (user.is_admin) {
+        document.getElementById("user-balance").value = "0";
+        balanceField.style.display = "none";
+      } else {
+        balanceField.style.display = "";
+      }
+
       document.getElementById("user-form-title").textContent = "Edit User";
       document.getElementById("user-submit-btn").textContent = "Save user";
       document.getElementById("user-cancel-btn").style.display = "";
@@ -874,6 +1096,9 @@
       document.getElementById("user-full-name").value = "";
       document.getElementById("user-balance").value = "";
       document.getElementById("user-is-admin").checked = false;
+
+      document.getElementById("user-balance").closest(".field").style.display = "";
+
       document.getElementById("user-form-title").textContent = "Create User";
       document.getElementById("user-submit-btn").textContent = "Create user";
       document.getElementById("user-cancel-btn").style.display = "none";
@@ -889,7 +1114,7 @@
       const statusEl = document.getElementById("user-status");
 
       statusEl.textContent = "";
-      const balance = parseFloat(balanceValue || "0");
+      const balance = isAdmin ? 0 : parseFloat(balanceValue || "0");
       if (!tagId || !fullName) {
         statusEl.textContent = "Tag ID and full name are required.";
         statusEl.className = "err";
@@ -1025,4 +1250,5 @@
     loadImages();
   </script>
 </body>
+
 </html>
