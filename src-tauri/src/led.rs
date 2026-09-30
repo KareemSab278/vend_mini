@@ -82,8 +82,22 @@ pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Resu
 
 /*
 // LED RUST CODE LIB RS_WS281X DOES NOT WORK ON THE RASPBERRY PI 5 - NEEDS WORK. USE esp32 INSTEAD WITH CODE:
-
+    #include <Wire.h>
+    #include <Adafruit_GFX.h>
+    #include <Adafruit_SSD1306.h>
     #include <FastLED.h>
+
+    #define SCREEN_WIDTH 128
+    #define SCREEN_HEIGHT 64
+    #define OLED_RESET -1
+    #define SCREEN_ADDRESS 0x3C
+
+    Adafruit_SSD1306 display(
+    SCREEN_WIDTH,
+    SCREEN_HEIGHT,
+    &Wire,
+    OLED_RESET);
+
 
     #define NUM_LEDS 148
     #define DIN_PIN 23
@@ -93,8 +107,34 @@ pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Resu
 
     CRGB currentColour = CRGB::Black;
 
-    void fadeToColour(CRGB targetColour) {
 
+    struct Colour {
+    String name;
+    CRGB value;
+    };
+
+    Colour colours[] = {
+    { "red", CRGB::Red },
+    { "green", CRGB::Green },
+    { "blue", CRGB::Blue },
+    { "white", CRGB::White },
+    { "yellow", CRGB::Yellow },
+    { "none", CRGB::Black }
+    };
+
+    const int colourCount = sizeof(colours) / sizeof(colours[0]);
+
+    void updateOLED(String colour) {
+    display.clearDisplay();
+    display.setTextColor(SSD1306_WHITE);
+    display.setTextSize(2);
+    display.setCursor(10, 30);
+    display.println(colour);
+    display.display();
+    }
+
+
+    void fadeToColour(CRGB targetColour) {
     CRGB startColour = currentColour;
 
     const int steps = 100;
@@ -102,8 +142,12 @@ pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Resu
     const int delayTime = fadeTime / steps;
 
     for (int i = 1; i <= steps; i++) {
-
-        uint8_t amount = map(i, 0, steps, 0, 255);
+        uint8_t amount = map(
+        i,
+        0,
+        steps,
+        0,
+        255);
 
         CRGB blended = blend(
         startColour,
@@ -116,88 +160,81 @@ pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Resu
         blended);
 
         FastLED.show();
-
         delay(delayTime);
     }
-
     currentColour = targetColour;
     }
 
     String command = "";
 
-    /*
-    void setColour(CRGB colour) { // for switching color fast
-        fill_solid(leds, NUM_LEDS, colour);
-        FastLED.show();
-    }
-    */
-
     void setup() {
-
     Serial.begin(115200);
+    Wire.begin();
 
-    FastLED.addLeds<WS2812B, DIN_PIN, GRB>(
+    if (!display.begin(
+            SSD1306_SWITCHCAPVCC,
+            SCREEN_ADDRESS)) {
+
+        Serial.println("OLED FAILED");
+        while (true)
+        ;
+    }
+
+    updateOLED("none");
+
+    FastLED.addLeds<
+        WS2812B,
+        DIN_PIN,
+        GRB >(
         leds,
         NUM_LEDS);
 
-    FastLED.setBrightness(BRIGHTNESS);
+    FastLED.setBrightness(
+        BRIGHTNESS);
 
     FastLED.clear();
     FastLED.show();
-
     Serial.println("LED READY");
-    Serial.println("Commands: red green blue white yellow none");
+    Serial.println(
+        "Commands: red green blue white yellow none");
+    }
+
+    bool setColourFromCommand(String command) {
+
+    for (int i = 0; i < colourCount; i++) {
+
+        if (command == colours[i].name) {
+
+        fadeToColour(colours[i].value);
+        updateOLED(command);
+
+        return true;
+        }
+    }
+
+    return false;
     }
 
 
     void loop() {
-
     while (Serial.available()) {
-
         char c = Serial.read();
 
         if (c == '\n' || c == '\r') {
-
         command.trim();
         command.toLowerCase();
 
-        if (command == "red") {
-            fadeToColour(CRGB::Red);
-        }
-
-        else if (command == "green") {
-            fadeToColour(CRGB::Green);
-        }
-
-        else if (command == "blue") {
-            fadeToColour(CRGB::Blue);
-        }
-
-        else if (command == "white") {
-            fadeToColour(CRGB::White);
-        }
-
-        else if (command == "yellow") {
-            fadeToColour(CRGB::Yellow);
-        }
-
-        else if (command == "none") {
-            fadeToColour(CRGB::Black);
-        }
-
-        else if (command == "ident?") {
+        if (command == "ident?") {
             Serial.println("LEDACK");
         }
 
-        else {
+        else if (!setColourFromCommand(command)) {
             Serial.print("Unknown: ");
             Serial.println(command);
         }
 
         command = "";
-        }
-
-        else {
+        } else {
         command += c;
         }
     }
