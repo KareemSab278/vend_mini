@@ -24,7 +24,17 @@ const CheckoutModal = ({
   paymentType,
 }: CheckoutModalProps) => {
 
-  const canDismiss = payStatus === "error" || payStatus === "done" || payStatus === "idle";
+  const [waitedTooLong, setWaitedTooLong] = useState(false);
+  const canDismiss = payStatus === "error" || payStatus === "done" || payStatus === "idle" || waitedTooLong;
+
+  useEffect(() => {
+    if (payStatus === "waiting_door") {
+      const timer = setTimeout(() => {
+        setWaitedTooLong(true);
+      }, 20000);
+      return () => clearTimeout(timer);
+    }
+  }, [payStatus]);
 
   return (
     <Modal
