@@ -2,6 +2,7 @@ const dev = import.meta.env.DEV;
 
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { LEDs } from "./LED";
 
 interface PaymentFunctions {
     initialize: () => Promise<string>, // initialize payment device - returns the connected serial port name on success
@@ -54,13 +55,17 @@ export const Payment: PaymentFunctions = {
             }
 
             currentUnlisten?.();
-            currentUnlisten = await listen<boolean>("payment-result", async (event) => {
+            currentUnlisten = await listen<boolean>("payment-result", (event) => {
                 currentUnlisten?.();
                 currentUnlisten = undefined;
+                if (!event.payload) {
+                    LEDs.setWithTimeout("red", 2);
+                }
                 onResult(event.payload);
             });
             await invoke("start_payment", { paymentPort, amount });
         } catch (error) {
+            await LEDs.setWithTimeout("red", 2);
             currentUnlisten?.();
             currentUnlisten = undefined;
             dev && console.error("Error starting payment:", error);
