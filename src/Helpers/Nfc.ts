@@ -55,8 +55,8 @@ export const NFC: NfcFunctions = {
             return newBalance;
         } catch (error) {
             dev && console.error("NFC payment failed:", error);
-            await LEDs.setWithTimeout("red", 2);
             onError(error as Error);
+            await LEDs.setWithTimeout("red", 2);
             throw error;
         }
     },
