@@ -202,15 +202,16 @@ pub async fn start_payment(
             }
             Ok(_) if still_current => {
                 PAYMENT_APPROVED.store(false, Ordering::SeqCst);
+                let _ = led::set_color_w_timeout(led::Color::Red, Some(2));
                 let _ = disable_payment_device(&connection);
                 let _ = app.emit("payment-result", false);
 
                 // go red for 2 seconds to indicate payment failure
-                let _ = led::set_color_w_timeout(led::Color::Red, Some(2));
             }
             Err(error) if still_current => {
                 eprintln!("Payment failed: {error}");
                 PAYMENT_APPROVED.store(false, Ordering::SeqCst);
+                let _ = led::set_color_w_timeout(led::Color::Red, Some(2));
                 let _ = cancel_and_disable(&connection);
                 let _ = app.emit("payment-result", false);
             }

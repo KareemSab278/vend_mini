@@ -39,7 +39,8 @@ export const NFC: NfcFunctions = {
             const tagId = (await invoke("get_tag_id")) as string;
             if (!tagId) throw new Error("No tag detected");
 
-            // must be tagId for tag_id in rust tauri backend because it is enforced to be camelCase in js and snake_case in rust under tauri.
+            // must be tagId for tag_id in rust tauri backend because it is enforced to be camelCase
+                // in js and snake_case in rust under tauri.
             const balance = (await invoke("get_balance_by_tag_id", { tagId })) as number | null;
             if (balance === null) {
                 throw new Error("Tag not recognised")
@@ -54,6 +55,7 @@ export const NFC: NfcFunctions = {
             return newBalance;
         } catch (error) {
             dev && console.error("NFC payment failed:", error);
+            await LEDs.setWithTimeout("red", 2);
             onError(error as Error);
             throw error;
         }
