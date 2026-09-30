@@ -1,6 +1,7 @@
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
+use crate::led;
 
 const USER_DATA_FILE: &str = "ordering_system_users.db";
 
@@ -187,7 +188,11 @@ pub fn deduct_balance_by_tag_id(tag_id: &str, amount: f64) -> std::result::Resul
     let new_balance = current_balance - amount;
 
     if new_balance < 0.0 {
-        Err(format!("Insufficient balance: {}", current_balance))
+        {
+            // go red for 2 seconds to indicate payment failure
+            let _ = led::set_color_w_timeout(led::Color::Red, Some(2));
+            Err(format!("Insufficient balance: {}", current_balance))
+        }
     } else {
         conn.execute(
             "UPDATE users SET balance = ?1 WHERE tag_id = lower(?2)",

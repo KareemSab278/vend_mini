@@ -142,6 +142,8 @@ pub async fn get_all_doors_status() -> Result<Vec<DoorStatus>, String> {
 /*
     DO NOT USE IN FRONTEND
     this fn runs all the time and checks the door status every 3 seconds.
+    IT CHECHS THE DOOR BEING OPEN AND THEN CLOSED - 
+        DO NOT EXPECT THIS TO MAGICALLY TURN LED WHITE FROM RED IF NOT OPEN FIRST.
     door opens, set door open timestamp. door closes, set door close timestamp.
     door open timestamp - door close timestamp = duration the door was open.
     if duration > 30 seconds then set light red.

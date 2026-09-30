@@ -2,7 +2,6 @@ const dev = import.meta.env.DEV;
 
 import { listen, UnlistenFn } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
-import { Door } from "./Door";
 
 interface PaymentFunctions {
     initialize: () => Promise<string>, // initialize payment device - returns the connected serial port name on success

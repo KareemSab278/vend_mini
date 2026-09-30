@@ -2,6 +2,7 @@
 // Speaks the same CSLS cashless protocol, but over the persistent serial manager.
 // ported in from the express repo
 
+use crate::led;
 use crate::serial_comms::{payment_connection, DeviceConnection};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::Arc;
@@ -203,6 +204,9 @@ pub async fn start_payment(
                 PAYMENT_APPROVED.store(false, Ordering::SeqCst);
                 let _ = disable_payment_device(&connection);
                 let _ = app.emit("payment-result", false);
+
+                // go red for 2 seconds to indicate payment failure
+                let _ = led::set_color_w_timeout(led::Color::Red, Some(2));
             }
             Err(error) if still_current => {
                 eprintln!("Payment failed: {error}");
