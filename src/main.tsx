@@ -5,6 +5,7 @@ import { Route, Router, Switch } from "wouter";
 import "@mantine/core/styles.css";
 
 import { App } from "./Pages/App/App";
+import { PrePaidApp } from "./Pages/App/PrePaidApp";
 import { Setup } from "./Pages/Setup/Setup";
 import { Admin } from "./Pages/Admin/Admin";
 import { applyTheme, ThemeStore, type Theme } from "./Helpers/theme";
@@ -15,6 +16,8 @@ const startFullScreen = async (): Promise<void> => {
   // const isPi = await isPiOs();
   await getCurrentWindow().setFullscreen(true);
 };
+
+const isPrePaidEnabled = import.meta.env.VITE_PREPAID_ENABLED === "true";
 
 const ThemedApp = () => {
   const [theme, setTheme] = useState<Theme | null>(null);
@@ -35,7 +38,8 @@ const ThemedApp = () => {
         <Switch>
           <Route path="/setup" component={Setup} />
           <Route path="/admin" component={Admin} />
-          <Route path="/" component={App} />
+          {/* conditionally render if the prepaid feature is enabled */}
+          <Route path="/" component={isPrePaidEnabled ? PrePaidApp : App} />
         </Switch>
       </Router>
     </MantineProvider>

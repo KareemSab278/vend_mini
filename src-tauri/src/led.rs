@@ -205,8 +205,8 @@ pub async fn set_color_w_timeout(color: Color, timeout_secs: Option<u8>) -> Resu
 
         if (command == colours[i].name) {
 
-        fadeToColour(colours[i].value);
         updateOLED(command);
+        fadeToColour(colours[i].value);
 
         return true;
         }
