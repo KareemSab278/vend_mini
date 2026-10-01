@@ -5,6 +5,7 @@ import { PrimaryButton, PrimaryButtonProps } from "../../Components/Button";
 import { KeyPressListener } from "../../Helpers/KeyPressListener";
 import { styles as appStyles } from "../App/styles";
 import { AdminModal } from "./Components/AdminModal";
+import { CansModal } from "./Components/CansModal";
 import { DoorModal } from "./Components/DoorModal";
 import { LedModal } from "./Components/LedModal";
 import { SystemModal } from "./Components/SystemModal";
@@ -20,10 +21,11 @@ import { IconUserExclamation } from '@tabler/icons-react';
 import { IconDoor } from '@tabler/icons-react';
 import { IconSun } from '@tabler/icons-react';
 import { IconLogout2 } from '@tabler/icons-react';
+import { IconBox } from '@tabler/icons-react';
 
 export { Admin };
 
-type AdminModalType = "addAdmin" | "door" | "led" | "system" | "url" | "update" | "theme" | null;
+type AdminModalType = "addAdmin" | "cans" | "door" | "led" | "system" | "url" | "update" | "theme" | null;
 const currentVersion = import.meta.env.VITE_APP_VERSION as string;
 
 const Admin = () => {
@@ -54,6 +56,10 @@ const Admin = () => {
     addAdmin: {
       title: <div style={optionTheme}><IconUserExclamation size={30} stroke={2} />Admins</div>,
       onClick: () => setActiveModal("addAdmin"),
+    },
+    cans: {
+      title: <div style={optionTheme}><IconBox size={30} stroke={2} />Cans</div>,
+      onClick: () => setActiveModal("cans"),
     },
     led: {
       title: <div style={optionTheme}><IconSun size={30} stroke={2} />LED</div>,
@@ -105,6 +111,7 @@ const Admin = () => {
       </div>
 
       <AdminModal opened={activeModal === "addAdmin"} onClose={() => setActiveModal(null)} />
+      <CansModal opened={activeModal === "cans"} onClose={() => setActiveModal(null)} />
       <LedModal opened={activeModal === "led"} onClose={() => setActiveModal(null)} />
       <DoorModal opened={activeModal === "door"} onClose={() => setActiveModal(null)} />
       <SystemModal opened={activeModal === "system"} onClose={() => setActiveModal(null)} />
