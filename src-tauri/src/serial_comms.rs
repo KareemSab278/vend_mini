@@ -32,6 +32,7 @@ enum DeviceRole {
     Payment,
     Door,
     Led,
+    CanCounter,
 }
 
 #[allow(dead_code)]
@@ -127,6 +128,19 @@ impl DeviceConnection {
             .lock()
             .map(|state| state.connected)
             .unwrap_or(false)
+    }
+
+    pub(crate) fn lines_since(&self, cursor: u64) -> Result<Vec<String>, String> {
+        let state = self.state
+            .0
+            .lock()
+            .map_err(|_| "Serial state poisoned".to_string())?;
+        Ok(state
+            .lines
+            .iter()
+            .filter(|line| line.sequence >= cursor)
+            .map(|line| line.value.clone())
+            .collect())
     }
 
     pub(crate) fn send(&self, command: &str) -> Result<u64, String> {
@@ -257,6 +271,7 @@ struct DeviceRegistry {
     payment: Option<Arc<DeviceConnection>>,
     doors: HashMap<String, Arc<DeviceConnection>>,
     led: Option<Arc<DeviceConnection>>,
+    can_counter: Option<Arc<DeviceConnection>>,
 }
 
 impl DeviceRegistry {
@@ -305,13 +320,21 @@ impl DeviceRegistry {
             self.led = None;
         }
 
+        if self.can_counter.as_ref().is_some_and(|connection| {
+            !connection.is_connected()
+                || !available_identities.contains(&connection.descriptor.identity)
+        }) {
+            self.can_counter = None;
+        }
+
         for (info, identity) in identified_ports {
             let already_managed = self
                 .payment
                 .as_ref()
                 .is_some_and(|connection| connection.descriptor.identity == identity)
                 || self.doors.contains_key(&identity)
-                || self.led.as_ref().is_some_and(|connection| connection.descriptor.identity == identity);
+                || self.led.as_ref().is_some_and(|connection| connection.descriptor.identity == identity)
+                || self.can_counter.as_ref().is_some_and(|connection| connection.descriptor.identity == identity);
             if already_managed {
                 continue;
             }
@@ -330,6 +353,9 @@ impl DeviceRegistry {
                         DeviceRole::Led if self.led.is_none() => {
                             self.led = Some(connection);
                         }
+                        DeviceRole::CanCounter if self.can_counter.is_none() => {
+                            self.can_counter = Some(connection);
+                        }
                         DeviceRole::Payment => {
                             eprintln!(
                                 "Ignoring additional payment bridge on {} because one is already assigned",
@@ -339,6 +365,12 @@ impl DeviceRegistry {
                         DeviceRole::Led => {
                             eprintln!(
                                 "Ignoring additional LED controller on {} because one is already assigned",
+                                connection.port_name()
+                            );
+                        }
+                        DeviceRole::CanCounter => {
+                            eprintln!(
+                                "Ignoring additional can counter on {} because one is already assigned",
                                 connection.port_name()
                             );
                         }
@@ -379,6 +411,17 @@ pub(crate) fn led_connection() -> Result<Arc<DeviceConnection>, String> {
         .led
         .clone()
         .ok_or_else(|| "LED controller not found".to_string())
+}
+
+pub(crate) fn can_counter_connection() -> Result<Arc<DeviceConnection>, String> {
+    let mut registry = registry()
+        .lock()
+        .map_err(|_| "Serial registry poisoned".to_string())?;
+    registry.refresh()?;
+    registry
+        .can_counter
+        .clone()
+        .ok_or_else(|| "Can counter not found".to_string())
 }
 
 fn door_connections() -> Result<Vec<Arc<DeviceConnection>>, String> {
@@ -568,6 +611,29 @@ fn probe_device(
         return Ok((descriptor, port, lines));
     }
 
+    write_protocol_line(&mut *port, "stop")?;
+    if read_probe_lines(&mut port, &mut lines, PROBE_TIMEOUT_MS, |line| {
+        serde_json::from_str::<Value>(line)
+            .ok()
+            .and_then(|value| {
+                if let Some(status) = value["status"].as_str() {
+                    if status == "stopped" {
+                        return Some(());
+                    }
+                }
+                None
+            })
+            .is_some()
+    })? {
+        let descriptor = DeviceDescriptor {
+            identity,
+            port_name,
+            role: DeviceRole::CanCounter,
+            device_id: None,
+        };
+        return Ok((descriptor, port, lines));
+    }
+
     write_protocol_line(&mut *port, "s")?;
     if read_probe_lines(&mut port, &mut lines, PROBE_TIMEOUT_MS, |line| {
         line.starts_with('{') && serde_json::from_str::<Value>(line).is_ok()
@@ -729,6 +795,11 @@ fn stable_port_name(port_name: &str) -> String {
         }
     }
     port_name.to_string()
+}
+
+pub fn write_to_buffer(state: &Arc<(Mutex<ConnectionState>, Condvar)>, value: String) -> Result<(), String> {
+    push_line(state, value);
+    Ok(())
 }
 
 #[cfg(not(target_os = "linux"))]

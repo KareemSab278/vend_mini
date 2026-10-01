@@ -1,3 +1,4 @@
+mod can_counter;
 mod config;
 mod database;
 mod door;
@@ -46,6 +47,7 @@ pub fn run() {
             // Serial utilities
             serial_comms::get_all_serial_ports,
             serial_comms::kill_polling,
+            can_counter::cans_listen,
             // DB related commands
             database::initialize_database,
             database::insert_order,
