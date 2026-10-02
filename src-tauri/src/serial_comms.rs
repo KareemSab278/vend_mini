@@ -131,16 +131,26 @@ impl DeviceConnection {
     }
 
     pub(crate) fn lines_since(&self, cursor: u64) -> Result<Vec<String>, String> {
+        self.lines_since_with_seq(cursor).map(|(lines, _)| lines)
+    }
+
+    pub(crate) fn lines_since_with_seq(&self, cursor: u64) -> Result<(Vec<String>, u64), String> {
         let state = self.state
             .0
             .lock()
             .map_err(|_| "Serial state poisoned".to_string())?;
-        Ok(state
+        let lines = state
             .lines
             .iter()
             .filter(|line| line.sequence >= cursor)
             .map(|line| line.value.clone())
-            .collect())
+            .collect();
+        let next_cursor = state
+            .lines
+            .back()
+            .map(|line| line.sequence.wrapping_add(1))
+            .unwrap_or(cursor);
+        Ok((lines, next_cursor))
     }
 
     pub(crate) fn send(&self, command: &str) -> Result<u64, String> {

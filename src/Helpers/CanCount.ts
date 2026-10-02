@@ -20,14 +20,22 @@ import { invoke } from "@tauri-apps/api/core";
 type CanCol = {
     column: number;
     count: number | null;
+    live_distance: number | null;
 };
 
 type CanCount = CanCol[];
+
+interface LivePollResult {
+    counts: CanCount;
+    cursor: number;
+}
 
 interface CansFunctions {
     Start: () => Promise<CanCount>;
     Stop: () => Promise<CanCount>;
     Listen: (seconds?: number) => Promise<CanCount>; // can have null/undefined seconds
+    StartLive: () => Promise<number>;
+    Poll: (cursor: number) => Promise<LivePollResult>;
 }
 
 
@@ -62,6 +70,12 @@ const Cans: CansFunctions = {
             command: "listen",
             duration: seconds,
         });
+    },
+    StartLive: async (): Promise<number> => {
+        return await invoke<number>("cans_listen_live_start");
+    },
+    Poll: async (cursor: number): Promise<LivePollResult> => {
+        return await invoke<LivePollResult>("cans_listen_live_poll", { cursor });
     },
 };
 

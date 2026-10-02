@@ -48,6 +48,8 @@ pub fn run() {
             serial_comms::get_all_serial_ports,
             serial_comms::kill_polling,
             can_counter::cans_listen,
+            can_counter::cans_listen_live_start,
+            can_counter::cans_listen_live_poll,
             // DB related commands
             database::initialize_database,
             database::insert_order,
