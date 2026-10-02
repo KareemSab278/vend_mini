@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Modal } from "@mantine/core";
 import { PrimaryButton } from "../../../Components/Button";
-import Cans from "../../../Helpers/CanCount";
+import { Cans } from "../../../Helpers/CanCount";
 
 export { CansModal };
 
@@ -111,7 +111,7 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
                     <p>This machine is not set as prepaid or does not sell cans.</p>
             }
             {prepaidEnabled && statusText && <pre style={styles.status}>{statusText}</pre>}
-            
+
             {prepaidEnabled && liveText && (
                 <pre ref={listRef} style={styles.status}>
                     {liveText}

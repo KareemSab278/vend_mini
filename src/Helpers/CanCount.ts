@@ -1,16 +1,13 @@
 /*
-    this helper method will listen to rust for can detection events and provide updates accordingly.
-
-    will return the number of cans per column.
-
-    there should be a planogram here received from the cad backend. dont know the structure yet...
-    
-    the plaogram should be mapped to the cans map and then identify which cans are in the correct positions
-    
-    so planogram says coke is in column 1, we should check if the detected cans match this arrangement
-        - if 5 cans in col 1 we can safely assume these cans are coke. this depends if set up correctly
-    
-    will code the stuff soon
+    the helper is complete. but now is the hard part: 
+        i need to get the live planogram data and then figure out the mapping.
+            meaning i need to figure out how many rebdulls there are compared to a can of coke. theyre different widths.
+                but since i have the live_distance, i can do the calculation on the fly here
+                    - which sucks because it would have been better to have the mapping done in the hardware directly
+        
+    what is the planogram data going to look like? and how can i map it to the live_distance?
+        should i ignore the count of cans and simply do the calulating here? only listen for when the count is 0 or 1?
+            that might work out better...
 */
 
 import { invoke } from "@tauri-apps/api/core";
@@ -38,33 +35,13 @@ interface CansFunctions {
     Poll: (cursor: number) => Promise<LivePollResult>;
 }
 
-
-/*
-    Frontend usage:
-    invoke('cans_listen', 'stop') to stop listening for can counts.
-    invoke('cans_listen', 'start') to start listening for can counts.
-    invoke('cans_listen', 'listen', seconds) to listen for can counts for a default duration of 3 seconds.
-
-    #[tauri::command]
-    pub async fn cans_listen(command: Option<String>, duration: Option<u8>) -> Result<String, String> {
-        let cmd = match command.as_deref() {
-            Some("stop") => CansCountCmds::StopListen,
-            Some("start") => CansCountCmds::StartListen,
-            Some("listen") => CansCountCmds::ListenWithDuration(duration.unwrap_or(3)),
-            _ => return Err("invalid can-counter command".to_string()),
-        };
-        cmd.execute()
-    }
-*/
-
-const Cans: CansFunctions = {
+export const Cans: CansFunctions = {
     Start: async (): Promise<CanCount> => {
         return await invoke<CanCount>("cans_listen", { command: "start" });
     },
     Stop: async (): Promise<CanCount> => {
         return await invoke<CanCount>("cans_listen", { command: "stop" });
     },
-    // this is the fn you want to use - it listens and returns the data you need
     Listen: async (seconds?: number): Promise<CanCount> => {
         return await invoke<CanCount>("cans_listen", {
             command: "listen",
@@ -78,7 +55,3 @@ const Cans: CansFunctions = {
         return await invoke<LivePollResult>("cans_listen_live_poll", { cursor });
     },
 };
-
-export default Cans;
-
-
