@@ -4,6 +4,7 @@ import { PrimaryButton } from "../../../Components/Button";
 import { styles } from "../styles";
 
 interface SelectedProductsModalProps {
+  title?: string;
   opened: boolean;
   onClose: () => void;
   selectedProducts: any[];
@@ -12,13 +13,14 @@ interface SelectedProductsModalProps {
 }
 
 const SelectedProductsModal = ({
+  title,
   opened,
   onClose,
   selectedProducts,
   onRemove,
   onClearAll,
 }: SelectedProductsModalProps) => (
-  <Modal opened={opened} onClose={onClose} title="Selected Products" size="xl">
+  <Modal opened={opened} onClose={onClose} title={title ?? "Selected Products"} size="xl">
     {selectedProducts.length === 0 ? (
       <div style={styles.noProductsMessage}>No products selected.</div>
     ) : (

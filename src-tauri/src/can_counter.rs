@@ -39,7 +39,6 @@ impl CansCountCmds {
                     || false,
                 );
                 let buffer = connection.lines_since(cursor)?;
-                println!("Raw buffer: {:?}", buffer);
                 Ok(process_buffer(buffer))
             }
         }
@@ -95,7 +94,6 @@ fn process_buffer(buffer: Vec<String>) -> Vec<CanColCount> {
         .iter()
         .flat_map(|line| parse_can_count_line(line))
         .collect::<Vec<CanColCount>>();
-    println!("Processed buffer: {:?}", buffer);
     buffer
 }
 
@@ -143,7 +141,7 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
     const uint8_t SENSOR_ADDRESSES[NUM_COLUMNS] = { 0x30 };    // unique I2C address for each sensor
     const float ONE_CAN_DISTANCE_MM[NUM_COLUMNS] = { 530.0 };  // distance that represents 1 can
     const float CAN_PITCH_MM[NUM_COLUMNS] = { 61.0 };          // distance of can pitch
-    const float EMPTY_BAND_MIN_MM[NUM_COLUMNS] = { 540.0 };    // above this is potentially 0 cans
+    const float EMPTY_BAND_MIN_MM[NUM_COLUMNS] = { 520.0 };    // above this is potentially 0 cans
     const int NUM_READINGS = 10;                               // readings to average per second
 
 
@@ -245,7 +243,7 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
         }
 
         Serial.print("{\"column\": ");
-        Serial.print(i + 1);
+        Serial.print(i); // start from 0
         Serial.print(", \"count\": ");
         Serial.print(count);
         Serial.print(", \"live_distance\": ");
@@ -261,6 +259,7 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
         if (i < NUM_COLUMNS - 1) {
         Serial.print(", ");
         }
+        i+=1;
     }
 
     Serial.println("]");
@@ -354,5 +353,4 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
         sendDistances();
     }
     }
-
 */

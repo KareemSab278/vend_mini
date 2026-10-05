@@ -28,6 +28,10 @@ import { styles } from "./styles";
 import { NFC } from "../../Helpers/Nfc";
 import { Admin } from "../../Helpers/Admins";
 import { KeyPressListener } from "../../Helpers/KeyPressListener";
+import { Cans, countCansPerSlot, cansPickedUp } from "../../Helpers/CanCount";
+import type { CanCol, SlotCanCount } from "../../Helpers/CanCount";
+import type { ProductType } from "../../Helpers/Products";
+import { SelectedProductsModal } from "./Components/SelectedProductsModal";
 
 export { PrePaidApp };
 
@@ -39,6 +43,66 @@ const PrePaidApp = () => {
   const nfcNotificationTimerRef = useRef<number | null>(null);
 
   const [nfcNotification, setNfcNotification] = useState<string | null>(null);
+
+  const baselineRef = useRef<SlotCanCount[] | null>(null);
+  const latestRef = useRef<SlotCanCount[]>([]);
+  const cursorRef = useRef(0);
+  const readingsRef = useRef<Map<number, CanCol>>(new Map());
+  const pollTimerRef = useRef<number | null>(null);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [pickedUp, setPickedUp] = useState<ProductType[]>([]);
+
+  const toProducts = (slots: SlotCanCount[]): ProductType[] => {
+    const grouped = new Map<number, ProductType>();
+    for (const slot of slots) {
+      const existing = grouped.get(slot.product_id);
+      if (existing) existing.count += slot.count;
+      else
+        grouped.set(slot.product_id, {
+          product_id: String(slot.product_id),
+          product_name: slot.product_name,
+          product_category: "Cans",
+          product_price: 0,
+          product_availability: true,
+          count: slot.count,
+        });
+    }
+    return [...grouped.values()];
+  };
+
+  const pollCans = async () => {
+    try {
+      const result = await Cans.Poll(cursorRef.current);
+      cursorRef.current = result.cursor;
+      if (result.counts.length === 0) return;
+
+      for (const c of result.counts) readingsRef.current.set(c.column, c);
+      latestRef.current = countCansPerSlot([...readingsRef.current.values()]);
+
+      baselineRef.current ??= latestRef.current;
+      const removed = toProducts(cansPickedUp(baselineRef.current, latestRef.current));
+      setPickedUp(removed);
+      setModalOpen(removed.length > 0);
+    } catch (e) {
+      dev && console.error("Can poll failed:", e);
+    }
+  };
+
+  const startCanListening = async () => {
+    try {
+      cursorRef.current = await Cans.StartLive();
+      pollTimerRef.current = setInterval(pollCans, 1000) as unknown as number;
+    } catch (e) {
+      dev && console.error("Can listen failed:", e);
+    }
+  };
+
+  // accept what is currently in the machine as the new baseline
+  const acknowledgePickedUp = () => {
+    baselineRef.current = latestRef.current;
+    setPickedUp([]);
+    setModalOpen(false);
+  };
 
   const adminPresentCheck = async (): Promise<void> => {
     const present = await Admin.areAdminsPresent();
@@ -72,8 +136,11 @@ const PrePaidApp = () => {
   useEffect(() => {
     adminPresentCheck();
     listenToNfc();
+    startCanListening();
 
     return () => {
+      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+      Cans.Stop().catch(() => {});
       if (unlistenNfcAdminRef.current) unlistenNfcAdminRef.current();
       if (unlistenNfcUnknownRef.current) unlistenNfcUnknownRef.current();
       if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
@@ -91,10 +158,17 @@ const PrePaidApp = () => {
         />
       )}
 
-      <h1 style={styles.header}>Prepaid App</h1>
-      <p style={{ color: "var(--theme-text, #d4d4d4)", marginTop: "1rem" }}>
-        Coming soon…
-      </p>
+      <div style={styles.header}>
+        <h1>Collect cans to start</h1>
+      </div>
+
+      <SelectedProductsModal
+        opened={modalOpen}
+        onClose={acknowledgePickedUp}
+        selectedProducts={pickedUp}
+        onRemove={acknowledgePickedUp}
+        onClearAll={acknowledgePickedUp}
+      />
 
       {nfcNotification && (
         <div style={styles.nfcNotification}>{nfcNotification}</div>
