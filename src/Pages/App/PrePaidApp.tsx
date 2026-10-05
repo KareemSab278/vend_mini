@@ -52,23 +52,16 @@ const PrePaidApp = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [pickedUp, setPickedUp] = useState<ProductType[]>([]);
 
-  const toProducts = (slots: SlotCanCount[]): ProductType[] => {
-    const grouped = new Map<number, ProductType>();
-    for (const slot of slots) {
-      const existing = grouped.get(slot.product_id);
-      if (existing) existing.count += slot.count;
-      else
-        grouped.set(slot.product_id, {
-          product_id: String(slot.product_id),
-          product_name: slot.product_name,
-          product_category: "Cans",
-          product_price: 0,
-          product_availability: true,
-          count: slot.count,
-        });
-    }
-    return [...grouped.values()];
-  };
+  // one entry per column so every sensor shows up, even when columns share a product
+  const toProducts = (slots: SlotCanCount[]): ProductType[] =>
+    slots.map((slot) => ({
+      product_id: `${slot.product_id}-${slot.column_id}`,
+      product_name: `${slot.product_name} (column ${slot.column_id})`,
+      product_category: "Cans",
+      product_price: 0,
+      product_availability: true,
+      count: slot.count,
+    }));
 
   const pollCans = async () => {
     try {

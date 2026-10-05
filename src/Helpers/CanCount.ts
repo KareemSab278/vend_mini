@@ -17,14 +17,13 @@
 import { invoke } from "@tauri-apps/api/core";
 import { fakePlanogram, categories } from "./planogramData";
 
-// received from rust invoke. this is ONE column of cans
 export type CanCol = {
     column: number;
     count: number | null;
     live_distance: number | null;
 };
 
-type CanCount = CanCol[];
+export type CanCount = CanCol[];
 
 interface LivePollResult {
     counts: CanCount;
@@ -41,7 +40,10 @@ interface CansFunctions {
 
 export const Cans: CansFunctions = {
     Start: async (): Promise<CanCount> => {
-        return await invoke<CanCount>("cans_listen", { command: "start" });
+
+        const result = await invoke<CanCount>("cans_listen", { command: "start" });
+        console.log('result of Start: ', result);
+        return result;
     },
     Stop: async (): Promise<CanCount> => {
         return await invoke<CanCount>("cans_listen", { command: "stop" });
@@ -69,9 +71,16 @@ export type SlotCanCount = {
     count: number;
 };
 
-// measured average distances (mm) for 0, 1, 2 and 3 standard cans in a column.
-// the steps are not linear, so the counts are matched to the closest measurement
-const CALIBRATED_DISTANCES_MM = [475, 445, 397, 335];
+// measured average distances (mm) for a standard-can column: [cans, distance].
+// the steps are not linear, so counts are interpolated between these points
+const CALIBRATION: [number, number][] = [
+    [0, 475],
+    [1, 445],
+    [2, 397],
+    [3, 335],
+    [9, 31], // full column
+];
+const MAX_CANS = CALIBRATION[CALIBRATION.length - 1][0];
 const STANDARD_CAN_DIAMETER_MM = 65;
 const SLIM_CAN_DIAMETER_MM = 50;
 const SLIM_CAN_NAMES = /red\s?bull|coffee/i;
@@ -82,8 +91,8 @@ const isCanProduct = (entry: PlanogramEntry): boolean =>
 const canDiameterMm = (entry: PlanogramEntry): number =>
     SLIM_CAN_NAMES.test(entry.product_name) ? SLIM_CAN_DIAMETER_MM : STANDARD_CAN_DIAMETER_MM;
 
-// the hardware count is only used for null/0. a lone can is not reliably "1" there,
-// so everything else is calculated from the distance
+// the hardware count is only used for null/0. everything else is calculated
+// from the distance so the last/closest can is never ignored
 export const calculateCanCount = (
     hardwareCount: number | null,
     distance: number | null,
@@ -92,21 +101,23 @@ export const calculateCanCount = (
     if (!hardwareCount || distance === null) return 0;
 
     // normalise slim cans onto the standard-can scale
-    const empty = CALIBRATED_DISTANCES_MM[0];
+    const empty = CALIBRATION[0][1];
     const d = empty - ((empty - distance) * STANDARD_CAN_DIAMETER_MM) / diameterMm;
 
-    const last = CALIBRATED_DISTANCES_MM.length - 1;
-    if (d < CALIBRATED_DISTANCES_MM[last]) {
-        return last + Math.round((CALIBRATED_DISTANCES_MM[last] - d) / STANDARD_CAN_DIAMETER_MM);
+    for (let i = 1; i < CALIBRATION.length; i++) {
+        const [fromCans, fromMm] = CALIBRATION[i - 1];
+        const [toCans, toMm] = CALIBRATION[i];
+        if (d >= toMm) {
+            const fraction = (fromMm - d) / (fromMm - toMm);
+            return Math.max(0, Math.round(fromCans + fraction * (toCans - fromCans)));
+        }
     }
-    const canCount = CALIBRATED_DISTANCES_MM.reduce(
-        (best, ref, i) =>
-            Math.abs(ref - d) < Math.abs(CALIBRATED_DISTANCES_MM[best] - d) ? i : best,
-        0,
-    );
-    console.log(`Calculated can count: ${canCount} for distance: ${distance} and hardware count: ${hardwareCount}`);
-    return canCount;
+    return MAX_CANS;
 };
+
+// can count for every column the hardware reported
+export const countCansPerColumn = (readings: CanCount): { column: number; count: number }[] =>
+    readings.map((r) => ({ column: r.column, count: calculateCanCount(r.count, r.live_distance) }));
 
 // one sensor covers one physical column, so each column_id is counted once
 // even when the planogram lists it on several rows
