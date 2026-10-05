@@ -12,7 +12,23 @@
     all cans are 65 mm in diameter (includes monster)
         redbull cans are 50 mm in diameter (some other drinks as well like iced coffees)
 
+    measured average distances (mm) for a standard-can column: [cans, distance].
+        the steps are not linear, so counts are interpolated between these points
 */
+
+const CALIBRATION: [number, number][] = [
+    [0, 475],
+    [1, 445],
+    [2, 397],
+    [3, 335],
+    [9, 31], // full column
+];
+
+
+const MAX_CANS = CALIBRATION[CALIBRATION.length - 1][0];
+const STANDARD_CAN_DIAMETER_MM = 65;
+const SLIM_CAN_DIAMETER_MM = 50;
+const SLIM_CAN_NAMES = /red\s?bull|coffee/i;
 
 import { invoke } from "@tauri-apps/api/core";
 import { fakePlanogram, categories } from "./planogramData";
@@ -70,20 +86,6 @@ export type SlotCanCount = {
     product_name: string;
     count: number;
 };
-
-// measured average distances (mm) for a standard-can column: [cans, distance].
-// the steps are not linear, so counts are interpolated between these points
-const CALIBRATION: [number, number][] = [
-    [0, 475],
-    [1, 445],
-    [2, 397],
-    [3, 335],
-    [9, 31], // full column
-];
-const MAX_CANS = CALIBRATION[CALIBRATION.length - 1][0];
-const STANDARD_CAN_DIAMETER_MM = 65;
-const SLIM_CAN_DIAMETER_MM = 50;
-const SLIM_CAN_NAMES = /red\s?bull|coffee/i;
 
 const isCanProduct = (entry: PlanogramEntry): boolean =>
     categories.includes(entry.product_category) && entry.product_category.startsWith("Cans");
