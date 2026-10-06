@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Modal } from "@mantine/core";
 import { PrimaryButton } from "../../../Components/Button";
-import { Cans, type CanCount } from "../../../Helpers/CanCount";
+import { Cans, type CanCount, countCansPerSlot, type SlotCanCount } from "../../../Helpers/CanCount";
 
 export { CansModal };
 
@@ -93,6 +93,9 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
         onClose();
     };
 
+    // Map readings (channel-first) to planogram slots for display/debugging
+    const mappedSlots: SlotCanCount[] = readings ? countCansPerSlot(readings) : [];
+
     return (
         <Modal opened={opened} onClose={handleClose} title="Can Counter" size="xl">
             {
@@ -109,33 +112,68 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
                 <p role="status" style={styles.statusText}>{statusText}</p>
             )}
             {prepaidEnabled && readings && (
-                <div style={styles.readingsPanel}>
-                    <table style={styles.table}>
-                        <thead>
-                            <tr>
-                                <th scope="col" style={styles.headerCell}>Column</th>
-                                <th scope="col" style={styles.headerCell}>Sensor count</th>
-                                <th scope="col" style={styles.headerCell}>Distance</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {readings.map((reading, index) => (
-                                <tr key={`${reading.column}-${index}`}>
-                                    <th scope="row" style={styles.rowHeader}>{reading.column}</th>
-                                    <td style={styles.cell}>{reading.count ?? "—"}</td>
-                                    <td style={styles.cell}>
-                                        {reading.live_distance === null ? "—" : `${reading.live_distance} mm`}
-                                    </td>
-                                </tr>
-                            ))}
-                            {readings.length === 0 && (
+                <>
+                    <div style={styles.readingsPanel}>
+                        <table style={styles.table}>
+                            <thead>
                                 <tr>
-                                    <td colSpan={3} style={styles.emptyCell}>No readings received.</td>
+                                    <th scope="col" style={styles.headerCell}>Channel</th>
+                                    <th scope="col" style={styles.headerCell}>Sensor count</th>
+                                    <th scope="col" style={styles.headerCell}>Distance</th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                            </thead>
+                            <tbody>
+                                {readings.map((reading, index) => (
+                                    <tr key={`${reading.channel}-${index}`}>
+                                        <th scope="row" style={styles.rowHeader}>{reading.channel}</th>
+                                        <td style={styles.cell}>{reading.count ?? "—"}</td>
+                                        <td style={styles.cell}>
+                                            {reading.live_distance === null ? "—" : `${reading.live_distance} mm`}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {readings.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} style={styles.emptyCell}>No readings received.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* mapped slots from planogram (channel-first) */}
+                    <div style={{ ...styles.readingsPanel, marginTop: "1rem" }}>
+                        <table style={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th scope="col" style={styles.headerCell}>Column</th>
+                                    <th scope="col" style={styles.headerCell}>Product</th>
+                                    <th scope="col" style={styles.headerCell}>Product ID</th>
+                                    <th scope="col" style={styles.headerCell}>Count</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {mappedSlots.map((s, i) => (
+                                    <tr key={`${s.column_id}-${i}`}>
+                                        <th scope="row" style={styles.rowHeader}>{s.column_id}</th>
+                                        <td style={styles.cell}>{s.product_name}</td>
+                                        <td style={styles.cell}>{s.product_id}</td>
+                                        <td style={styles.cell}>{s.count}</td>
+                                    </tr>
+                                ))}
+                                {mappedSlots.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} style={styles.emptyCell}>No mapped slots.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <pre style={styles.readingsPanel}>
+                        {JSON.stringify(readings, null, 2)}
+                    </pre>
+                </>
             )}
         </Modal>
     );
@@ -184,5 +222,5 @@ const styles: { [key: string]: React.CSSProperties } = {
     emptyCell: {
         padding: "1rem",
         textAlign: "center",
-    },
+    }
 };

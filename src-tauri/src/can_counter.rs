@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "lowercase")]
 pub struct CanColCount {
-    pub column: u8,                 // no more than 20 columns anyway
+    pub channel: u8,                 // no more than 100 channels anyway
     pub count: Option<u8>,          // cant be more then 12 cans anyway so u8 is ok
     pub live_distance: Option<f32>, // distance measurement from the sensor in millimeters
 }
@@ -330,8 +330,9 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
     // ============================================================
 
     void sendCanCounts() {
-    // Build full JSON array in one String and print once.
+
     String json = "[";
+
     for (int i = 0; i < NUM_COLUMNS; i++) {
 
         float avgDistance = getAverageDistance(i);
@@ -344,32 +345,34 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
 
         if (i > 0) json += ",";
 
-        json += "{\"column\":";
-        json += String(i); // 0-based column numbering
+        json += "{\"channel\":";
+        json += String(SENSOR_CHANNELS[i]);
+
         json += ",\"count\":";
         json += String(count);
+
         json += ",\"live_distance\":";
 
         if (avgDistance < 0) {
         json += "null";
         } else {
-        json += String(avgDistance, 2); // two decimal places
+        json += String(avgDistance, 2);
         }
 
         json += "}";
     }
 
     json += "]";
-    Serial.println(json); // single line output
-    }
 
+    Serial.println(json);
+    }
 
     // ============================================================
     // SEND RAW DISTANCES (EMIT AS ONE ATOMIC LINE)
     // ============================================================
 
     void sendDistances() {
-    // Build full JSON object and print once.
+
     String json = "{";
 
     for (int i = 0; i < NUM_COLUMNS; i++) {
@@ -378,8 +381,8 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
 
         if (i > 0) json += ",";
 
-        json += "\"distance_column_";
-        json += String(i); // 0-based index in field name
+        json += "\"channel_";
+        json += String(SENSOR_CHANNELS[i]);
         json += "\":";
 
         if (avgDistance < 0) {
@@ -390,7 +393,8 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
     }
 
     json += "}";
-    Serial.println(json); // single line output
+
+    Serial.println(json);
     }
 
 
@@ -490,5 +494,4 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
         sendDistances();
     }
     }    
-    
 */

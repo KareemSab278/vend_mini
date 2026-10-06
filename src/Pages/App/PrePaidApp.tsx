@@ -69,7 +69,7 @@ const PrePaidApp = () => {
       cursorRef.current = result.cursor;
       if (result.counts.length === 0) return;
 
-      for (const c of result.counts) readingsRef.current.set(c.column, c);
+      for (const c of result.counts) readingsRef.current.set(c.channel, c);
       latestRef.current = countCansPerSlot([...readingsRef.current.values()]);
 
       baselineRef.current ??= latestRef.current;

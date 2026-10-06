@@ -47,7 +47,8 @@ export const fakePlanogram = [
         "product_category": "Bottles - Coca cola",
         "product_category_id": 7001,
         "selection_capacity": 8,
-        "max_fill": 0
+        "max_fill": 0,
+        "channel": 2
     },
     {
         "plan_id": 9949,
@@ -62,7 +63,8 @@ export const fakePlanogram = [
         "product_category": "Bottles - Coca cola",
         "product_category_id": 7001,
         "selection_capacity": 8,
-        "max_fill": 0
+        "max_fill": 0,
+        "channel": 3
     },
     {
         "plan_id": 9949,
@@ -77,7 +79,8 @@ export const fakePlanogram = [
         "product_category": "Bottles - Coca cola",
         "product_category_id": 7001,
         "selection_capacity": 8,
-        "max_fill": 0
+        "max_fill": 0,
+        "channel": 4
     },
     {
         "plan_id": 9949,
@@ -92,7 +95,8 @@ export const fakePlanogram = [
         "product_category": "Bottles - Coca cola",
         "product_category_id": 7001,
         "selection_capacity": 8,
-        "max_fill": 0
+        "max_fill": 0,
+        "channel": 2
     },
     {
         "plan_id": 9949,
@@ -107,7 +111,8 @@ export const fakePlanogram = [
         "product_category": "Bottles - Coca cola",
         "product_category_id": 7001,
         "selection_capacity": 8,
-        "max_fill": 0
+        "max_fill": 0,
+        "channel": 2
     },
     {
         "plan_id": 9949,

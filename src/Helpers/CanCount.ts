@@ -34,7 +34,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { fakePlanogram, categories } from "./planogramData";
 
 export type CanCol = {
-    column: number;
+    channel: number;
     count: number | null;
     live_distance: number | null;
 };
@@ -118,8 +118,8 @@ export const calculateCanCount = (
 };
 
 // can count for every column the hardware reported
-export const countCansPerColumn = (readings: CanCount): { column: number; count: number }[] =>
-    readings.map((r) => ({ column: r.column, count: calculateCanCount(r.count, r.live_distance) }));
+export const countCansPerColumn = (readings: CanCount): { channel: number; count: number }[] =>
+    readings.map((r) => ({ channel: r.channel, count: calculateCanCount(r.count, r.live_distance) }));
 
 // one sensor covers one physical column, so each column_id is counted once
 // even when the planogram lists it on several rows
@@ -127,19 +127,50 @@ export const countCansPerSlot = (
     readings: CanCount,
     planogram: PlanogramEntry[] = fakePlanogram,
 ): SlotCanCount[] => {
+    // Build a map of planogram entries keyed by column_id for quick lookup
     const columns = new Map<number, PlanogramEntry>();
     for (const entry of planogram.filter(isCanProduct)) {
         if (!columns.has(entry.column_id)) columns.set(entry.column_id, entry);
     }
-    return [...columns.values()].map((entry) => {
-        const reading = readings.find((r) => r.column === entry.column_id);
-        return {
-            column_id: entry.column_id,
-            product_id: entry.product_id,
-            product_name: entry.product_name,
-            count: reading ? calculateCanCount(reading.count, reading.live_distance, canDiameterMm(entry)) : 0,
-        };
-    });
+
+    const used = new Set<number>();
+    const result: SlotCanCount[] = [];
+
+    // Go by the channel (reading.channel) first and map to planogram entries
+    for (const r of readings) {
+        const entry = columns.get(r.channel);
+        if (entry) {
+            used.add(entry.column_id);
+            result.push({
+                column_id: entry.column_id,
+                product_id: entry.product_id,
+                product_name: entry.product_name,
+                count: calculateCanCount(r.count, r.live_distance, canDiameterMm(entry)),
+            });
+        } else {
+            // Channel not present in planogram: still show the channel with a placeholder product
+            result.push({
+                column_id: r.channel,
+                product_id: -1,
+                product_name: `Channel ${r.channel}`,
+                count: calculateCanCount(r.count, r.live_distance),
+            });
+        }
+    }
+
+    // Add any planogram slots that had no readings (count = 0)
+    for (const [, entry] of columns.entries()) {
+        if (!used.has(entry.column_id)) {
+            result.push({
+                column_id: entry.column_id,
+                product_id: entry.product_id,
+                product_name: entry.product_name,
+                count: 0,
+            });
+        }
+    }
+
+    return result;
 };
 
 export const cansPickedUp = (before: SlotCanCount[], after: SlotCanCount[]): SlotCanCount[] =>
