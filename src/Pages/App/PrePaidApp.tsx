@@ -52,6 +52,8 @@ const PrePaidApp = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [pickedUp, setPickedUp] = useState<ProductType[]>([]);
 
+  const [error, setError] = useState<string | null>(null);
+
   // one entry per column so every sensor shows up, even when columns share a product
   const toProducts = (slots: SlotCanCount[]): ProductType[] =>
     slots.map((slot) => ({
@@ -82,12 +84,26 @@ const PrePaidApp = () => {
   };
 
   const startCanListening = async () => {
-    try {
-      cursorRef.current = await Cans.StartLive();
-      pollTimerRef.current = setInterval(pollCans, 1000) as unknown as number;
-    } catch (e) {
-      dev && console.error("Can listen failed:", e);
+    let success = false;
+
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        cursorRef.current = await Cans.StartLive();
+        pollTimerRef.current = setInterval(pollCans, 1000) as unknown as number;
+        success = true;
+        break;
+      } catch (e) {
+        dev && console.error(`Can listen ${attempt} failed:`, e);
+        await new Promise((res) => setTimeout(res, 200 * attempt));
+      }
     }
+
+    if (!success) {
+      setError("Can counter not found - try restarting the app and check if the hardware is properly connected or if the can counter is being used elsewhere.");
+    } else {
+      setError(null);
+    }
+
   };
 
   // accept what is currently in the machine as the new baseline
@@ -133,7 +149,7 @@ const PrePaidApp = () => {
 
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-      Cans.Stop().catch(() => {});
+      Cans.Stop().catch(() => { });
       if (unlistenNfcAdminRef.current) unlistenNfcAdminRef.current();
       if (unlistenNfcUnknownRef.current) unlistenNfcUnknownRef.current();
       if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
@@ -150,18 +166,19 @@ const PrePaidApp = () => {
           onClick={() => navigate("/admin")}
         />
       )}
+      {!error ? <>
+        <div style={styles.header}>
+          <h1>Collect cans to start</h1>
+        </div>
 
-      <div style={styles.header}>
-        <h1>Collect cans to start</h1>
-      </div>
-
-      <SelectedProductsModal
-        opened={modalOpen}
-        onClose={acknowledgePickedUp}
-        selectedProducts={pickedUp}
-        onRemove={acknowledgePickedUp}
-        onClearAll={acknowledgePickedUp}
-      />
+        <SelectedProductsModal
+          opened={modalOpen}
+          onClose={acknowledgePickedUp}
+          selectedProducts={pickedUp}
+          onRemove={acknowledgePickedUp}
+          onClearAll={acknowledgePickedUp}
+        />
+      </> : <div style={styles.error}>{error}</div>}
 
       {nfcNotification && (
         <div style={styles.nfcNotification}>{nfcNotification}</div>

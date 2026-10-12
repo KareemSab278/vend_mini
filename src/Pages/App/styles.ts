@@ -105,4 +105,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     pointerEvents: "none",
     letterSpacing: "0.01em",
   },
+  error: {
+    textAlign: "center",
+    color: "var(--theme-text, #d4d4d4)",
+    fontSize: "1.2rem",
+    marginTop: "2rem",
+    padding: "2rem",
+  },
 };
