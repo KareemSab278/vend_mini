@@ -129,10 +129,36 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
 
     // Sensor 0 is connected to TCA channel 2
     // Sensor 1 is connected to TCA channel 3
-    const uint8_t SENSOR_CHANNELS[2] = {2, 3};
+    const uint8_t SENSOR_CHANNELS[2] = { 2, 3 };
 
     const uint8_t SENSOR_ADDRESS = 0x29;
+    /*
+        only 7 cans can fit a column
 
+        cans: distance
+        0: 530 - 590
+        1: 510 - 535
+        2: 430 - 460
+        3: 385 - 390
+        4: 305 - 315
+        5: 230 - 240
+        6: 165 - 170
+        7: 84 - 85
+    */
+
+    #include <map>
+    #include <utility>
+
+    const std::map<std::pair<float, float>, int> canCountMap = {
+    {{540.0, 590.0}, 0},
+    {{510.0, 535.0}, 1},
+    {{430.0, 460.0}, 2},
+    {{385.0, 390.0}, 3},
+    {{305.0, 315.0}, 4},
+    {{230.0, 240.0}, 5},
+    {{165.0, 170.0}, 6},
+    {{84.0, 85.0},  7}
+    };
 
     // ============================================================
     // SERIAL / LISTENING
@@ -270,32 +296,49 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
     // ============================================================
 
     float getAverageDistance(int column) {
-
-    // Select the correct TCA9548A channel before communicating
     selectChannel(SENSOR_CHANNELS[column]);
 
-    long total = 0;
+    const int NUM_SAMPLES = 15;
+    float readings[NUM_SAMPLES];
     int validReadings = 0;
 
-    for (int i = 0; i < NUM_READINGS; i++) {
-
+    for (int i = 0; i < NUM_SAMPLES; i++) {
         VL53L0X_RangingMeasurementData_t measure;
 
         sensors[column].rangingTest(&measure, false);
 
-        if (measure.RangeStatus != 4) {
-        total += measure.RangeMilliMeter;
-        validReadings++;
+        // Accept only valid measurements
+        if (measure.RangeStatus == 0 && measure.RangeMilliMeter > 0) {
+        readings[validReadings++] =
+            measure.RangeMilliMeter;
         }
 
-        delay(5);
+        delay(10);
     }
 
     if (validReadings == 0) {
         return -1.0;
     }
 
-    return (float)total / (float)validReadings;
+    // Sort readings
+    for (int i = 0; i < validReadings - 1; i++) {
+        for (int j = i + 1; j < validReadings; j++) {
+        if (readings[j] < readings[i]) {
+            float temp = readings[i];
+            readings[i] = readings[j];
+            readings[j] = temp;
+        }
+        }
+    }
+
+    // Return median
+    if (validReadings % 2 == 1) {
+        return readings[validReadings / 2];
+    }
+
+    return (
+            readings[validReadings / 2 - 1] + readings[validReadings / 2])
+            / 2.0;
     }
 
 
@@ -304,24 +347,28 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
     // ============================================================
 
     int calculateCanCount(int column, float distance) {
-
-    if (distance > EMPTY_BAND_MIN_MM[column]) {
+    if (distance < 0) {
         return 0;
     }
 
-    float difference =
-        ONE_CAN_DISTANCE_MM[column] - distance;
+    int closestCount = 0;
+    float smallestDifference = 1000000.0;
 
-    int additionalCans =
-        round(difference / CAN_PITCH_MM[column]);
+    for (const auto& entry : canCountMap) {
+        float midpoint =
+        (entry.first.first + entry.first.second) / 2.0;
 
-    int count = 1 + additionalCans;
+        float difference = abs(distance - midpoint);
 
-    if (count < 0) {
-        count = 0;
+        if (difference < smallestDifference ||
+            (difference == smallestDifference &&
+            entry.second > closestCount)) {
+        smallestDifference = difference;
+        closestCount = entry.second;
+        }
     }
 
-    return count;
+    return closestCount;
     }
 
 
@@ -476,8 +523,7 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
 
 
     // Normal can-count output
-    if (listening &&
-        millis() - lastUpdateTime >= UPDATE_INTERVAL_MS) {
+    if (listening && millis() - lastUpdateTime >= UPDATE_INTERVAL_MS) {
 
         lastUpdateTime = millis();
 
@@ -486,12 +532,11 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
 
 
     // Raw distance output
-    if (listeningRaw &&
-        millis() - lastRawUpdateTime >= UPDATE_INTERVAL_MS) {
+    if (listeningRaw && millis() - lastRawUpdateTime >= UPDATE_INTERVAL_MS) {
 
         lastRawUpdateTime = millis();
 
         sendDistances();
     }
-    }    
+    }
 */
