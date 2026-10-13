@@ -10,6 +10,10 @@ interface SelectedProductsModalProps {
   selectedProducts: any[];
   onRemove: (product: any) => void;
   onClearAll: () => void;
+  emptyMessage?: string;
+  footer?: React.ReactNode;
+  readOnly?: boolean; // hides the remove / clear controls
+  dismissible?: boolean; // false stops the modal being closed by the user
 }
 
 const SelectedProductsModal = ({
@@ -19,10 +23,22 @@ const SelectedProductsModal = ({
   selectedProducts,
   onRemove,
   onClearAll,
+  emptyMessage,
+  footer,
+  readOnly = false,
+  dismissible = true,
 }: SelectedProductsModalProps) => (
-  <Modal opened={opened} onClose={onClose} title={title ?? "Selected Products"} size="xl">
+  <Modal
+    opened={opened}
+    onClose={onClose}
+    title={title ?? "Selected Products"}
+    size="xl"
+    withCloseButton={dismissible}
+    closeOnClickOutside={dismissible}
+    closeOnEscape={dismissible}
+  >
     {selectedProducts.length === 0 ? (
-      <div style={styles.noProductsMessage}>No products selected.</div>
+      <div style={styles.noProductsMessage}>{emptyMessage ?? "No products selected."}</div>
     ) : (
       <>
 
@@ -33,18 +49,21 @@ const SelectedProductsModal = ({
               product={prod}
               title={`${prod.product_name} x${prod.count}`}
               selected
-              showRemoveButton
+              showRemoveButton={!readOnly}
               onRemove={() => onRemove(prod)}
               onClick={null}
               isCheckOut
             />
           ))}
         </section>
-        <div style={{ marginTop: "1rem", textAlign: "center" }}>
-        <PrimaryButton title="Clear All" onClick={onClearAll} />
-        </div>
+        {!readOnly && (
+          <div style={{ marginTop: "1rem", textAlign: "center" }}>
+            <PrimaryButton title="Clear All" onClick={onClearAll} />
+          </div>
+        )}
       </>
     )}
+    {footer}
   </Modal>
 );
 

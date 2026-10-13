@@ -1,23 +1,12 @@
 /*
     should wait for tap of card after selecting start.
     once card tapped and ok then open door
-    listen to the cans detector using method wrapper (soon) for 2 seconds to identify all cans correctly
-    THIS SHOULD HAPPEN DURING THE DOOR PAID UNLOCK PHASE BEFORE THE CUSTOMER CAN EVEN REACH THE CANS
-
-    then wait for door close in infinite loop else if
-        door not registered as closed then wait for x seconds then end loop and show cart.
-
-    once customer closes door, identify if customer happy with selection in cart modal (reuse component)
-
-    if not they can put back - they put back items they removed off the list so we can then map if they put the right items back
-        (requires a new listen to cans until door closed - should probably create a helper for this)
-
-    if customer puts items back then identify what items customer put back and map them to correct locations
-        else show warning that incorrect placement occurred.
     
-    finally, complete the transaction and update the inventory accordingly once customer is happy.
-
-    if customer not happy but did not put all items back then charge them anyway for items not added back
+    1. customer selects the cans they want -> 2. shown in the cart in real time like it does now
+      -> 3. customer closes door -> 4. confirms their selection
+        -> 5. if not confirm open door and show cart again (back to step 3) -> 6. transaction completes
+          -> 7. timer is shown to confirm the transaction or do step 5 again
+            -> 8. if timer runs out or customer completes charge customer (not implemented yet)
 */
 
 const dev = import.meta.env.DEV;
@@ -31,7 +20,17 @@ import { KeyPressListener } from "../../Helpers/KeyPressListener";
 import { Cans, countCansPerSlot, cansPickedUp } from "../../Helpers/CanCount";
 import type { CanCol, SlotCanCount } from "../../Helpers/CanCount";
 import type { ProductType } from "../../Helpers/Products";
+import { Door } from "../../Helpers/Door";
+import { PrimaryButton } from "../../Components/Button";
 import { SelectedProductsModal } from "./Components/SelectedProductsModal";
+import { PrePayment } from "../../Helpers/Payment";
+import * as helpers from "./Helpers";
+
+type Phase = "idle" | "tap" | "shopping" | "confirm" | "done" | "error";
+
+const CONFIRM_TIMEOUT_SECONDS = 30;
+const RESET_DELAY_MS = 5000;
+const CARD_CHECK_AMOUNT = 0; // card is only checked at the start, the real charge happens after confirm
 
 export { PrePaidApp };
 
@@ -49,7 +48,11 @@ const PrePaidApp = () => {
   const cursorRef = useRef(0);
   const readingsRef = useRef<Map<number, CanCol>>(new Map());
   const pollTimerRef = useRef<number | null>(null);
-  const [modalOpen, setModalOpen] = useState(false);
+  const sessionRef = useRef(0); // bumped on cancel/reset/unmount so stale async steps do nothing
+  const resetTimerRef = useRef<number | null>(null);
+  const [phase, setPhase] = useState<Phase>("idle");
+  const [message, setMessage] = useState("");
+  const [secondsLeft, setSecondsLeft] = useState(CONFIRM_TIMEOUT_SECONDS);
   const [pickedUp, setPickedUp] = useState<ProductType[]>([]);
 
   const [error, setError] = useState<string | null>(null);
@@ -75,9 +78,7 @@ const PrePaidApp = () => {
       latestRef.current = countCansPerSlot([...readingsRef.current.values()]);
 
       baselineRef.current ??= latestRef.current;
-      const removed = toProducts(cansPickedUp(baselineRef.current, latestRef.current));
-      setPickedUp(removed);
-      setModalOpen(removed.length > 0);
+      setPickedUp(toProducts(cansPickedUp(baselineRef.current, latestRef.current)));
     } catch (e) {
       dev && console.error("Can poll failed:", e);
     }
@@ -89,7 +90,7 @@ const PrePaidApp = () => {
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         cursorRef.current = await Cans.StartLive();
-        pollTimerRef.current = setInterval(pollCans, 1000) as unknown as number;
+        pollTimerRef.current = setInterval(pollCans, 1000) as number;
         success = true;
         break;
       } catch (e) {
@@ -106,12 +107,86 @@ const PrePaidApp = () => {
 
   };
 
-  // accept what is currently in the machine as the new baseline
-  const acknowledgePickedUp = () => {
-    baselineRef.current = latestRef.current;
+  const resetToIdle = () => {
+    sessionRef.current++;
+    if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
+    resetTimerRef.current = null;
     setPickedUp([]);
-    setModalOpen(false);
+    setMessage("");
+    setPhase("idle");
   };
+
+  const finish = (id: number, nextPhase: "done" | "error", text: string) => {
+    if (id !== sessionRef.current) return;
+    setPhase(nextPhase);
+    setMessage(text);
+    resetTimerRef.current = setTimeout(resetToIdle, RESET_DELAY_MS) as unknown as number;
+  };
+
+  // wait for the card tap, then open the door
+  const startSession = async () => {
+    const id = ++sessionRef.current;
+    baselineRef.current = latestRef.current.length > 0 ? latestRef.current : null;
+    setPickedUp([]);
+    setPhase("tap");
+    setMessage("Please tap your card to open the door.");
+
+    await PrePayment.start(CARD_CHECK_AMOUNT, async (success) => {
+      if (id !== sessionRef.current) return;
+      if (!success) return finish(id, "error", "Card not accepted. Please try again.");
+      await openDoorAndWaitForClose(id);
+    });
+  };
+
+  const cancelSession = async () => {
+    await PrePayment.cancel();
+    resetToIdle();
+  };
+
+  // steps 3 and 5: unlock, let the customer pick cans, then wait for the door to close
+  const openDoorAndWaitForClose = async (id: number) => {
+    setPhase("shopping");
+    setMessage("Door open. Take your cans and close the door.");
+    try {
+      await Door.paidUnlock();
+      await Door.waitForOpenedThenClosed();
+      if (id !== sessionRef.current) return;
+      setSecondsLeft(CONFIRM_TIMEOUT_SECONDS);
+      setMessage("Please confirm your selection.");
+      setPhase("confirm");
+    } catch (e) {
+      dev && console.error("Door failed:", e);
+      finish(id, "error", "Could not open the door. Please try again.");
+    }
+  };
+
+  // step 5: customer is not happy with the selection so the door opens again and the cart is kept
+  const changeSelection = () => openDoorAndWaitForClose(sessionRef.current);
+
+  // steps 6-8: confirmed by the customer or the timer running out
+  const chargeCustomer = async () => {
+    const id = sessionRef.current;
+    const tookCans = pickedUp.length > 0;
+    setPhase("done");
+    try {
+      // not implemented yet: charge the customer for pickedUp
+      if (tookCans) await PrePayment.end(true);
+    } catch (e) {
+      return finish(id, "error", `Failed to complete payment: ${e}`);
+    }
+    finish(id, "done", tookCans ? "Payment successful.\nThank you for your purchase." : "No cans taken. Thank you.");
+  };
+
+  // step 7: countdown shown while the customer confirms
+  useEffect(() => {
+    if (phase !== "confirm") return;
+    if (secondsLeft <= 0) {
+      chargeCustomer();
+      return;
+    }
+    const timer = setTimeout(() => setSecondsLeft((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [phase, secondsLeft]);
 
   const adminPresentCheck = async (): Promise<void> => {
     const present = await Admin.areAdminsPresent();
@@ -150,6 +225,8 @@ const PrePaidApp = () => {
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
       Cans.Stop().catch(() => { });
+      sessionRef.current++;
+      if (resetTimerRef.current) clearTimeout(resetTimerRef.current);
       if (unlistenNfcAdminRef.current) unlistenNfcAdminRef.current();
       if (unlistenNfcUnknownRef.current) unlistenNfcUnknownRef.current();
       if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
@@ -168,15 +245,48 @@ const PrePaidApp = () => {
       )}
       {!error ? <>
         <div style={styles.header}>
-          <h1>Collect cans to start</h1>
+          <h1>{phase === "idle" ? "Press start to begin" : "Vending"}</h1>
         </div>
 
+        <section style={styles.paymentSection}>
+          {phase !== "idle" && (
+            <div style={styles.statusIcon}>
+              {helpers.statusIcon(
+                { tap: "paying", shopping: "waiting_door", confirm: "waiting_door", done: "done", error: "error" }[phase] as any,
+              )}
+            </div>
+          )}
+          {phase !== "shopping" && phase !== "confirm" && message && (
+            <p style={styles.statusMessage}>{message}</p>
+          )}
+          {phase === "idle" && <PrimaryButton title="Start" onClick={startSession} size="xl" />}
+          {phase === "tap" && <PrimaryButton title="Cancel" onClick={cancelSession} size="xl" />}
+          {phase === "error" && <PrimaryButton title="Dismiss" onClick={resetToIdle} size="xl" />}
+        </section>
+
         <SelectedProductsModal
-          opened={modalOpen}
-          onClose={acknowledgePickedUp}
+          title="Your cans"
+          emptyMessage="No cans taken yet."
+          opened={phase === "shopping" || phase === "confirm"}
+          onClose={() => { }}
+          dismissible={false}
+          readOnly
           selectedProducts={pickedUp}
-          onRemove={acknowledgePickedUp}
-          onClearAll={acknowledgePickedUp}
+          onRemove={() => { }}
+          onClearAll={() => { }}
+          footer={
+            <div style={{ textAlign: "center" }}>
+              <p style={styles.statusMessage}>
+                {phase === "confirm" ? `${message} (${secondsLeft}s)` : message}
+              </p>
+              {phase === "confirm" && (
+                <>
+                  <PrimaryButton title="Confirm" onClick={chargeCustomer} size="xl" />
+                  <PrimaryButton title="Open door again" onClick={changeSelection} size="xl" />
+                </>
+              )}
+            </div>
+          }
         />
       </> : <div style={styles.error}>{error}</div>}
 
@@ -186,5 +296,3 @@ const PrePaidApp = () => {
     </main>
   );
 };
-
-

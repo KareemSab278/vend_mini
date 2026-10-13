@@ -73,3 +73,18 @@ export const Payment: PaymentFunctions = {
         }
     }
 };
+
+// fake payments for now. wait 3 seconds then confirm for all
+export const PrePayment = {
+    start: async (amount: number, onResult: (success: boolean) => void): Promise<void> => {
+        setTimeout(() => {
+            onResult(true);
+        }, 3000);
+    },
+    cancel: async (): Promise<void> => {
+        // no-op for fake payment
+    },
+    end: async (success: boolean): Promise<void> => {
+        // no-op for fake payment
+    },
+};
