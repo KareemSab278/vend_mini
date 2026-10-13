@@ -45,11 +45,11 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
         if (!prepaidEnabled) return;
         await stopLive();
         setReadings(null);
-        setStatusText("Listening for 3 samples...");
+        setStatusText("Listening for 3 seconds...");
         try {
-            const counts = await Cans.Start();
+            const counts = await Cans.Listen(3);
             setReadings(counts);
-            setStatusText("3-sample readings");
+            setStatusText("3-second readings");
         } catch (e) {
             setStatusText(`Error: ${e}`);
         }
@@ -102,7 +102,7 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
                 prepaidEnabled
                     ?
                     <div style={styles.grid}>
-                        <PrimaryButton title="Get 3 Samples" onClick={showCount} size="xl" />
+                        <PrimaryButton title="Get 3-Second Reading" onClick={showCount} size="xl" />
                         <PrimaryButton title={liveActive ? "Stop Live Count" : "Get Live Count"} onClick={showLiveCount} size="xl" />
                     </div>
                     :

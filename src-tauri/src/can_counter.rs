@@ -2,9 +2,9 @@ use crate::serial_comms;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
-#[serde(rename_all = "lowercase")]
+#[serde(rename_all = "snake_case")]
 pub struct CanColCount {
-    pub channel: u8,                 // no more than 100 channels anyway
+    pub channel: u8,                // no more than 100 channels anyway
     pub count: Option<u8>,          // cant be more then 12 cans anyway so u8 is ok
     pub live_distance: Option<f32>, // distance measurement from the sensor in millimeters
 }
@@ -114,4 +114,36 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
     }
 
     Vec::new()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{parse_can_count_line, CanColCount};
+
+    #[test]
+    fn parses_arduino_count_array_with_live_distance() {
+        let counts = parse_can_count_line(
+            r#"[{"channel":2,"count":3,"live_distance":341.25},{"channel":3,"count":1,"live_distance":469.0}]"#,
+        );
+
+        assert_eq!(counts.len(), 2);
+        assert_eq!(counts[0].channel, 2);
+        assert_eq!(counts[0].count, Some(3));
+        assert_eq!(counts[0].live_distance, Some(341.25));
+        assert_eq!(counts[1].channel, 3);
+        assert_eq!(counts[1].live_distance, Some(469.0));
+    }
+
+    #[test]
+    fn serializes_live_distance_with_arduino_field_name() {
+        let count = CanColCount {
+            channel: 2,
+            count: Some(3),
+            live_distance: Some(341.25),
+        };
+
+        let json = serde_json::to_string(&count).unwrap();
+
+        assert!(json.contains(r#""live_distance":341.25"#));
+    }
 }
