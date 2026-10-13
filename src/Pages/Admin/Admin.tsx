@@ -25,6 +25,8 @@ import { IconBox } from '@tabler/icons-react';
 
 export { Admin };
 
+const showCanCountModal = import.meta.env.VITE_PREPAID_ENABLED === "true";
+
 type AdminModalType = "addAdmin" | "cans" | "door" | "led" | "system" | "url" | "update" | "theme" | null;
 const currentVersion = import.meta.env.VITE_APP_VERSION as string;
 
@@ -57,10 +59,12 @@ const Admin = () => {
       title: <div style={optionTheme}><IconUserExclamation size={30} stroke={2} />Admins</div>,
       onClick: () => setActiveModal("addAdmin"),
     },
-    cans: {
-      title: <div style={optionTheme}><IconBox size={30} stroke={2} />Cans</div>,
-      onClick: () => setActiveModal("cans"),
-    },
+    ...(showCanCountModal ? {
+      cans: {
+        title: <div style={optionTheme}><IconBox size={30} stroke={2} />Cans</div>,
+        onClick: () => setActiveModal("cans"),
+      },
+    } : {}),
     led: {
       title: <div style={optionTheme}><IconSun size={30} stroke={2} />LED</div>,
       onClick: () => setActiveModal("led"),
