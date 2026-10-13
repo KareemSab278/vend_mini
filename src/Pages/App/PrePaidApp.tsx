@@ -30,7 +30,7 @@ type Phase = "idle" | "tap" | "shopping" | "confirm" | "done" | "error";
 
 const CONFIRM_TIMEOUT_SECONDS = 30;
 const RESET_DELAY_MS = 5000;
-const CARD_CHECK_AMOUNT = 0.10; // card is only checked at the start, the real charge happens after confirm
+const ENTRY_PAYMENT_AMOUNT = 0.10; // small real payment taken at the start for testing, before the door opens
 
 export { PrePaidApp };
 
@@ -50,6 +50,7 @@ const PrePaidApp = () => {
   const pollTimerRef = useRef<number | null>(null);
   const sessionRef = useRef(0); // bumped on cancel/reset/unmount so stale async steps do nothing
   const resetTimerRef = useRef<number | null>(null);
+  const paymentReadyRef = useRef(false);
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(CONFIRM_TIMEOUT_SECONDS);
@@ -123,7 +124,16 @@ const PrePaidApp = () => {
     resetTimerRef.current = setTimeout(resetToIdle, RESET_DELAY_MS) as unknown as number;
   };
 
-  // wait for the card tap, then open the door
+  const initializePayDevice = async () => {
+    try {
+      await Payment.initialize();
+      paymentReadyRef.current = true;
+    } catch (e) {
+      dev && console.error("Failed to initialize payment device:", e);
+    }
+  };
+
+  // take a real card payment, settle it once approved, then open the door
   const startSession = async () => {
     const id = ++sessionRef.current;
     baselineRef.current = latestRef.current.length > 0 ? latestRef.current : null;
@@ -131,17 +141,30 @@ const PrePaidApp = () => {
     setPhase("tap");
     setMessage("Please tap your card to open the door.");
 
-    // use the real payment device instead of the prepayment mock - replace later!
-    await Payment.start(CARD_CHECK_AMOUNT, async (success) => {
+    if (!paymentReadyRef.current) await initializePayDevice();
+    if (id !== sessionRef.current) return;
+
+    await Payment.start(ENTRY_PAYMENT_AMOUNT, async (success) => {
       if (id !== sessionRef.current) return;
-      if (!success) return finish(id, "error", "Card not accepted. Please try again.");
+      if (!success) return finish(id, "error", "Payment failed. Please try again.");
+
+      try {
+        await Payment.end(true);
+      } catch (e) {
+        return finish(id, "error", `Failed to settle payment: ${e}`);
+      }
+      if (id !== sessionRef.current) return;
       await openDoorAndWaitForClose(id);
     });
   };
 
   const cancelSession = async () => {
-    await PrePayment.cancel();
     resetToIdle();
+    try {
+      await Payment.cancel();
+    } catch (e) {
+      dev && console.error("Failed to cancel payment:", e);
+    }
   };
 
   // steps 3 and 5: unlock, let the customer pick cans, then wait for the door to close
@@ -222,6 +245,7 @@ const PrePaidApp = () => {
     adminPresentCheck();
     listenToNfc();
     startCanListening();
+    initializePayDevice();
 
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
