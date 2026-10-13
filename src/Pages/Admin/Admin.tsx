@@ -115,7 +115,7 @@ const Admin = () => {
       </div>
 
       <AdminModal opened={activeModal === "addAdmin"} onClose={() => setActiveModal(null)} />
-      <CansModal opened={activeModal === "cans"} onClose={() => setActiveModal(null)} />
+      {showCanCountModal && <CansModal opened={activeModal === "cans"} onClose={() => setActiveModal(null)} />}
       <LedModal opened={activeModal === "led"} onClose={() => setActiveModal(null)} />
       <DoorModal opened={activeModal === "door"} onClose={() => setActiveModal(null)} />
       <SystemModal opened={activeModal === "system"} onClose={() => setActiveModal(null)} />
