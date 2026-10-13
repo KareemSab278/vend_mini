@@ -29,6 +29,7 @@ import * as helpers from "./Helpers";
 type Phase = "idle" | "tap" | "shopping" | "confirm" | "done" | "error";
 
 const CONFIRM_TIMEOUT_SECONDS = 30;
+const DONE_BUTTON_DELAY_SECONDS = 20; // fallback in case the door close is never registered
 const RESET_DELAY_MS = 5000;
 const ENTRY_PAYMENT_AMOUNT = 0.10; // small real payment taken at the start for testing, before the door opens
 
@@ -51,9 +52,11 @@ const PrePaidApp = () => {
   const sessionRef = useRef(0); // bumped on cancel/reset/unmount so stale async steps do nothing
   const resetTimerRef = useRef<number | null>(null);
   const paymentReadyRef = useRef(false);
+  const doorAttemptRef = useRef(0); // bumped per door wait so a stale wait cannot move the phase
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState("");
   const [secondsLeft, setSecondsLeft] = useState(CONFIRM_TIMEOUT_SECONDS);
+  const [showDoneButton, setShowDoneButton] = useState(false);
   const [pickedUp, setPickedUp] = useState<ProductType[]>([]);
 
   const [error, setError] = useState<string | null>(null);
@@ -168,21 +171,31 @@ const PrePaidApp = () => {
   };
 
   // steps 3 and 5: unlock, let the customer pick cans, then wait for the door to close
+  const goToConfirm = (id: number, attempt: number) => {
+    if (id !== sessionRef.current || attempt !== doorAttemptRef.current) return;
+    doorAttemptRef.current++;
+    setSecondsLeft(CONFIRM_TIMEOUT_SECONDS);
+    setMessage("Please confirm your selection.");
+    setPhase("confirm");
+  };
+
   const openDoorAndWaitForClose = async (id: number) => {
+    const attempt = ++doorAttemptRef.current;
     setPhase("shopping");
     setMessage("Door open. Take your cans and close the door.");
     try {
       await Door.paidUnlock();
       await Door.waitForOpenedThenClosed();
-      if (id !== sessionRef.current) return;
-      setSecondsLeft(CONFIRM_TIMEOUT_SECONDS);
-      setMessage("Please confirm your selection.");
-      setPhase("confirm");
+      goToConfirm(id, attempt);
     } catch (e) {
       dev && console.error("Door failed:", e);
+      if (attempt !== doorAttemptRef.current) return;
       finish(id, "error", "Could not open the door. Please try again.");
     }
   };
+
+  // lets the customer move on if the door close was missed
+  const imDone = () => goToConfirm(sessionRef.current, doorAttemptRef.current);
 
   // step 5: customer is not happy with the selection so the door opens again and the cart is kept
   const changeSelection = () => openDoorAndWaitForClose(sessionRef.current);
@@ -200,6 +213,13 @@ const PrePaidApp = () => {
     }
     finish(id, "done", tookCans ? "Payment successful.\nThank you for your purchase." : "No cans taken. Thank you.");
   };
+
+  useEffect(() => {
+    setShowDoneButton(false);
+    if (phase !== "shopping") return;
+    const timer = setTimeout(() => setShowDoneButton(true), DONE_BUTTON_DELAY_SECONDS * 1000);
+    return () => clearTimeout(timer);
+  }, [phase]);
 
   // step 7: countdown shown while the customer confirms
   useEffect(() => {
@@ -304,6 +324,9 @@ const PrePaidApp = () => {
               <p style={styles.statusMessage}>
                 {phase === "confirm" ? `${message} (${secondsLeft}s)` : message}
               </p>
+              {phase === "shopping" && showDoneButton && (
+                <PrimaryButton title="I'm done" onClick={imDone} size="xl" />
+              )}
               {phase === "confirm" && (
                 <>
                   <PrimaryButton title="Confirm" onClick={chargeCustomer} size="xl" />
