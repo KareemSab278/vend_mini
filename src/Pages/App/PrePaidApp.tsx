@@ -23,14 +23,14 @@ import type { ProductType } from "../../Helpers/Products";
 import { Door } from "../../Helpers/Door";
 import { PrimaryButton } from "../../Components/Button";
 import { SelectedProductsModal } from "./Components/SelectedProductsModal";
-import { PrePayment } from "../../Helpers/Payment";
+import { Payment, PrePayment } from "../../Helpers/Payment";
 import * as helpers from "./Helpers";
 
 type Phase = "idle" | "tap" | "shopping" | "confirm" | "done" | "error";
 
 const CONFIRM_TIMEOUT_SECONDS = 30;
 const RESET_DELAY_MS = 5000;
-const CARD_CHECK_AMOUNT = 0; // card is only checked at the start, the real charge happens after confirm
+const CARD_CHECK_AMOUNT = 0.10; // card is only checked at the start, the real charge happens after confirm
 
 export { PrePaidApp };
 
@@ -131,7 +131,8 @@ const PrePaidApp = () => {
     setPhase("tap");
     setMessage("Please tap your card to open the door.");
 
-    await PrePayment.start(CARD_CHECK_AMOUNT, async (success) => {
+    // use the real payment device instead of the prepayment mock - replace later!
+    await Payment.start(CARD_CHECK_AMOUNT, async (success) => {
       if (id !== sessionRef.current) return;
       if (!success) return finish(id, "error", "Card not accepted. Please try again.");
       await openDoorAndWaitForClose(id);
