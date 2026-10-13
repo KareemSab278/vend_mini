@@ -82,12 +82,13 @@ const styles: { [key: string]: React.CSSProperties } = {
     lineHeight: 1,
   },
   statusMessage: {
+    width: "100%",
+    maxWidth: "280px",
+    margin: "0 auto",
     textAlign: "center",
     color: "#d4d4d4",
-    margin: 0,
     fontSize: "1.5rem",
     minHeight: "1.4rem",
-    maxWidth: "280px",
   },
   nfcNotification: {
     position: "fixed",
