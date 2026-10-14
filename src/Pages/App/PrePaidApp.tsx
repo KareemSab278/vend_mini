@@ -28,10 +28,11 @@ import * as helpers from "./Helpers";
 
 type Phase = "idle" | "tap" | "shopping" | "confirm" | "done" | "error";
 
-const CONFIRM_TIMEOUT_SECONDS = 30;
-const DONE_BUTTON_DELAY_SECONDS = 20; // fallback in case the door close is never registered
-const RESET_DELAY_MS = 5000;
-const ENTRY_PAYMENT_AMOUNT = 0.10; // small real payment taken at the start for testing, before the door opens
+const CONFIRM_TIMEOUT_SECONDS: number = 30;
+const DONE_BUTTON_DELAY_SECONDS: number = 20; // fallback in case the door close is never registered
+const RESET_DELAY_MS: number = 5000;
+const ENTRY_PAYMENT_AMOUNT: number = 0.10; // small real payment taken at the start for testing, before the door opens
+const CAN_LISTEN_ATTEMPTS: number = 10;
 
 export { PrePaidApp };
 
@@ -91,7 +92,7 @@ const PrePaidApp = () => {
   const startCanListening = async () => {
     let success = false;
 
-    for (let attempt = 1; attempt <= 3; attempt++) {
+    for (let attempt = 1; attempt <= CAN_LISTEN_ATTEMPTS; attempt++) {
       try {
         cursorRef.current = await Cans.StartLive();
         pollTimerRef.current = setInterval(pollCans, 1000) as number;
