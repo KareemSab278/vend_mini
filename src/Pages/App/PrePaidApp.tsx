@@ -21,7 +21,7 @@ import {
   Cans,
   countCansPerSlot,
   cansPickedUp,
-  removedCanCountsByChannel,
+  removedCanCountsBySlot,
   resetRemovedCanCounts,
   updateCanChannelMap,
 } from "../../Helpers/CanCount";
@@ -69,11 +69,11 @@ const PrePaidApp = () => {
 
   const [error, setError] = useState<string | null>(null);
 
-  // one entry per column so every sensor shows up, even when columns share a product
+  // one entry per row and column so each sensor maps to its exact planogram slot
   const toProducts = (slots: SlotCanCount[]): ProductType[] =>
     slots.map((slot) => ({
-      product_id: `${slot.product_id}-${slot.column_id}`,
-      product_name: `${slot.product_name} (column ${slot.column_id})`,
+      product_id: `${slot.product_id}-${slot.row_id}-${slot.column_id}`,
+      product_name: `${slot.product_name} (row ${slot.row_id}, column ${slot.column_id})`,
       product_category: slot.product_category,
       product_price: 0,
       product_availability: true,
@@ -87,7 +87,7 @@ const PrePaidApp = () => {
       if (result.readings.length === 0) return;
 
       channelStatesRef.current = updateCanChannelMap(channelStatesRef.current, result.readings);
-      latestRef.current = countCansPerSlot(removedCanCountsByChannel(channelStatesRef.current));
+      latestRef.current = countCansPerSlot(removedCanCountsBySlot(channelStatesRef.current));
 
       baselineRef.current ??= latestRef.current;
       setPickedUp(toProducts(cansPickedUp(baselineRef.current, latestRef.current)));
@@ -148,7 +148,7 @@ const PrePaidApp = () => {
   const startSession = async () => {
     const id = ++sessionRef.current;
     channelStatesRef.current = resetRemovedCanCounts(channelStatesRef.current);
-    latestRef.current = countCansPerSlot(removedCanCountsByChannel(channelStatesRef.current));
+    latestRef.current = countCansPerSlot(removedCanCountsBySlot(channelStatesRef.current));
     baselineRef.current = latestRef.current;
     setPickedUp([]);
     setPhase("tap");

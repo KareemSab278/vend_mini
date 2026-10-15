@@ -3,9 +3,11 @@ import { Modal } from "@mantine/core";
 import {
     Cans,
     type CanChannelMap,
+    type CanCountsBySlot,
     type CanReadings,
+    canSlotKey,
     countCansPerSlot,
-    removedCanCountsByChannel,
+    removedCanCountsBySlot,
     updateCanChannelMap,
     type SlotCanCount,
 } from "../../../Helpers/CanCount";
@@ -22,7 +24,7 @@ interface CansModalProps {
 const CansModal = ({ opened, onClose }: CansModalProps) => {
     const [error, setError] = useState<string | null>(null);
     const [readings, setReadings] = useState<CanReadings | null>(null);
-    const [channelCounts, setChannelCounts] = useState<Map<number, number>>(new Map());
+    const [channelCounts, setChannelCounts] = useState<CanCountsBySlot>(new Map());
     const channelStatesRef = useRef<CanChannelMap>(new Map());
 
     const [canModeEnabled, setCanModeEnabled] = useState<boolean | null>(null);
@@ -75,7 +77,7 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
                         channelStatesRef.current,
                         result.readings,
                     );
-                    setChannelCounts(removedCanCountsByChannel(channelStatesRef.current));
+                    setChannelCounts(removedCanCountsBySlot(channelStatesRef.current));
                     setReadings(latestReadingPerChannel(result.readings) ?? null);
                 }
             } catch (e) {
@@ -151,13 +153,15 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
                         <table style={styles.table}>
                             <thead>
                                 <tr>
-                                    <th scope="col" style={styles.headerCell}>Channel</th>
+                                    <th scope="col" style={styles.headerCell}>Row</th>
+                                    <th scope="col" style={styles.headerCell}>Channel / Column</th>
                                     <th scope="col" style={styles.headerCell}>Distance</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {readings.map((reading, index) => (
-                                    <tr key={`${reading.channel}-${index}`}>
+                                    <tr key={`${reading.row_id}-${reading.channel}-${index}`}>
+                                        <th scope="row" style={styles.rowHeader}>{reading.row_id}</th>
                                         <th scope="row" style={styles.rowHeader}>{reading.channel}</th>
                                         <td style={styles.cell}>
                                             {reading.live_distance === null ? "—" : `${reading.live_distance} mm`}
@@ -177,6 +181,7 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
                         <table style={styles.table}>
                             <thead>
                                 <tr>
+                                    <th scope="col" style={styles.headerCell}>Row</th>
                                     <th scope="col" style={styles.headerCell}>Column</th>
                                     <th scope="col" style={styles.headerCell}>Product</th>
                                     <th scope="col" style={styles.headerCell}>Product ID</th>
@@ -184,7 +189,8 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
                             </thead>
                             <tbody>
                                 {mappedSlots.map((s, i) => (
-                                    <tr key={`${s.column_id}-${i}`}>
+                                    <tr key={`${s.row_id}-${s.column_id}-${i}`}>
+                                        <th scope="row" style={styles.rowHeader}>{s.row_id}</th>
                                         <th scope="row" style={styles.rowHeader}>{s.column_id}</th>
                                         <td style={styles.cell}>{s.product_name}</td>
                                         <td style={styles.cell}>{s.product_id}</td>
@@ -209,8 +215,10 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
 };
 
 const latestReadingPerChannel = (readings: CanReadings): CanReadings => {
-    const latest = new Map<number, CanReadings[number]>();
-    for (const reading of readings) latest.set(reading.channel, reading);
+    const latest = new Map<string, CanReadings[number]>();
+    for (const reading of readings) {
+        latest.set(canSlotKey(reading.row_id, reading.channel), reading);
+    }
     return [...latest.values()];
 };
 

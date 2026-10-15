@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
 pub struct CanDistanceReading {
+    pub row_id: u8,
     pub channel: u8,
     pub live_distance: Option<f32>,
 }
@@ -122,12 +123,14 @@ mod tests {
     #[test]
     fn parses_arduino_distance_array() {
         let readings = parse_can_distance_line(
-            r#"[{"channel":2,"live_distance":341.25},{"channel":3,"live_distance":469.0}]"#,
+            r#"[{"row_id":1,"channel":2,"live_distance":341.25},{"row_id":1,"channel":3,"live_distance":469.0}]"#,
         );
 
         assert_eq!(readings.len(), 2);
+        assert_eq!(readings[0].row_id, 1);
         assert_eq!(readings[0].channel, 2);
         assert_eq!(readings[0].live_distance, Some(341.25));
+        assert_eq!(readings[1].row_id, 1);
         assert_eq!(readings[1].channel, 3);
         assert_eq!(readings[1].live_distance, Some(469.0));
     }
@@ -135,12 +138,14 @@ mod tests {
     #[test]
     fn serializes_live_distance_with_arduino_field_name() {
         let reading = CanDistanceReading {
+            row_id: 1,
             channel: 2,
             live_distance: Some(341.25),
         };
 
         let json = serde_json::to_string(&reading).unwrap();
 
+        assert!(json.contains(r#""row_id":1"#));
         assert!(json.contains(r#""live_distance":341.25"#));
         assert!(!json.contains(r#""count""#));
     }
