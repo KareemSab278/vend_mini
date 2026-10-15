@@ -9,7 +9,8 @@ import {
     updateCanChannelMap,
     type SlotCanCount,
 } from "../../../Helpers/CanCount";
-import { Loading } from "../../../Components/Loading";
+import { AppConfig } from "../../../Helpers/AppConfig";
+import { PrimaryButton } from "../../../Components/Button";
 
 export { CansModal };
 
@@ -17,27 +18,51 @@ interface CansModalProps {
     opened: boolean;
     onClose: () => void;
 }
-const prepaidEnabled = import.meta.env.VITE_PREPAID_ENABLED === "true";
 
 const CansModal = ({ opened, onClose }: CansModalProps) => {
-    const [error, setError] = useState<string>("");
+    const [error, setError] = useState<string | null>(null);
     const [readings, setReadings] = useState<CanReadings | null>(null);
     const [channelCounts, setChannelCounts] = useState<Map<number, number>>(new Map());
     const channelStatesRef = useRef<CanChannelMap>(new Map());
-    const [loading, setLoading] = useState<boolean>(false);
+
+    const [canModeEnabled, setCanModeEnabled] = useState<boolean | null>(null);
+
+    const toggleCanMode = async () => {
+        if (canModeEnabled === null) return;
+
+        const next = !canModeEnabled;
+        setError(null);
+        try {
+            await AppConfig.toggleCanMode(next);
+            setCanModeEnabled(next);
+        } catch (e) {
+            setError(`Failed to update Can Mode: ${e}`);
+        } finally {
+            onClose();
+        }
+    };
 
     useEffect(() => {
-        if (!opened || !prepaidEnabled) return;
+        if (!opened) return;
 
         let active = true;
         let started = false;
         let pollInProgress = false;
         let cursor = 0;
         let pollTimer: ReturnType<typeof setInterval> | null = null;
-        setLoading(true);
         setReadings(null);
         setChannelCounts(new Map());
         channelStatesRef.current = new Map();
+
+        setError(null);
+        AppConfig.getCanMode()
+            .then((enabled) => {
+                if (active) setCanModeEnabled(enabled);
+            })
+            .catch((e) => {
+                if (active) setError(`Failed to load Can Mode: ${e}`);
+            });
+
 
         const poll = async () => {
             if (!active || pollInProgress) return;
@@ -51,16 +76,16 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
                         result.readings,
                     );
                     setChannelCounts(removedCanCountsByChannel(channelStatesRef.current));
-                    setReadings(latestReadingPerChannel(result.readings));
+                    setReadings(latestReadingPerChannel(result.readings) ?? null);
                 }
             } catch (e) {
                 if (active) setError(`Error: ${e}`);
             } finally {
                 pollInProgress = false;
                 await new Promise((resolve) => setTimeout(resolve, 1000));
-                setLoading(false);
             }
         };
+
 
         const startListening = async () => {
             try {
@@ -100,77 +125,86 @@ const CansModal = ({ opened, onClose }: CansModalProps) => {
     const mappedSlots: SlotCanCount[] = readings ? countCansPerSlot(channelCounts) : [];
 
     return (
+        <Modal opened={opened} onClose={onClose} title="Live Can Sensor Readings" size="xl">
 
-        loading ? <Loading /> :
-            <>
-                <Modal opened={opened} onClose={onClose} title="Live Can Sensor Readings" size="xl">
-                    {!prepaidEnabled && (
-                        <p>This machine is not set as prepaid or does not track cans or bottles.</p>
-                    )}
-                    {prepaidEnabled && error && (
-                        <p role="status" style={styles.statusText}>{error}</p>
-                    )}
-                    {prepaidEnabled && readings && (
-                        <>
-                            <div style={styles.readingsPanel}>
-                                <table style={styles.table}>
-                                    <thead>
-                                        <tr>
-                                            <th scope="col" style={styles.headerCell}>Channel</th>
-                                            <th scope="col" style={styles.headerCell}>Distance</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {readings.map((reading, index) => (
-                                            <tr key={`${reading.channel}-${index}`}>
-                                                <th scope="row" style={styles.rowHeader}>{reading.channel}</th>
-                                                <td style={styles.cell}>
-                                                    {reading.live_distance === null ? "—" : `${reading.live_distance} mm`}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                        {readings.length === 0 && (
-                                            <tr>
-                                                <td colSpan={3} style={styles.emptyCell}>No readings received.</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
 
-                            <div style={{ ...styles.readingsPanel, marginTop: "1rem" }}>
-                                <table style={styles.table}>
-                                    <thead>
-                                        <tr>
-                                            <th scope="col" style={styles.headerCell}>Column</th>
-                                            <th scope="col" style={styles.headerCell}>Product</th>
-                                            <th scope="col" style={styles.headerCell}>Product ID</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {mappedSlots.map((s, i) => (
-                                            <tr key={`${s.column_id}-${i}`}>
-                                                <th scope="row" style={styles.rowHeader}>{s.column_id}</th>
-                                                <td style={styles.cell}>{s.product_name}</td>
-                                                <td style={styles.cell}>{s.product_id}</td>
-                                            </tr>
-                                        ))}
-                                        {mappedSlots.length === 0 && (
-                                            <tr>
-                                                <td colSpan={4} style={styles.emptyCell}>No mapped slots.</td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
 
-                            <pre style={styles.readingsPanel}>
-                                {JSON.stringify(readings, null, 2)}
-                            </pre>
-                        </>
-                    )}
-                </Modal >
-            </>
+            {!canModeEnabled ?
+                <p role="status" style={styles.statusText}>This machine is not set as prepaid or does not track cans or bottles.</p>
+                : error && <p role="status" style={styles.statusText}>{error}</p>}
+
+
+            <div style={styles.toggleButton}>
+                <PrimaryButton
+                    title={canModeEnabled === null
+                        ? "Loading Can Mode..."
+                        : `${canModeEnabled ? "Disable" : "Enable"} Can Mode`}
+                    onClick={toggleCanMode}
+                    size="xl"
+                />
+            </div>
+
+            {canModeEnabled && readings && (
+                <>
+                    <div style={styles.readingsPanel}>
+
+                        <table style={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th scope="col" style={styles.headerCell}>Channel</th>
+                                    <th scope="col" style={styles.headerCell}>Distance</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {readings.map((reading, index) => (
+                                    <tr key={`${reading.channel}-${index}`}>
+                                        <th scope="row" style={styles.rowHeader}>{reading.channel}</th>
+                                        <td style={styles.cell}>
+                                            {reading.live_distance === null ? "—" : `${reading.live_distance} mm`}
+                                        </td>
+                                    </tr>
+                                ))}
+                                {readings.length === 0 && (
+                                    <tr>
+                                        <td colSpan={3} style={styles.emptyCell}>No readings received.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div style={{ ...styles.readingsPanel, marginTop: "1rem" }}>
+                        <table style={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th scope="col" style={styles.headerCell}>Column</th>
+                                    <th scope="col" style={styles.headerCell}>Product</th>
+                                    <th scope="col" style={styles.headerCell}>Product ID</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {mappedSlots.map((s, i) => (
+                                    <tr key={`${s.column_id}-${i}`}>
+                                        <th scope="row" style={styles.rowHeader}>{s.column_id}</th>
+                                        <td style={styles.cell}>{s.product_name}</td>
+                                        <td style={styles.cell}>{s.product_id}</td>
+                                    </tr>
+                                ))}
+                                {mappedSlots.length === 0 && (
+                                    <tr>
+                                        <td colSpan={4} style={styles.emptyCell}>No mapped slots.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <pre style={styles.readingsPanel}>
+                        {JSON.stringify(readings, null, 2)}
+                    </pre>
+                </>
+            )}
+        </Modal >
     );
 };
 
@@ -184,6 +218,7 @@ const styles: { [key: string]: React.CSSProperties } = {
     statusText: {
         marginTop: "1rem",
         marginBottom: "0.5rem",
+        textAlign: "center",
     },
     readingsPanel: {
         marginTop: "0.5rem",
@@ -217,5 +252,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     emptyCell: {
         padding: "1rem",
         textAlign: "center",
+    },
+    toggleButton: {
+        marginBottom: "1rem",
+        display: "flex",
+        justifyContent: "center",
     }
 };

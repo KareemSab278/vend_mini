@@ -25,8 +25,6 @@ import { IconBox } from '@tabler/icons-react';
 
 export { Admin };
 
-const SHOW_CAN_COUNT_MODAL = import.meta.env.VITE_PREPAID_ENABLED === "true";
-
 type AdminModalType = "addAdmin" | "cans" | "door" | "led" | "system" | "url" | "update" | "theme" | null;
 const currentVersion = import.meta.env.VITE_APP_VERSION as string;
 
@@ -59,12 +57,10 @@ const Admin = () => {
       title: <div style={optionTheme}><IconUserExclamation size={30} stroke={2} />Admins</div>,
       onClick: () => setActiveModal("addAdmin"),
     },
-    ...(SHOW_CAN_COUNT_MODAL ? {
-      cans: {
-        title: <div style={optionTheme}><IconBox size={30} stroke={2} />Cans</div>,
-        onClick: () => setActiveModal("cans"),
-      },
-    } : {}),
+    cans: {
+      title: <div style={optionTheme}><IconBox size={30} stroke={2} />Cans</div>,
+      onClick: () => setActiveModal("cans"),
+    },
     led: {
       title: <div style={optionTheme}><IconSun size={30} stroke={2} />LED</div>,
       onClick: () => setActiveModal("led"),
@@ -115,7 +111,7 @@ const Admin = () => {
       </div>
 
       <AdminModal opened={activeModal === "addAdmin"} onClose={() => setActiveModal(null)} />
-      {SHOW_CAN_COUNT_MODAL && <CansModal opened={activeModal === "cans"} onClose={() => setActiveModal(null)} />}
+      <CansModal opened={activeModal === "cans"} onClose={() => setActiveModal(null)} />
       <LedModal opened={activeModal === "led"} onClose={() => setActiveModal(null)} />
       <DoorModal opened={activeModal === "door"} onClose={() => setActiveModal(null)} />
       <SystemModal opened={activeModal === "system"} onClose={() => setActiveModal(null)} />

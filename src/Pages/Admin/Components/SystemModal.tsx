@@ -1,10 +1,9 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Modal } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PrimaryButton } from "../../../Components/Button";
 import { Payment } from "../../../Helpers/Payment";
-import { AppConfig } from "../../../Helpers/AppConfig";
 
 export { SystemModal };
 
@@ -16,26 +15,9 @@ interface SystemModalProps {
 const SystemModal = ({ opened, onClose }: SystemModalProps) => {
   const [fullScreen, setFullScreen] = useState<boolean>(false);
   const [paymentResult, setPaymentResult] = useState<boolean | null>(null);
-  const [canModeEnabled, setCanModeEnabled] = useState<boolean | null>(null);
-  const [canModeError, setCanModeError] = useState<string | null>(null);
+  
 
-  useEffect(() => {
-    if (!opened) return;
 
-    let active = true;
-    setCanModeError(null);
-    AppConfig.getCanMode()
-      .then((enabled) => {
-        if (active) setCanModeEnabled(enabled);
-      })
-      .catch((e) => {
-        if (active) setCanModeError(`Failed to load Can Mode: ${e}`);
-      });
-
-    return () => {
-      active = false;
-    };
-  }, [opened]);
 
   const toggleFullScreen = async () => {
     const next = !fullScreen;
@@ -53,18 +35,6 @@ const SystemModal = ({ opened, onClose }: SystemModalProps) => {
     });
   };
 
-  const toggleCanMode = async () => {
-    if (canModeEnabled === null) return;
-
-    const next = !canModeEnabled;
-    setCanModeError(null);
-    try {
-      await AppConfig.toggleCanMode(next);
-      setCanModeEnabled(next);
-    } catch (e) {
-      setCanModeError(`Failed to update Can Mode: ${e}`);
-    }
-  };
 
   return (
     <Modal opened={opened} onClose={onClose} title="System" size="xl">
@@ -90,15 +60,8 @@ const SystemModal = ({ opened, onClose }: SystemModalProps) => {
           onClick={testPayment}
           size="xl"
         />
-        <PrimaryButton
-          title={canModeEnabled === null
-            ? "Loading Can Mode..."
-            : `${canModeEnabled ? "Disable" : "Enable"} Can Mode`}
-          onClick={toggleCanMode}
-          size="xl"
-        />
+        
       </div>
-      {canModeError && <p role="alert" style={styles.failure}>{canModeError}</p>}
       {paymentResult !== null && (
         <p style={styles.result}>
           Payment Test Result:{" "}
