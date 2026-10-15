@@ -109,22 +109,23 @@ export const updateCanChannelMap = (
         const threshold = getCanType(product?.product_name ?? "", product?.product_category) === "slim"
             ? SLIM_CAN_THRESHOLD_MM
             : REGULAR_CAN_THRESHOLD_MM;
-        const distanceDrop = previous.lastCountedDistance - distance;
-        const distanceRise = distance - previous.lastCountedDistance;
+        // Removing a can increases sensor distance; returning one decreases it.
+        const distanceIncrease = distance - previous.lastCountedDistance;
+        const distanceDecrease = previous.lastCountedDistance - distance;
         let lastCountedDistance = previous.lastCountedDistance;
         let removedCans = previous.removedCans;
 
-        if (distanceDrop > threshold) {
-            const newlyRemoved = Math.floor(distanceDrop / threshold);
+        if (distanceIncrease > threshold) {
+            const newlyRemoved = Math.floor(distanceIncrease / threshold);
             removedCans += newlyRemoved;
-            lastCountedDistance -= newlyRemoved * threshold;
-        } else if (distanceRise >= threshold) {
+            lastCountedDistance += newlyRemoved * threshold;
+        } else if (distanceDecrease >= threshold) {
             const returned = Math.min(
-                Math.floor(distanceRise / threshold),
+                Math.floor(distanceDecrease / threshold),
                 removedCans,
             );
             removedCans -= returned;
-            lastCountedDistance += returned * threshold;
+            lastCountedDistance -= returned * threshold;
             if (removedCans === 0) lastCountedDistance = distance;
         }
 

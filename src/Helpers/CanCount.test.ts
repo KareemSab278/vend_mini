@@ -15,32 +15,32 @@ describe("can distance counting", () => {
         expect(getCanType("330ML Coke Can", "Cans - Coca cola")).toBe("regular");
     });
 
-    it("counts multiple regular cans from distance decreases", () => {
+    it("counts multiple regular cans from distance increases", () => {
         let channels: CanChannelMap = new Map();
 
         channels = updateCanChannelMap(channels, [
             { channel: 63, live_distance: 548 },
         ]);
         channels = updateCanChannelMap(channels, [
-            { channel: 63, live_distance: 528 },
+            { channel: 63, live_distance: 568 },
         ]);
         channels = updateCanChannelMap(channels, [
-            { channel: 63, live_distance: 508 },
+            { channel: 63, live_distance: 588 },
         ]);
         expect(channels.get(63)?.removedCans).toBe(0);
 
         channels = updateCanChannelMap(channels, [
-            { channel: 63, live_distance: 482 },
+            { channel: 63, live_distance: 614 },
         ]);
         expect(channels.get(63)?.removedCans).toBe(1);
 
         channels = updateCanChannelMap(channels, [
-            { channel: 63, live_distance: 352 },
+            { channel: 63, live_distance: 744 },
         ]);
         expect(channels.get(63)).toEqual({
-            previousDistance: 482,
-            currentDistance: 352,
-            lastCountedDistance: 353,
+            previousDistance: 614,
+            currentDistance: 744,
+            lastCountedDistance: 743,
             removedCans: 3,
         });
     });
@@ -51,7 +51,7 @@ describe("can distance counting", () => {
             { channel: 64, live_distance: 500 },
         ]);
         const updated = updateCanChannelMap(channels, [
-            { channel: 0, live_distance: 449 },
+            { channel: 0, live_distance: 551 },
         ]);
 
         expect(updated.size).toBe(1);
@@ -63,7 +63,7 @@ describe("can distance counting", () => {
             { channel: 63, live_distance: 548 },
         ]);
         channels = updateCanChannelMap(channels, [
-            { channel: 63, live_distance: 482 },
+            { channel: 63, live_distance: 614 },
         ]);
         expect(channels.get(63)?.removedCans).toBe(1);
 
@@ -73,7 +73,7 @@ describe("can distance counting", () => {
         expect(channels.get(63)?.removedCans).toBe(0);
 
         channels = updateCanChannelMap(channels, [
-            { channel: 63, live_distance: 482 },
+            { channel: 63, live_distance: 614 },
         ]);
         expect(channels.get(63)?.removedCans).toBe(1);
     });
@@ -83,18 +83,18 @@ describe("can distance counting", () => {
             { channel: 63, live_distance: 548 },
         ]);
         channels = updateCanChannelMap(channels, [
-            { channel: 63, live_distance: 482 },
+            { channel: 63, live_distance: 614 },
         ]);
 
         channels = resetRemovedCanCounts(channels);
         expect(channels.get(63)?.removedCans).toBe(0);
-        expect(channels.get(63)?.lastCountedDistance).toBe(483);
+        expect(channels.get(63)?.lastCountedDistance).toBe(613);
 
         channels = updateCanChannelMap(channels, [
             { channel: 63, live_distance: 548 },
         ]);
         channels = updateCanChannelMap(channels, [
-            { channel: 63, live_distance: 482 },
+            { channel: 63, live_distance: 614 },
         ]);
         expect(channels.get(63)?.removedCans).toBe(1);
     });
