@@ -41,9 +41,8 @@ const SystemModal = ({ opened, onClose }: SystemModalProps) => {
           size="xl"
         />
         <PrimaryButton
-          title="Kill App (Double Click)"
-          onClick={() => {}}
-          onDoubleClick={() => invoke("kill_app")}
+          title="Kill App"
+          onClick={() => invoke("kill_app")}
           size="xl"
           color="#FF0000"
         />

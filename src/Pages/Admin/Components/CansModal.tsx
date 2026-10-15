@@ -1,7 +1,15 @@
 import { useState, useEffect, useRef } from "react";
 import { Modal } from "@mantine/core";
-import { PrimaryButton } from "../../../Components/Button";
-import { Cans, type CanCount, countCansPerSlot, type SlotCanCount } from "../../../Helpers/CanCount";
+import {
+    Cans,
+    type CanChannelMap,
+    type CanReadings,
+    countCansPerSlot,
+    removedCanCountsByChannel,
+    updateCanChannelMap,
+    type SlotCanCount,
+} from "../../../Helpers/CanCount";
+import { Loading } from "../../../Components/Loading";
 
 export { CansModal };
 
@@ -12,180 +20,167 @@ interface CansModalProps {
 const prepaidEnabled = import.meta.env.VITE_PREPAID_ENABLED === "true";
 
 const CansModal = ({ opened, onClose }: CansModalProps) => {
-    const [statusText, setStatusText] = useState<string>("");
-    const [readings, setReadings] = useState<CanCount | null>(null);
-    const [liveActive, setLiveActive] = useState<boolean>(false);
-    const liveInterval = useRef<ReturnType<typeof setInterval> | null>(null);
-    const cursorRef = useRef<number>(0);
+    const [error, setError] = useState<string>("");
+    const [readings, setReadings] = useState<CanReadings | null>(null);
+    const [channelCounts, setChannelCounts] = useState<Map<number, number>>(new Map());
+    const channelStatesRef = useRef<CanChannelMap>(new Map());
+    const [loading, setLoading] = useState<boolean>(false);
 
     useEffect(() => {
-        return () => {
-            if (liveInterval.current) {
-                clearInterval(liveInterval.current);
-                liveInterval.current = null;
-            }
-            Cans.Stop().catch(() => { });
-        };
-    }, []);
+        if (!opened || !prepaidEnabled) return;
 
-    const stopLive = async () => {
-        if (liveInterval.current) {
-            clearInterval(liveInterval.current);
-            liveInterval.current = null;
-        }
-        setLiveActive(false);
-        try {
-            await Cans.Stop();
-        } catch {
-            // ignore
-        }
-    };
-
-    const showCount = async () => {
-        if (!prepaidEnabled) return;
-        await stopLive();
+        let active = true;
+        let started = false;
+        let pollInProgress = false;
+        let cursor = 0;
+        let pollTimer: ReturnType<typeof setInterval> | null = null;
+        setLoading(true);
         setReadings(null);
-        setStatusText("Listening for 3 seconds...");
-        try {
-            const counts = await Cans.Listen(3);
-            setReadings(counts);
-            setStatusText("3-second readings");
-        } catch (e) {
-            setStatusText(`Error: ${e}`);
-        }
-    };
+        setChannelCounts(new Map());
+        channelStatesRef.current = new Map();
 
-    const showLiveCount = async () => {
-        if (!prepaidEnabled) return;
-        if (liveActive) {
-            stopLive();
-            setStatusText("Live count stopped — latest snapshot shown.");
-            return;
-        }
-        setReadings(null);
-        setStatusText("Starting live count...");
-        try {
-            const cursor = await Cans.StartLive();
-            cursorRef.current = cursor;
-            setLiveActive(true);
-            liveInterval.current = setInterval(async () => {
-                try {
-                    const result = await Cans.Poll(cursorRef.current);
-                    cursorRef.current = result.cursor;
-                    if (result.counts.length > 0) {
-                        setReadings(result.counts);
-                        setStatusText("Live readings (latest snapshot)");
-                    }
-                } catch (e) {
-                    setStatusText(`Error: ${e}`);
-                    stopLive();
+        const poll = async () => {
+            if (!active || pollInProgress) return;
+            pollInProgress = true;
+            try {
+                const result = await Cans.Poll(cursor);
+                cursor = result.cursor;
+                if (active && result.readings.length > 0) {
+                    channelStatesRef.current = updateCanChannelMap(
+                        channelStatesRef.current,
+                        result.readings,
+                    );
+                    setChannelCounts(removedCanCountsByChannel(channelStatesRef.current));
+                    setReadings(latestReadingPerChannel(result.readings));
                 }
-            }, 500);
-        } catch (e) {
-            setStatusText(`Error: ${e}`);
-        }
-    };
+            } catch (e) {
+                if (active) setError(`Error: ${e}`);
+            } finally {
+                pollInProgress = false;
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                setLoading(false);
+            }
+        };
 
-    const handleClose = () => {
-        stopLive();
-        setReadings(null);
-        setStatusText("");
-        onClose();
-    };
+        const startListening = async () => {
+            try {
+                cursor = await Cans.StartLive();
+                started = true;
+                if (!active) {
+                    started = false;
+                    await Cans.Stop();
+                    return;
+                }
+                pollTimer = setInterval(() => {
+                    void poll();
+                }, 500);
+            } catch (e) {
+                if (active) {
+                    setError(`Error: ${e}`);
+                } else {
+                    console.error("Failed to stop live can readings:", e);
+                }
+            }
+        };
 
-    // Map readings (channel-first) to planogram slots for display/debugging
-    const mappedSlots: SlotCanCount[] = readings ? countCansPerSlot(readings) : [];
+        void startListening();
+
+        return () => {
+            active = false;
+            if (pollTimer) clearInterval(pollTimer);
+            if (started) {
+                started = false;
+                void Cans.Stop().catch((e) => {
+                    console.error("Failed to stop live can readings:", e);
+                });
+            }
+        };
+    }, [opened]);
+
+    const mappedSlots: SlotCanCount[] = readings ? countCansPerSlot(channelCounts) : [];
 
     return (
-        <Modal opened={opened} onClose={handleClose} title="Can Counter" size="xl">
-            {
-                prepaidEnabled
-                    ?
-                    <div style={styles.grid}>
-                        <PrimaryButton title="Get 3-Second Reading" onClick={showCount} size="xl" />
-                        <PrimaryButton title={liveActive ? "Stop Live Count" : "Get Live Count"} onClick={showLiveCount} size="xl" />
-                    </div>
-                    :
-                    <p>This machine is not set as prepaid or does not sell cans.</p>
-            }
-            {prepaidEnabled && statusText && (
-                <p role="status" style={styles.statusText}>{statusText}</p>
-            )}
-            {prepaidEnabled && readings && (
-                <>
-                    <div style={styles.readingsPanel}>
-                        <table style={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th scope="col" style={styles.headerCell}>Channel</th>
-                                    <th scope="col" style={styles.headerCell}>Sensor count</th>
-                                    <th scope="col" style={styles.headerCell}>Distance</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {readings.map((reading, index) => (
-                                    <tr key={`${reading.channel}-${index}`}>
-                                        <th scope="row" style={styles.rowHeader}>{reading.channel}</th>
-                                        <td style={styles.cell}>{reading.count ?? "—"}</td>
-                                        <td style={styles.cell}>
-                                            {reading.live_distance === null ? "—" : `${reading.live_distance} mm`}
-                                        </td>
-                                    </tr>
-                                ))}
-                                {readings.length === 0 && (
-                                    <tr>
-                                        <td colSpan={3} style={styles.emptyCell}>No readings received.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
 
-                    {/* mapped slots from planogram (channel-first) */}
-                    <div style={{ ...styles.readingsPanel, marginTop: "1rem" }}>
-                        <table style={styles.table}>
-                            <thead>
-                                <tr>
-                                    <th scope="col" style={styles.headerCell}>Column</th>
-                                    <th scope="col" style={styles.headerCell}>Product</th>
-                                    <th scope="col" style={styles.headerCell}>Product ID</th>
-                                    <th scope="col" style={styles.headerCell}>Count</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {mappedSlots.map((s, i) => (
-                                    <tr key={`${s.column_id}-${i}`}>
-                                        <th scope="row" style={styles.rowHeader}>{s.column_id}</th>
-                                        <td style={styles.cell}>{s.product_name}</td>
-                                        <td style={styles.cell}>{s.product_id}</td>
-                                        <td style={styles.cell}>{s.count}</td>
-                                    </tr>
-                                ))}
-                                {mappedSlots.length === 0 && (
-                                    <tr>
-                                        <td colSpan={4} style={styles.emptyCell}>No mapped slots.</td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
+        loading ? <Loading /> :
+            <>
+                <Modal opened={opened} onClose={onClose} title="Live Can Sensor Readings" size="xl">
+                    {!prepaidEnabled && (
+                        <p>This machine is not set as prepaid or does not track cans or bottles.</p>
+                    )}
+                    {prepaidEnabled && error && (
+                        <p role="status" style={styles.statusText}>{error}</p>
+                    )}
+                    {prepaidEnabled && readings && (
+                        <>
+                            <div style={styles.readingsPanel}>
+                                <table style={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col" style={styles.headerCell}>Channel</th>
+                                            <th scope="col" style={styles.headerCell}>Distance</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {readings.map((reading, index) => (
+                                            <tr key={`${reading.channel}-${index}`}>
+                                                <th scope="row" style={styles.rowHeader}>{reading.channel}</th>
+                                                <td style={styles.cell}>
+                                                    {reading.live_distance === null ? "—" : `${reading.live_distance} mm`}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        {readings.length === 0 && (
+                                            <tr>
+                                                <td colSpan={3} style={styles.emptyCell}>No readings received.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
 
-                    <pre style={styles.readingsPanel}>
-                        {JSON.stringify(readings, null, 2)}
-                    </pre>
-                </>
-            )}
-        </Modal>
+                            <div style={{ ...styles.readingsPanel, marginTop: "1rem" }}>
+                                <table style={styles.table}>
+                                    <thead>
+                                        <tr>
+                                            <th scope="col" style={styles.headerCell}>Column</th>
+                                            <th scope="col" style={styles.headerCell}>Product</th>
+                                            <th scope="col" style={styles.headerCell}>Product ID</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {mappedSlots.map((s, i) => (
+                                            <tr key={`${s.column_id}-${i}`}>
+                                                <th scope="row" style={styles.rowHeader}>{s.column_id}</th>
+                                                <td style={styles.cell}>{s.product_name}</td>
+                                                <td style={styles.cell}>{s.product_id}</td>
+                                            </tr>
+                                        ))}
+                                        {mappedSlots.length === 0 && (
+                                            <tr>
+                                                <td colSpan={4} style={styles.emptyCell}>No mapped slots.</td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <pre style={styles.readingsPanel}>
+                                {JSON.stringify(readings, null, 2)}
+                            </pre>
+                        </>
+                    )}
+                </Modal >
+            </>
     );
 };
 
+const latestReadingPerChannel = (readings: CanReadings): CanReadings => {
+    const latest = new Map<number, CanReadings[number]>();
+    for (const reading of readings) latest.set(reading.channel, reading);
+    return [...latest.values()];
+};
+
 const styles: { [key: string]: React.CSSProperties } = {
-    grid: {
-        display: "flex",
-        flexWrap: "wrap",
-        justifyContent: "center",
-        gap: "1rem",
-    },
     statusText: {
         marginTop: "1rem",
         marginBottom: "0.5rem",

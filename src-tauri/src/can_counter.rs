@@ -3,10 +3,9 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Deserialize, Debug)]
 #[serde(rename_all = "snake_case")]
-pub struct CanColCount {
-    pub channel: u8,                // no more than 100 channels anyway
-    pub count: Option<u8>,          // cant be more then 12 cans anyway so u8 is ok
-    pub live_distance: Option<f32>, // distance measurement from the sensor in millimeters
+pub struct CanDistanceReading {
+    pub channel: u8,
+    pub live_distance: Option<f32>,
 }
 
 enum CansCountCmds {
@@ -16,7 +15,7 @@ enum CansCountCmds {
 }
 
 impl CansCountCmds {
-    fn execute(&self) -> Result<Vec<CanColCount>, String> {
+    fn execute(&self) -> Result<Vec<CanDistanceReading>, String> {
         let connection = serial_comms::can_counter_connection()?;
         match self {
             CansCountCmds::StopListen => {
@@ -47,16 +46,16 @@ impl CansCountCmds {
 
 /*
     Frontend usage:
-    invoke('cans_listen', 'stop') to stop listening for can counts.
-    invoke('cans_listen', 'start') to start listening for can counts.
-    invoke('cans_listen', 'listen', seconds) to listen for can counts for a default duration of 3 seconds.
+    invoke('cans_listen', 'stop') to stop listening for distance readings.
+    invoke('cans_listen', 'start') to start listening for distance readings.
+    invoke('cans_listen', 'listen', seconds) to listen for distance readings for a default duration of 3 seconds.
 */
 
 #[tauri::command]
 pub async fn cans_listen(
     command: Option<String>,
     duration: Option<u8>,
-) -> Result<Vec<CanColCount>, String> {
+) -> Result<Vec<CanDistanceReading>, String> {
     let cmd = match command.as_deref() {
         Some("stop") => CansCountCmds::StopListen,
         Some("start") => CansCountCmds::StartListen,
@@ -68,7 +67,7 @@ pub async fn cans_listen(
 
 #[derive(Serialize, Debug)]
 pub struct CanLivePoll {
-    pub counts: Vec<CanColCount>,
+    pub readings: Vec<CanDistanceReading>,
     pub cursor: u64,
 }
 
@@ -81,36 +80,36 @@ pub async fn cans_listen_live_start() -> Result<u64, String> {
 pub async fn cans_listen_live_poll(cursor: u64) -> Result<CanLivePoll, String> {
     let connection = serial_comms::can_counter_connection()?;
     let (buffer, next_cursor) = connection.lines_since_with_seq(cursor)?;
-    let counts = process_buffer(buffer.clone());
+    let readings = process_buffer(buffer);
     Ok(CanLivePoll {
-        counts,
+        readings,
         cursor: next_cursor,
     })
 }
 
-fn process_buffer(buffer: Vec<String>) -> Vec<CanColCount> {
+fn process_buffer(buffer: Vec<String>) -> Vec<CanDistanceReading> {
     let buffer = buffer
         .iter()
-        .flat_map(|line| parse_can_count_line(line))
-        .collect::<Vec<CanColCount>>();
+        .flat_map(|line| parse_can_distance_line(line))
+        .collect::<Vec<CanDistanceReading>>();
     buffer
 }
 
-fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
+fn parse_can_distance_line(line: &str) -> Vec<CanDistanceReading> {
     let trimmed = line.trim();
 
-    if let Ok(counts) = serde_json::from_str::<Vec<CanColCount>>(trimmed) {
-        return counts;
+    if let Ok(readings) = serde_json::from_str::<Vec<CanDistanceReading>>(trimmed) {
+        return readings;
     }
 
-    if let Ok(count) = serde_json::from_str::<CanColCount>(trimmed) {
-        return vec![count];
+    if let Ok(reading) = serde_json::from_str::<CanDistanceReading>(trimmed) {
+        return vec![reading];
     }
 
     // Some firmware emits each array item separately, leaving the final `]` on the item line.
     let object_fragment = trimmed.trim_end_matches(']').trim_end_matches(',').trim();
-    if let Ok(count) = serde_json::from_str::<CanColCount>(object_fragment) {
-        return vec![count];
+    if let Ok(reading) = serde_json::from_str::<CanDistanceReading>(object_fragment) {
+        return vec![reading];
     }
 
     Vec::new()
@@ -118,32 +117,31 @@ fn parse_can_count_line(line: &str) -> Vec<CanColCount> {
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_can_count_line, CanColCount};
+    use super::{parse_can_distance_line, CanDistanceReading};
 
     #[test]
-    fn parses_arduino_count_array_with_live_distance() {
-        let counts = parse_can_count_line(
-            r#"[{"channel":2,"count":3,"live_distance":341.25},{"channel":3,"count":1,"live_distance":469.0}]"#,
+    fn parses_arduino_distance_array() {
+        let readings = parse_can_distance_line(
+            r#"[{"channel":2,"live_distance":341.25},{"channel":3,"live_distance":469.0}]"#,
         );
 
-        assert_eq!(counts.len(), 2);
-        assert_eq!(counts[0].channel, 2);
-        assert_eq!(counts[0].count, Some(3));
-        assert_eq!(counts[0].live_distance, Some(341.25));
-        assert_eq!(counts[1].channel, 3);
-        assert_eq!(counts[1].live_distance, Some(469.0));
+        assert_eq!(readings.len(), 2);
+        assert_eq!(readings[0].channel, 2);
+        assert_eq!(readings[0].live_distance, Some(341.25));
+        assert_eq!(readings[1].channel, 3);
+        assert_eq!(readings[1].live_distance, Some(469.0));
     }
 
     #[test]
     fn serializes_live_distance_with_arduino_field_name() {
-        let count = CanColCount {
+        let reading = CanDistanceReading {
             channel: 2,
-            count: Some(3),
             live_distance: Some(341.25),
         };
 
-        let json = serde_json::to_string(&count).unwrap();
+        let json = serde_json::to_string(&reading).unwrap();
 
         assert!(json.contains(r#""live_distance":341.25"#));
+        assert!(!json.contains(r#""count""#));
     }
 }

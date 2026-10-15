@@ -17,8 +17,15 @@ import { styles } from "./styles";
 import { NFC } from "../../Helpers/Nfc";
 import { Admin } from "../../Helpers/Admins";
 import { KeyPressListener } from "../../Helpers/KeyPressListener";
-import { Cans, countCansPerSlot, cansPickedUp } from "../../Helpers/CanCount";
-import type { CanCol, SlotCanCount } from "../../Helpers/CanCount";
+import {
+  Cans,
+  countCansPerSlot,
+  cansPickedUp,
+  removedCanCountsByChannel,
+  resetRemovedCanCounts,
+  updateCanChannelMap,
+} from "../../Helpers/CanCount";
+import type { CanChannelMap, SlotCanCount } from "../../Helpers/CanCount";
 import type { ProductType } from "../../Helpers/Products";
 import { Door } from "../../Helpers/Door";
 import { PrimaryButton } from "../../Components/Button";
@@ -48,7 +55,7 @@ const PrePaidApp = () => {
   const baselineRef = useRef<SlotCanCount[] | null>(null);
   const latestRef = useRef<SlotCanCount[]>([]);
   const cursorRef = useRef(0);
-  const readingsRef = useRef<Map<number, CanCol>>(new Map());
+  const channelStatesRef = useRef<CanChannelMap>(new Map());
   const pollTimerRef = useRef<number | null>(null);
   const sessionRef = useRef(0); // bumped on cancel/reset/unmount so stale async steps do nothing
   const resetTimerRef = useRef<number | null>(null);
@@ -67,7 +74,7 @@ const PrePaidApp = () => {
     slots.map((slot) => ({
       product_id: `${slot.product_id}-${slot.column_id}`,
       product_name: `${slot.product_name} (column ${slot.column_id})`,
-      product_category: "Cans",
+      product_category: slot.product_category,
       product_price: 0,
       product_availability: true,
       count: slot.count,
@@ -77,10 +84,10 @@ const PrePaidApp = () => {
     try {
       const result = await Cans.Poll(cursorRef.current);
       cursorRef.current = result.cursor;
-      if (result.counts.length === 0) return;
+      if (result.readings.length === 0) return;
 
-      for (const c of result.counts) readingsRef.current.set(c.channel, c);
-      latestRef.current = countCansPerSlot([...readingsRef.current.values()]);
+      channelStatesRef.current = updateCanChannelMap(channelStatesRef.current, result.readings);
+      latestRef.current = countCansPerSlot(removedCanCountsByChannel(channelStatesRef.current));
 
       baselineRef.current ??= latestRef.current;
       setPickedUp(toProducts(cansPickedUp(baselineRef.current, latestRef.current)));
@@ -140,7 +147,9 @@ const PrePaidApp = () => {
   // take a real card payment, settle it once approved, then open the door
   const startSession = async () => {
     const id = ++sessionRef.current;
-    baselineRef.current = latestRef.current.length > 0 ? latestRef.current : null;
+    channelStatesRef.current = resetRemovedCanCounts(channelStatesRef.current);
+    latestRef.current = countCansPerSlot(removedCanCountsByChannel(channelStatesRef.current));
+    baselineRef.current = latestRef.current;
     setPickedUp([]);
     setPhase("tap");
     setMessage("Please tap your card to open the door.");
@@ -311,8 +320,8 @@ const PrePaidApp = () => {
         </section>
 
         <SelectedProductsModal
-          title="Your cans"
-          emptyMessage="No cans taken yet."
+          title="Your items"
+          emptyMessage="No items taken yet."
           opened={phase === "shopping" || phase === "confirm"}
           onClose={() => { }}
           dismissible={false}
