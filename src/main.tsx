@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { MantineProvider } from "@mantine/core";
 import { Route, Router, Switch } from "wouter";
 import "@mantine/core/styles.css";
+import { AppConfig } from "./Helpers/AppConfig";
 
 import { App } from "./Pages/App/App";
 import { PrePaidApp } from "./Pages/App/PrePaidApp";
@@ -17,20 +18,28 @@ const startFullScreen = async (): Promise<void> => {
   await getCurrentWindow().setFullscreen(true);
 };
 
-const isPrePaidEnabled = import.meta.env.VITE_PREPAID_ENABLED === "true";
+
 
 const ThemedApp = () => {
   const [theme, setTheme] = useState<Theme | null>(null);
-
+  const [canModeEnabled, setCanModeEnabled] = useState<boolean | null>(null);
   useEffect(() => {
+    const unsubscribeCanMode = AppConfig.onCanModeChanged(setCanModeEnabled);
+
     ThemeStore.getTheme().then((loadedTheme) => {
       applyTheme(loadedTheme);
       setTheme(loadedTheme);
       startFullScreen();
     });
+
+    AppConfig.getCanMode().then((enabled) => {
+      setCanModeEnabled(enabled);
+    });
+
+    return unsubscribeCanMode;
   }, []);
 
-  if (!theme) return null;
+  if (!theme || canModeEnabled === null) return null;
 
   return (
     <MantineProvider defaultColorScheme="dark">
@@ -39,7 +48,7 @@ const ThemedApp = () => {
           <Route path="/setup" component={Setup} />
           <Route path="/admin" component={Admin} />
           {/* conditionally render if the prepaid feature is enabled */}
-          <Route path="/" component={isPrePaidEnabled ? PrePaidApp : App} />
+          <Route path="/" component={canModeEnabled ? PrePaidApp : App} />
         </Switch>
       </Router>
     </MantineProvider>
