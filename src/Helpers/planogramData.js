@@ -18,6 +18,11 @@ export const categories = [
     redbull cans are 50 mm in diameter (some other drinks as well like iced coffees)
 
 */
+
+// first shelf is row_id 0
+// first column is column_id 0
+
+
 export const fakePlanogram = [
     {
         "plan_id": 9949,
