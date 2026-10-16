@@ -22,8 +22,8 @@ export type CanChannelMap = Map<number, Map<number, CanChannelState>>;
 export type CanCountsBySlot = Map<number, Map<number, number>>;
 
 const MAX_CHANNELS = 64;
-const SLIM_CAN_THRESHOLD_MM = 55;
-const REGULAR_CAN_THRESHOLD_MM = 70;
+const SLIM_CAN_THRESHOLD_MM = 57;
+const REGULAR_CAN_THRESHOLD_MM = 66.2;
 
 interface LivePollResult {
     readings: CanReadings;
@@ -119,6 +119,7 @@ export const updateCanChannelMap = (
         const threshold = getCanType(product?.product_name ?? "", product?.product_category) === "slim"
             ? SLIM_CAN_THRESHOLD_MM
             : REGULAR_CAN_THRESHOLD_MM;
+        const returnThreshold = threshold * 0.8;
         // Removing a can increases sensor distance; returning one decreases it.
         const distanceIncrease = distance - previous.lastCountedDistance;
         const distanceDecrease = previous.lastCountedDistance - distance;
@@ -129,9 +130,9 @@ export const updateCanChannelMap = (
             const newlyRemoved = Math.floor(distanceIncrease / threshold);
             removedCans += newlyRemoved;
             lastCountedDistance += newlyRemoved * threshold;
-        } else if (distanceDecrease >= threshold) {
+        } else if (distanceDecrease >= returnThreshold) {
             const returned = Math.min(
-                Math.floor(distanceDecrease / threshold),
+                Math.max(1, Math.floor(distanceDecrease / threshold)),
                 removedCans,
             );
             removedCans -= returned;

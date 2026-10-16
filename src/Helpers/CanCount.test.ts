@@ -80,6 +80,46 @@ describe("can distance counting", () => {
         expect(channels.get(1)?.get(63)?.removedCans).toBe(1);
     });
 
+    it("recognizes a returned can with a shorter distance decrease", () => {
+        let channels: CanChannelMap = updateCanChannelMap(new Map(), [
+            { row_id: 1, channel: 63, live_distance: 548 },
+        ]);
+        channels = updateCanChannelMap(channels, [
+            { row_id: 1, channel: 63, live_distance: 615 },
+        ]);
+        expect(channels.get(1)?.get(63)?.removedCans).toBe(1);
+
+        channels = updateCanChannelMap(channels, [
+            { row_id: 1, channel: 63, live_distance: 560 },
+        ]);
+        expect(channels.get(1)?.get(63)?.removedCans).toBe(0);
+    });
+
+    it("does not count a small distance fluctuation as a returned can", () => {
+        let channels: CanChannelMap = updateCanChannelMap(new Map(), [
+            { row_id: 1, channel: 63, live_distance: 548 },
+        ]);
+        channels = updateCanChannelMap(channels, [
+            { row_id: 1, channel: 63, live_distance: 615 },
+        ]);
+        channels = updateCanChannelMap(channels, [
+            { row_id: 1, channel: 63, live_distance: 562 },
+        ]);
+
+        expect(channels.get(1)?.get(63)?.removedCans).toBe(1);
+    });
+
+    it("does not decrement below zero when distance falls without a removed can", () => {
+        let channels: CanChannelMap = updateCanChannelMap(new Map(), [
+            { row_id: 1, channel: 63, live_distance: 548 },
+        ]);
+        channels = updateCanChannelMap(channels, [
+            { row_id: 1, channel: 63, live_distance: 495 },
+        ]);
+
+        expect(channels.get(1)?.get(63)?.removedCans).toBe(0);
+    });
+
     it("resets the session count without losing the distance baseline", () => {
         let channels: CanChannelMap = updateCanChannelMap(new Map(), [
             { row_id: 1, channel: 63, live_distance: 548 },
