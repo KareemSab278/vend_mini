@@ -1,4 +1,3 @@
-
 export const LS = {
     get:    async (key: string, orElse?: any) => await Storage.getObjFromKey(key) ?? orElse,
     save:   async (key: string, value: any) => await Storage.saveObjToKey(key, value),

@@ -1,6 +1,6 @@
 import { AppConfig } from "./AppConfig";
 
-const CPU_UID = await AppConfig.findCpuId();
+const machine_id = await AppConfig.getMachineId();
 
 const buildURL = (path = '') => {
     if (String(path).startsWith('http://') || String(path).startsWith('https://')) {
@@ -49,12 +49,7 @@ const request = async ({
         body: null as string | null,
     };
 
-    if (body !== null) {
-        options.body = JSON.stringify({ ...body, device_uid: CPU_UID });
-    } else {
-        // If the body is null, still include the CPU_UID in the request body for backend just in case
-        options.body = JSON.stringify({ device_uid: CPU_UID });
-    }
+    options.body = JSON.stringify(body == null ? { machine_id } : { ...body, machine_id });
 
     const response = await withTimeout(
         fetch(url, options),

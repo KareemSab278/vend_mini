@@ -17,16 +17,18 @@ const startFullScreen = async (): Promise<void> => {
   await getCurrentWindow().setFullscreen(true);
 };
 
-
+// Find the machine ID on startup always
+const findMachineId = async (): Promise<void> => {
+  await AppConfig.findMachineId();
+};
 
 const ThemedApp = () => {
   const [theme, setTheme] = useState<Theme | null>(null);
   const [canModeEnabled, setCanModeEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
-    (async (): Promise<void> => await AppConfig.findCpuId())();
+    findMachineId();
     const unsubscribeCanMode = AppConfig.onCanModeChanged(setCanModeEnabled);
-
     ThemeStore.getTheme().then((loadedTheme) => {
       applyTheme(loadedTheme);
       setTheme(loadedTheme);
