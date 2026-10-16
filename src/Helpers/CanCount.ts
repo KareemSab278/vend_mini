@@ -22,8 +22,8 @@ export type CanChannelMap = Map<number, Map<number, CanChannelState>>;
 export type CanCountsBySlot = Map<number, Map<number, number>>;
 
 const MAX_CHANNELS = 64;
-const SLIM_CAN_THRESHOLD_MM = 50;
-const REGULAR_CAN_THRESHOLD_MM = 65;
+const SLIM_CAN_THRESHOLD_MM = 55;
+const REGULAR_CAN_THRESHOLD_MM = 70;
 
 interface LivePollResult {
     readings: CanReadings;
