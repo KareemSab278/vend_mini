@@ -32,6 +32,7 @@ import { PrimaryButton } from "../../Components/Button";
 import { SelectedProductsModal } from "./Components/SelectedProductsModal";
 import { Payment, PrePayment } from "../../Helpers/Payment";
 import * as helpers from "./Helpers";
+import { AppConfig } from "../../Helpers/AppConfig";
 
 type Phase = "idle" | "tap" | "shopping" | "confirm" | "done" | "error";
 

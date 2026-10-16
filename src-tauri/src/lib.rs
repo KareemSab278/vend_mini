@@ -10,6 +10,7 @@ mod serial_comms;
 mod server;
 mod update;
 mod users_database;
+mod environment;
 
 // to test on mac for pi: cargo check --target aarch64-unknown-linux-gnu
 
@@ -33,6 +34,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
+            environment::get_cpu_uid,
             // Payment (direct serial PicoVend/Nayax bridge)
             pay::initialize_payment_device,
             pay::start_payment,

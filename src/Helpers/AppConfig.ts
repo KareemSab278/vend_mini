@@ -1,4 +1,5 @@
 import { LS } from "./LS";
+import { invoke } from "@tauri-apps/api/core";
 
 /*
     some helpers here to configure the application
@@ -20,4 +21,12 @@ export const AppConfig = {
         window.addEventListener(CAN_MODE_CHANGED_EVENT, handler);
         return () => window.removeEventListener(CAN_MODE_CHANGED_EVENT, handler);
     },
+    findCpuId: async (): Promise<string> => {
+        const uid = await invoke<string>("environment::get_cpu_uid");
+        await LS.save("cpuId", uid);
+        return uid;
+    },
+    getCpuId: async (): Promise<string> => {
+        return await LS.get("cpuId", "");
+    }
 };

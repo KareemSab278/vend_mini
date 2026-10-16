@@ -14,7 +14,6 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import "./styles.css";
 
 const startFullScreen = async (): Promise<void> => {
-  // const isPi = await isPiOs();
   await getCurrentWindow().setFullscreen(true);
 };
 
@@ -23,7 +22,9 @@ const startFullScreen = async (): Promise<void> => {
 const ThemedApp = () => {
   const [theme, setTheme] = useState<Theme | null>(null);
   const [canModeEnabled, setCanModeEnabled] = useState<boolean | null>(null);
+
   useEffect(() => {
+    (async (): Promise<void> => await AppConfig.findCpuId())();
     const unsubscribeCanMode = AppConfig.onCanModeChanged(setCanModeEnabled);
 
     ThemeStore.getTheme().then((loadedTheme) => {
