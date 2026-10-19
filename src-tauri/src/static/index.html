@@ -511,18 +511,7 @@
         </table>
       </div>
 
-      <div class="form-card" style="margin-bottom: 1.5rem">
-        <h2>Import products from CSV</h2>
-        <p class="import-description">
-          Required columns: product_name, product_category, product_price, product_availability.
-          Product IDs are ignored and generated automatically.
-        </p>
-        <div class="form-footer">
-          <input type="file" id="product-csv" accept=".csv,text/csv" />
-          <button class="btn btn-primary" id="import-products-btn" onclick="importProductsFromCsv()">Import CSV</button>
-          <span id="import-status" role="status" aria-live="polite"></span>
-        </div>
-      </div>
+
 
       <div class="form-card">
         <h2 id="form-title">Add Product</h2>
@@ -560,6 +549,21 @@
           <span id="status"></span>
         </div>
       </div>
+
+
+      <div class="form-card" style="margin-bottom: 1.5rem">
+        <h2>Import products from CSV</h2>
+        <p class="import-description">
+          Required columns: product_name, product_category, product_price, product_availability.
+          Product IDs are ignored and generated automatically.
+        </p>
+        <div class="form-footer">
+          <input type="file" id="product-csv" accept=".csv,text/csv" />
+          <button class="btn btn-primary" id="import-products-btn" onclick="importProductsFromCsv()">Import CSV</button>
+          <span id="import-status" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+
     </div>
 
     <div class="tab-panel" id="tab-users">
