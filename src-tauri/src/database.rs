@@ -1,5 +1,5 @@
 use rusqlite::{params, Connection, Result};
-use serde::Serialize;
+use serde::{Serialize, Deserialize};
 use std::fs;
 use std::path::PathBuf;
 
@@ -100,7 +100,7 @@ fn open() -> Result<Connection> {
     Connection::open(db_path())
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Deserialize, Debug)]
 pub struct Product {
     pub product_id: i32,
     pub product_name: String,
