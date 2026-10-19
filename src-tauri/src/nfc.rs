@@ -175,13 +175,11 @@ pub fn start_nfc_listener(app_handle: tauri::AppHandle) {
                             }
                         }
                         Ok(Some(_)) => {
-                            println!("nfc-unknown-tag");
                             if let Err(e) = app_handle.emit("nfc-unknown-tag", uid_hex.clone()) {
                                 eprintln!("Failed to emit nfc-unknown-tag: {e}");
                             }
                         }
                         Ok(None) | Err(_) => {
-                            println!("nfc-unknown-tag");
                             if let Err(e) = app_handle.emit("nfc-unknown-tag", uid_hex.clone()) {
                                 eprintln!("Failed to emit nfc-unknown-tag: {e}");
                             }
