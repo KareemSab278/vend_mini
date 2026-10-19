@@ -1,12 +1,11 @@
-import { styles } from "../styles";
-const dev = import.meta.env.DEV;
+import { styles } from "../Pages/App/styles";
 
 interface NFCNotificationProps {
   message: string | null;
 }
 
 const NFCNotification = ({ message }: NFCNotificationProps) => (
-  dev && <div style={styles.nfcNotification}>{message}</div>
+  <div style={styles.nfcNotification}>{`TAG ID: ${message}`}</div>
 );
 
 export { NFCNotification };

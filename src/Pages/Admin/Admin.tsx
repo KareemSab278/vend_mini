@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation } from "wouter";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { PrimaryButton, PrimaryButtonProps } from "../../Components/Button";
 import { KeyPressListener } from "../../Helpers/KeyPressListener";
 import { styles as appStyles } from "../App/styles";
@@ -22,6 +23,10 @@ import { IconDoor } from '@tabler/icons-react';
 import { IconSun } from '@tabler/icons-react';
 import { IconLogout2 } from '@tabler/icons-react';
 import { IconBox } from '@tabler/icons-react';
+import { NFCNotification } from "../../Components/NFCNotification";
+import { NFC } from "../../Helpers/Nfc";
+
+const dev = import.meta.env.DEV;
 
 export { Admin };
 
@@ -40,7 +45,7 @@ const Admin = () => {
         const url = (await invoke("return_editor_url")) as string | null;
         setEditorUrl(url ?? "Could not get url");
       } catch (e) {
-        console.error("Failed to initialize static page server:", e);
+        dev && console.error("Failed to initialize static page server:", e);
       }
     };
 
@@ -83,6 +88,65 @@ const Admin = () => {
     },
   };
 
+  const nfcNotificationTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [nfcNotification, setNfcNotification] = useState<string | null>(null);
+
+  const showNfcNotification = (message: string) => {
+    if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
+    setNfcNotification(message);
+    nfcNotificationTimerRef.current = setTimeout(() => {
+      setNfcNotification(null);
+      nfcNotificationTimerRef.current = null;
+    }, 5000);
+  };
+
+
+  useEffect(() => {
+    let isMounted = true;
+    let unlistenAdmin: (() => void) | null = null;
+    let unlistenUnknown: (() => void) | null = null;
+
+    const listenToNfc = async () => {
+      try {
+        const stopListeningForAdmin = await NFC.listenAdminFound(() => {
+          navigate("/admin");
+        });
+        if (!isMounted) {
+          stopListeningForAdmin();
+          return;
+        }
+        unlistenAdmin = stopListeningForAdmin;
+
+        const stopListeningForUnknown = await NFC.listenUnknownTag((tagId) => {
+          if (isMounted) showNfcNotification(tagId);
+        });
+        if (!isMounted) {
+          stopListeningForUnknown();
+          return;
+        }
+        unlistenUnknown = stopListeningForUnknown;
+      } catch (error) {
+        dev && console.error("Failed to listen for NFC tags:", error);
+      }
+    };
+
+    void listenToNfc();
+
+    return () => {
+      isMounted = false;
+      if (unlistenAdmin) unlistenAdmin();
+      if (unlistenUnknown) unlistenUnknown();
+      if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
+    };
+  }, [navigate]);
+
+
+  const goHome = async () => {
+    await getCurrentWindow().setFullscreen(true);
+    navigate("/");
+  };
+
+
   return (
     <main style={appStyles.body}>
       <p style={styles.versionText}>{currentVersion}</p>
@@ -102,10 +166,10 @@ const Admin = () => {
           title={
             <div style={optionTheme}>
               <IconLogout2 size={30} color="#a50000" stroke={2} />
-              <p style={{ color: "#a50000" }}>Back</p>
+              <p style={{ color: "#a50000" }}>Go Home</p>
             </div>
           }
-          onClick={() => navigate("/")}
+          onClick={() => goHome()}
           size="xl"
         />
       </div>
@@ -128,6 +192,8 @@ const Admin = () => {
       />
 
       <ThemeSetter opened={activeModal === "theme"} onClose={() => setActiveModal(null)} />
+      {nfcNotification && <NFCNotification message={nfcNotification} />}
+
     </main>
   );
 };

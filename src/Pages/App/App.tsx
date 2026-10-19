@@ -9,7 +9,6 @@ import { SelectedProductsModal } from "./Components/SelectedProductsModal";
 import { CheckoutModal } from "./Components/CheckoutModal";
 import { PaymentMethodModal } from "./Components/PaymentMethodModal";
 import { ProductsWithCategories } from "./Components/ProductsWithCategories";
-import { NFCNotification } from "./Components/NFCNotification";
 import { PriceStatusPill } from "../../Components/PriceStatusPill";
 import { Door } from "../../Helpers/Door";
 import { NFC } from "../../Helpers/Nfc";
@@ -43,26 +42,12 @@ const App = () => {
   const [payMessage, setPayMessage] = useState<string>("");
   const [paymentMethod, setPaymentMethod] = useState<"card" | "nfc" | null>(null);
 
-  const unlistenNfcAdminRef = useRef<(() => void) | null>(null);
-  const unlistenNfcUnknownRef = useRef<(() => void) | null>(null);
-  const nfcNotificationTimerRef = useRef<number | null>(null);
+
   const pollRef = useRef<number | null>(null);
   const inactivityTimerRef = useRef<number | null>(null);
   const cancelledRef = useRef<boolean>(false);
 
-  const nfcInitializedRef = useRef(false);
-  const [nfcNotification, setNfcNotification] = useState<string | null>(null);
-  const [nfcListeningEnabled, setNfcListeningEnabled] = useState<boolean>(true);
-  useEffect(() => {
-    setNfcListeningEnabled(
-      paymentMethodModalOpen === false
-      && paymentMethod !== null
-      && payStatus === 'idle'
-      && modalOpen === false
-      && checkoutActive === false
-    );
-  }, [paymentMethod, payStatus, paymentMethodModalOpen, modalOpen, checkoutActive]);
-
+ 
   const adminPresentCheck = async (): Promise<void> => {
     const present = await Admin.areAdminsPresent();
     if (!present) {
@@ -116,27 +101,7 @@ const App = () => {
   };
 
 
-  const showNfcNotification = (message: string) => {
-    if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
-    setNfcNotification(message);
-    nfcNotificationTimerRef.current = setTimeout(() => {
-      setNfcNotification(null);
-      nfcNotificationTimerRef.current = null;
-    }, 5000) as unknown as number;
-  };
-
-
-  const listenToNfc = async () => {
-    if (nfcInitializedRef.current) return;
-    nfcInitializedRef.current = true;
-    unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
-      nfcListeningEnabled && navigate("/admin");
-    });
-
-    unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {
-      nfcListeningEnabled && showNfcNotification(`Unknown NFC tag: ${tagId}`);
-    });
-  };
+  
 
 
   const getProductsOnMount = async () => {
@@ -153,28 +118,23 @@ const App = () => {
   };
 
   useEffect(() => {
-    listenToNfc();
     getProductsOnMount();
     fetchProducts();
     initializePayDevice();
     startInactivityTimer();
     startScreenSaverServer();
-
+    
     const handleUserActivity = () => {
       resetInactivityTimer();
     };
-
+    
     adminPresentCheck();
-
+    
     return () => {
       clearInactivityTimer();
-
       window.removeEventListener("pointerdown", handleUserActivity);
       window.removeEventListener("keydown", handleUserActivity);
-      if (pollRef.current) clearInterval(pollRef.current);
-      if (unlistenNfcAdminRef.current) unlistenNfcAdminRef.current();
-      if (unlistenNfcUnknownRef.current) unlistenNfcUnknownRef.current();
-      if (nfcNotificationTimerRef.current) clearTimeout(nfcNotificationTimerRef.current);
+      
     };
   }, []);
 
@@ -217,9 +177,6 @@ const App = () => {
   const openDoorAndWaitForClose = async (newBalance?: string) => {
     if (cancelledRef.current) return;
     setPayStatus("dispensing");
-
-    // disable nfc reader while door is open
-    setNfcListeningEnabled(false);
 
     try {
       if (paymentMethod === "card") {
@@ -426,7 +383,6 @@ const App = () => {
 
       {screenSaverActive && <ScreenSaver onClose={resetInactivityTimer} />}
 
-      {nfcNotification && <NFCNotification message={nfcNotification} />}
     </main>
   );
 }
