@@ -134,7 +134,7 @@ const App = () => {
     });
 
     unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {
-      nfcListeningEnabled && showNfcNotification(`Unknown NFC tag: ${tagId}`);
+      dev && nfcListeningEnabled && showNfcNotification(`Unknown NFC tag: ${tagId}`);
     });
   };
 
@@ -426,7 +426,7 @@ const App = () => {
 
       {screenSaverActive && <ScreenSaver onClose={resetInactivityTimer} />}
 
-      {nfcNotification && <NFCNotification message={nfcNotification} />}
+      {nfcNotification && dev && <NFCNotification message={nfcNotification} />}
     </main>
   );
 }
