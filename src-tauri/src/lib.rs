@@ -1,5 +1,6 @@
 mod can_counter;
 mod config;
+mod csv_to_json;
 mod database;
 mod door;
 mod images;

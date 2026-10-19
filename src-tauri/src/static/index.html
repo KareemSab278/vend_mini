@@ -139,6 +139,26 @@
       padding: 1.5rem;
     }
 
+    .import-description {
+      color: #a1a1aa;
+      font-size: 0.85rem;
+      margin: -0.25rem 0 1rem;
+      line-height: 1.5;
+    }
+
+    #import-status {
+      font-size: 0.8rem;
+      color: #a1a1aa;
+    }
+
+    #import-status.ok {
+      color: #4ade80;
+    }
+
+    #import-status.err {
+      color: #f87171;
+    }
+
     .form-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -491,6 +511,19 @@
         </table>
       </div>
 
+      <div class="form-card" style="margin-bottom: 1.5rem">
+        <h2>Import products from CSV</h2>
+        <p class="import-description">
+          Required columns: product_name, product_category, product_price, product_availability.
+          Product IDs are ignored and generated automatically.
+        </p>
+        <div class="form-footer">
+          <input type="file" id="product-csv" accept=".csv,text/csv" />
+          <button class="btn btn-primary" id="import-products-btn" onclick="importProductsFromCsv()">Import CSV</button>
+          <span id="import-status" role="status" aria-live="polite"></span>
+        </div>
+      </div>
+
       <div class="form-card">
         <h2 id="form-title">Add Product</h2>
         <input type="hidden" id="edit-id" value="" />
@@ -664,6 +697,48 @@
         renderTable();
       } catch (e) {
         setStatus("Failed to load products.", false);
+      }
+    }
+
+    async function importProductsFromCsv() {
+      const input = document.getElementById("product-csv");
+      const file = input.files[0];
+      const button = document.getElementById("import-products-btn");
+      const status = document.getElementById("import-status");
+
+      if (!file) {
+        status.textContent = "Choose a CSV file to import.";
+        status.className = "err";
+        return;
+      }
+      if (!file.name.toLowerCase().endsWith(".csv")) {
+        status.textContent = "Choose a .csv file.";
+        status.className = "err";
+        return;
+      }
+
+      button.disabled = true;
+      status.textContent = "Importing products…";
+      status.className = "";
+      try {
+        const res = await fetch("/products/import", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ csv_content: await file.text() }),
+        });
+        const message = await res.text();
+        if (!res.ok) throw new Error(message || "Product import failed.");
+
+        status.textContent = message;
+        status.className = "ok";
+        input.value = "";
+        await loadProducts();
+      } catch (e) {
+        status.textContent = `Import failed: ${e}`;
+        status.className = "err";
+        await loadProducts();
+      } finally {
+        button.disabled = false;
       }
     }
 

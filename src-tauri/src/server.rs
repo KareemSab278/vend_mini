@@ -12,6 +12,7 @@ use tower_http::services::ServeDir;
 
 static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
 
+use crate::csv_to_json;
 use crate::database;
 use crate::images;
 use crate::users_database;
@@ -198,6 +199,30 @@ async fn create_product(Json(payload): Json<NewProduct>) -> impl IntoResponse {
     }
 }
 
+#[derive(Deserialize)]
+struct ImportProductsPayload {
+    csv_content: String,
+}
+
+async fn import_products(Json(payload): Json<ImportProductsPayload>) -> impl IntoResponse {
+    match csv_to_json::import_products_from_csv(&payload.csv_content) {
+        Ok(count) => (
+            StatusCode::CREATED,
+            format!("Imported {} product(s).", count),
+        ),
+        Err(error) => {
+            eprintln!("POST /products/import error: {}", error);
+            let status = match error {
+                csv_to_json::ProductImportError::InvalidCsv(_) => StatusCode::BAD_REQUEST,
+                csv_to_json::ProductImportError::Database { .. } => {
+                    StatusCode::INTERNAL_SERVER_ERROR
+                }
+            };
+            (status, error.to_string())
+        }
+    }
+}
+
 async fn remove_product(Path(id): Path<i32>) -> impl IntoResponse {
     match database::remove_product(id) {
         Ok(_) => (StatusCode::OK, "deleted".to_string()),
@@ -283,6 +308,7 @@ pub async fn initialize_static_page_server() -> Result<(), String> {
 pub async fn start() {
     let app = Router::new()
         .route("/categories", get(get_categories).post(create_category))
+        .route("/products/import", post(import_products))
         .route("/products", get(get_products).post(create_product))
         .route("/products/:id", delete(remove_product).put(edit_product))
         .route("/orders", get(view_orders))

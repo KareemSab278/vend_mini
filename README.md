@@ -972,8 +972,17 @@ App.tsx onSuccess handler
 
 Products are managed through the Axum-hosted static HTML page, accessible from any device on the same network.
 
+On the Products tab, admins can import a CSV containing `product_name`, `product_category`, `product_price`, and `product_availability`. A `product_id` column is optional and ignored; IDs are generated automatically. For example:
+
+```csv
+product_id,product_name,product_category,product_price,product_availability
+123,Cola,Drinks,1.50,true
 ```
-Admin opens http://<machine_ip>:3000 in a browser
+
+The page submits the CSV to `POST /products/import`. The server converts it to JSON with `csv_to_json`, then inserts each product using `database::add_product()`. The page reports the import count or any error; if a database error occurs partway through, the error reports how many products were already inserted.
+
+```
+Admin opens http://<machine_ip>:8000 in a browser
   |
   v
 index.html loads
@@ -984,6 +993,13 @@ index.html loads
   |       -> database.rs :: query_products()
   |       -> Returns JSON array of products
   |     Renders product table
+  |
+  +-- Admin selects a CSV file and clicks "Import CSV"
+  |     POST /products/import
+  |       -> csv_to_json.rs :: import_products_from_csv()
+  |       -> Converts CSV rows to JSON, excluding product IDs
+  |       -> database.rs :: add_product() for each product
+  |     Reloads product list and shows import result
   |
   v
 Admin fills out the form and clicks "Save"
