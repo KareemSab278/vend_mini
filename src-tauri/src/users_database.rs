@@ -247,8 +247,16 @@ pub async fn get_all_admins() -> Result<Vec<User>, String> {
 }
 
 pub fn admin_login(username: String, password: String) -> Result<User, String> {
-    const MAX_ATTEMPTS: i64 = 5;
     let conn = open_user_db().map_err(|e| e.to_string())?;
+    admin_login_with_connection(&conn, &username, &password)
+}
+
+fn admin_login_with_connection(
+    conn: &Connection,
+    username: &str,
+    password: &str,
+) -> Result<User, String> {
+    const MAX_ATTEMPTS: i64 = 5;
     let failed_attempts: i64 = conn
         .query_row(
             "SELECT failed_attempts FROM admin_login_state WHERE id = 1",
@@ -317,24 +325,43 @@ pub fn admin_login(username: String, password: String) -> Result<User, String> {
 
 pub fn reset_admin_login_attempts() -> Result<(), String> {
     let conn = open_user_db().map_err(|e| e.to_string())?;
+    reset_admin_login_attempts_in_connection(&conn).map_err(|e| e.to_string())
+}
+
+fn reset_admin_login_attempts_in_connection(conn: &Connection) -> rusqlite::Result<()> {
     conn.execute(
         "UPDATE admin_login_state SET failed_attempts = 0 WHERE id = 1",
         [],
-    )
-    .map_err(|e| e.to_string())?;
+    )?;
     Ok(())
 }
 
 #[tauri::command]
 pub fn update_admin_profile(
     user_id: u16,
+    username: String,
     new_password: Option<String>,
     tag_id: String,
 ) -> Result<(), String> {
     let conn = open_user_db().map_err(|e| e.to_string())?;
-    let (current_tag_id, username): (String, String) = conn
+    update_admin_profile_with_connection(&conn, user_id, &username, new_password, &tag_id)
+}
+
+fn update_admin_profile_with_connection(
+    conn: &Connection,
+    user_id: u16,
+    username: &str,
+    new_password: Option<String>,
+    tag_id: &str,
+) -> Result<(), String> {
+    let username =
+        non_empty(username.to_string()).ok_or_else(|| "Admin username is required".to_string())?;
+    if username.len() < 3 {
+        return Err("Admin username must be at least 3 characters".to_string());
+    }
+    let (current_tag_id, password_hash): (String, Option<String>) = conn
         .query_row(
-            "SELECT tag_id, COALESCE(username, full_name)
+            "SELECT tag_id, password_hash
              FROM users WHERE user_id = ?1 AND is_admin = 1",
             params![user_id],
             |row| Ok((row.get(0)?, row.get(1)?)),
@@ -349,20 +376,16 @@ pub fn update_admin_profile(
         return Err("Admin NFC tag ID cannot be empty".to_string());
     }
 
-    if let Some(new_password) = new_password.and_then(non_empty) {
-        let new_hash = hash_admin_password(Some(&username), Some(&new_password))?;
-        conn.execute(
-            "UPDATE users SET tag_id = ?1, password_hash = ?2 WHERE user_id = ?3",
-            params![tag_id, new_hash, user_id],
-        )
-        .map_err(|e| e.to_string())?;
+    let password_hash = if let Some(new_password) = new_password.and_then(non_empty) {
+        Some(hash_admin_password(Some(&username), Some(&new_password))?)
     } else {
-        conn.execute(
-            "UPDATE users SET tag_id = ?1 WHERE user_id = ?2",
-            params![tag_id, user_id],
-        )
-        .map_err(|e| e.to_string())?;
-    }
+        Some(password_hash.ok_or_else(|| "Admin password is required".to_string())?)
+    };
+    conn.execute(
+        "UPDATE users SET username = ?1, tag_id = ?2, password_hash = ?3 WHERE user_id = ?4",
+        params![username, tag_id, password_hash, user_id],
+    )
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -461,7 +484,42 @@ pub fn delete_user_by_tag_id(tag_id: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::hash_admin_password;
+    use super::{
+        admin_login_with_connection, hash_admin_password, reset_admin_login_attempts_in_connection,
+        update_admin_profile_with_connection,
+    };
+    use rusqlite::{params, Connection};
+
+    fn admin_login_db() -> Connection {
+        let conn = Connection::open_in_memory().expect("in-memory user database should open");
+        conn.execute_batch(
+            "CREATE TABLE users (
+                user_id INTEGER PRIMARY KEY,
+                tag_id TEXT NOT NULL,
+                full_name TEXT NOT NULL,
+                username TEXT,
+                password_hash TEXT,
+                is_admin BOOLEAN NOT NULL,
+                balance REAL NOT NULL
+            );
+            CREATE TABLE admin_login_state (
+                id INTEGER PRIMARY KEY,
+                failed_attempts INTEGER NOT NULL
+            );
+            INSERT INTO admin_login_state (id, failed_attempts) VALUES (1, 0);",
+        )
+        .expect("test user schema should be created");
+        let hash = bcrypt::hash("correct-password", bcrypt::DEFAULT_COST)
+            .expect("test password should hash");
+        conn.execute(
+            "INSERT INTO users
+             (user_id, tag_id, full_name, username, password_hash, is_admin, balance)
+             VALUES (1, 'tag', 'Operator', 'operator', ?1, 1, 0)",
+            params![hash],
+        )
+        .expect("test admin should be created");
+        conn
+    }
 
     #[test]
     fn admin_passwords_are_bcrypt_hashed_and_validated() {
@@ -472,5 +530,50 @@ mod tests {
         assert!(bcrypt::verify("a-strong-password", &hash).expect("hash should verify"));
         assert!(hash_admin_password(Some("op"), Some("a-strong-password")).is_err());
         assert!(hash_admin_password(Some("operator"), Some("short")).is_err());
+    }
+
+    #[test]
+    fn admin_login_accepts_the_stored_bcrypt_password() {
+        let conn = admin_login_db();
+        let admin = admin_login_with_connection(&conn, "OPERATOR", "correct-password")
+            .expect("matching credentials should sign in");
+
+        assert_eq!(admin.username, "operator");
+    }
+
+    #[test]
+    fn admin_login_locks_after_five_failures_until_nfc_reset() {
+        let conn = admin_login_db();
+        for _ in 0..5 {
+            assert!(admin_login_with_connection(&conn, "operator", "wrong-password").is_err());
+        }
+        assert!(admin_login_with_connection(&conn, "operator", "correct-password").is_err());
+
+        reset_admin_login_attempts_in_connection(&conn)
+            .expect("admin NFC tag should reset failed attempts");
+        assert!(admin_login_with_connection(&conn, "operator", "correct-password").is_ok());
+    }
+
+    #[test]
+    fn scanned_legacy_admin_can_set_username_and_password() {
+        let conn = admin_login_db();
+        conn.execute(
+            "UPDATE users SET username = NULL, password_hash = NULL WHERE user_id = 1",
+            [],
+        )
+        .expect("legacy admin should be simulated");
+
+        update_admin_profile_with_connection(
+            &conn,
+            1,
+            "new-operator",
+            Some("new-password".to_string()),
+            "replacement-tag",
+        )
+        .expect("admin profile should be configurable after NFC access");
+
+        let admin = admin_login_with_connection(&conn, "new-operator", "new-password")
+            .expect("new credentials should sign in");
+        assert_eq!(admin.tag_id, "replacement-tag");
     }
 }

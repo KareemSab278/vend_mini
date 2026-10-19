@@ -58,19 +58,19 @@ async function logoutAdmin() {
   } finally {
     expireAdminSession();
   }
+}
 
-  async function restoreAdminSession() {
-    try {
-      const response = await window.fetch("/auth/session");
-      if (!response.ok) {
-        showAdminLogin();
-        return;
-      }
-      hideAdminLogin();
-      loadProducts();
-    } catch (error) {
+async function restoreAdminSession() {
+  try {
+    const response = await window.fetch("/auth/session");
+    if (!response.ok) {
       showAdminLogin();
+      return;
     }
+    hideAdminLogin();
+    loadProducts();
+  } catch (error) {
+    showAdminLogin();
   }
 }
 

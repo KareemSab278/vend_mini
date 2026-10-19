@@ -7,7 +7,7 @@ interface AdminProfileModalProps {
   opened: boolean;
   user: User;
   onClose: () => void;
-  onSaved: (tagId: string) => void;
+  onSaved: (username: string, tagId: string) => void;
 }
 
 const AdminProfileModal = ({
@@ -16,6 +16,7 @@ const AdminProfileModal = ({
   onClose,
   onSaved,
 }: AdminProfileModalProps) => {
+  const [username, setUsername] = useState(user.username ?? user.full_name);
   const [newPassword, setNewPassword] = useState("");
   const [tagId, setTagId] = useState(user.tag_id);
   const [message, setMessage] = useState<string | null>(null);
@@ -23,12 +24,17 @@ const AdminProfileModal = ({
 
   useEffect(() => {
     if (!opened) return;
+    setUsername(user.username ?? user.full_name);
     setNewPassword("");
     setTagId(user.tag_id);
     setMessage(null);
   }, [opened, user.tag_id]);
 
   const save = async () => {
+    if (username.trim().length < 3) {
+      setMessage("Username must be at least 3 characters.");
+      return;
+    }
     if (newPassword && newPassword.length < 8) {
       setMessage("New password must be at least 8 characters.");
       return;
@@ -41,10 +47,11 @@ const AdminProfileModal = ({
       }
       await Admin.updateProfile(
         user.user_id,
+        username,
         newPassword,
         tagId,
       );
-      onSaved(tagId);
+      onSaved(username.trim(), tagId);
       onClose();
     } catch (error) {
       setMessage(String(error));
@@ -56,7 +63,13 @@ const AdminProfileModal = ({
   return (
     <Modal opened={opened} onClose={onClose} title="Admin Account" size="md">
       <div style={styles.inner}>
-        <p>Admin account: <strong>{user.username ?? user.full_name}</strong></p>
+        <label style={styles.label} htmlFor="admin-username">Username</label>
+        <input
+          id="admin-username"
+          autoComplete="username"
+          value={username}
+          onChange={(event) => setUsername(event.target.value)}
+        />
         <label style={styles.label} htmlFor="admin-new-password">New password</label>
         <input
           id="admin-new-password"

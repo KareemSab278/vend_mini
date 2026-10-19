@@ -1329,7 +1329,13 @@ Table: `users`
 | `is_admin` | INTEGER | NOT NULL DEFAULT 0 | Boolean stored as integer: 1 = admin, 0 = regular user |
 | `balance` | REAL | NOT NULL DEFAULT 0 | GBP balance available for NFC payments |
 
-Admin users are those with `is_admin = 1`. The browser-based product editor requires an admin username and password; its API routes require a short-lived authenticated session. Five failed sign-in attempts require scanning a registered admin NFC tag in the native app before trying again. The native app admin panel remains NFC-only. From its Admin Account screen, a scanned admin can set or reset the account password and update the NFC tag ID. The `admin_login_state` table stores the failed-attempt counter.
+### Admin access
+
+- **Native app:** The admin panel remains NFC-only; there is no username/password prompt in the app. Scan a registered admin tag to open it.
+- **Register a new admin:** In the app's Admin panel, open **Admins**, enter that admin's username and password, then scan the new tag. Regular users do not need login credentials.
+- **Set up or reset an existing admin's credentials:** Scan that admin's tag to open the app's Admin panel, then open **Admin Account**. Set the username and password there. The same screen can update the tag ID.
+- **Browser editor:** Open the editor URL from the app and sign in with an admin username and password. Its data API requires a short-lived authenticated session.
+- **Failed sign-ins:** After five failed browser sign-in attempts, scan a registered admin tag in the app to clear the attempt counter before trying again. The `admin_login_state` table stores the counter.
 
 The editor is currently served over HTTP on the local network. Use it only on a trusted network; credentials and session cookies are not encrypted in transit.
 

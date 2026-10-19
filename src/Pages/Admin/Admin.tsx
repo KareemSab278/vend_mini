@@ -234,8 +234,8 @@ const Admin = () => {
           opened={profileOpened}
           user={currentAdmin}
           onClose={() => setProfileOpened(false)}
-          onSaved={(tagId) => {
-            setCurrentAdmin({ ...currentAdmin, tag_id: tagId });
+          onSaved={(username, tagId) => {
+            setCurrentAdmin({ ...currentAdmin, username, tag_id: tagId });
           }}
         />
       )}

@@ -23,7 +23,7 @@ export const Admin = {
     create: async (user: User & Partial<NewAdminCredentials>): Promise<Response> => {
         try {
             await invoke("new_user", {
-                newUser: {
+                user: {
                     tag_id: user.tag_id,
                     full_name: user.full_name,
                     username: user.username,
@@ -51,11 +51,13 @@ export const Admin = {
 
     updateProfile: async (
         userId: number,
+        username: string,
         newPassword: string,
         tagId: string,
     ): Promise<void> =>
         await invoke("update_admin_profile", {
             userId,
+            username,
             newPassword: newPassword || null,
             tagId,
         }),
