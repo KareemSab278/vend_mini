@@ -2,7 +2,6 @@ const dev = import.meta.env.DEV;
 
 import { useState, useRef, useEffect } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useLocation } from "wouter";
 import { totalPrice } from "./Helpers";
 import { styles } from "./styles";
@@ -56,9 +55,8 @@ const App = () => {
     }
   };
 
-  const startFullScreen = async (): Promise<void> => await getCurrentWindow().setFullscreen(true);
   const initilaizeLed = async () => setTimeout(async () => { await LEDs.set('white') }, 2000);
-  useEffect(() => { startFullScreen(); initilaizeLed(); }, []);
+  useEffect(() => { initilaizeLed(); }, []);
 
   useEffect(() => {
     if (payStatus === "paying") {

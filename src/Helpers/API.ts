@@ -1,6 +1,4 @@
-import { AppConfig } from "./AppConfig";
-
-const machine_id = await AppConfig.getMachineId();
+import { LS } from "./LS";
 
 const buildURL = (path = '') => {
     if (String(path).startsWith('http://') || String(path).startsWith('https://')) {
@@ -40,6 +38,7 @@ const request = async ({
     body?: Record<string, unknown> | null;
     timeout?: number;
 } = {}) => {
+    const machineId = await LS.get("machineId", "");
     const url = buildURL(path);
     const options = {
         method,
@@ -49,7 +48,7 @@ const request = async ({
         body: null as string | null,
     };
 
-    options.body = JSON.stringify(body == null ? { machine_id } : { ...body, machine_id });
+    options.body = JSON.stringify(body == null ? { machine_id: machineId } : { ...body, machine_id: machineId });
 
     const response = await withTimeout(
         fetch(url, options),
