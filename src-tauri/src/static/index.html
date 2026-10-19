@@ -83,11 +83,12 @@
       <h2>Import products from CSV</h2>
       <p class="import-description">
         Required columns: product_name, product_category, product_price, product_availability.
-        Product IDs are ignored and generated automatically.
+        Product IDs are generated automatically and should be omitted.
       </p>
       <div class="form-footer">
         <input type="file" id="product-csv" accept=".csv,text/csv" />
         <button class="btn btn-primary" id="import-products-btn" onclick="importProductsFromCsv()">Import CSV</button>
+        <a class="btn btn-secondary" href="/products.csv" download>Download CSV editable template</a>
         <span id="import-status" role="status" aria-live="polite"></span>
       </div>
     </div>

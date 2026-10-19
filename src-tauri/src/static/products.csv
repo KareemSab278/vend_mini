@@ -1,0 +1,3 @@
+product_name,product_category,product_price,product_availability
+example name 1,example category,0.20,TRUE
+example name 2,example category,0.30,FALSE
