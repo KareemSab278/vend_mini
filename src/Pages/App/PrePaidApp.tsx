@@ -263,8 +263,8 @@ const PrePaidApp = () => {
     if (nfcInitializedRef.current) return;
     nfcInitializedRef.current = true;
 
-    unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
-      navigate("/admin");
+    unlistenNfcAdminRef.current = await NFC.listenAdminFound((userId) => {
+      navigate(`/admin?adminId=${userId}`);
     });
 
     unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {

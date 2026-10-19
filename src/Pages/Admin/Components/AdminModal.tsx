@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Modal } from "@mantine/core";
 import { PrimaryButton } from "../../../Components/Button";
-import { Admin, type User } from "../../../Helpers/Admins";
+import { Admin, type NewAdminCredentials, type User } from "../../../Helpers/Admins";
 import { NFC } from "../../../Helpers/Nfc";
 
 export { AdminModal };
@@ -17,8 +17,12 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
   const [admins, setAdmins] = useState<User[]>([]);
   const [isRegistering, setIsRegistering] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const adminsRef = useRef<User[]>([]);
   const registeringRef = useRef(false);
+  const credentialsRef = useRef({ username, password });
+  credentialsRef.current = { username, password };
 
   useEffect(() => {
     adminsRef.current = admins;
@@ -40,6 +44,12 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
       if (registeringRef.current) return;
       if (adminsRef.current.length >= MAX_ADMINS) return;
 
+      const credentials = credentialsRef.current;
+      if (credentials.username.trim().length < 3 || credentials.password.length < 8) {
+        setMessage("Enter a username (at least 3 characters) and password (at least 8 characters) before scanning.");
+        return;
+      }
+
       if (adminsRef.current.some((a) => a.tag_id === tagId)) {
         setMessage("This tag is already registered.");
         return;
@@ -49,9 +59,11 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
       setIsRegistering(true);
       setMessage("Registering tag…");
 
-      const newAdmin: User = {
+      const newAdmin: User & NewAdminCredentials = {
         tag_id: tagId,
-        full_name: `Admin ${adminsRef.current.length + 1}`,
+        full_name: credentials.username.trim(),
+        username: credentials.username.trim(),
+        password: credentials.password,
         is_admin: true,
         balance: 0,
       };
@@ -60,6 +72,8 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
       if (result.success) {
         setAdmins((prev) => [...prev, newAdmin]);
         setMessage(`Admin registered: ${newAdmin.full_name}`);
+        setUsername("");
+        setPassword("");
       } else {
         setMessage(result.message ?? "Failed to register admin.");
       }
@@ -79,8 +93,25 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
     <Modal opened={opened} onClose={onClose} title="Add Admins" size="xl">
       <div style={styles.inner}>
         <p style={styles.text}>
-          Place and hold a new NFC tag on the reader to register an admin.
+          Enter admin credentials, then place and hold a new NFC tag on the reader to register an admin.
         </p>
+        <div style={styles.credentials}>
+          <input
+            aria-label="Admin username"
+            autoComplete="username"
+            placeholder="Admin username"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+          />
+          <input
+            aria-label="Admin password"
+            autoComplete="new-password"
+            placeholder="Admin password (8+ characters)"
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+          />
+        </div>
 
         <p style={styles.counter}>
           Admins registered: {admins.length} / {MAX_ADMINS}
@@ -150,5 +181,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     background: "rgba(255, 255, 255, 0.1)",
     borderRadius: "8px",
     wordBreak: "break-all",
+  },
+  credentials: {
+    display: "flex",
+    flexDirection: "column",
+    gap: "0.75rem",
+    width: "min(100%, 28rem)",
+    marginBottom: "1rem",
   },
 };

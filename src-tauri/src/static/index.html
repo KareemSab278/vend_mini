@@ -9,12 +9,25 @@
 </head>
 
 <body>
+  <div class="login-overlay" id="admin-login-overlay" role="dialog" aria-modal="true" aria-labelledby="admin-login-title">
+    <form class="login-card" id="admin-login-form" onsubmit="loginAdmin(event)">
+      <h1 id="admin-login-title">Admin Login</h1>
+      <label for="admin-login-username">Username</label>
+      <input id="admin-login-username" name="username" autocomplete="username" required />
+      <label for="admin-login-password">Password</label>
+      <input id="admin-login-password" name="password" type="password" autocomplete="current-password" required />
+      <p id="admin-login-status" role="alert" aria-live="polite"></p>
+      <button class="btn btn-primary" id="admin-login-button" type="submit">Sign in</button>
+    </form>
+  </div>
+
   <div class="container">
     <div class="tabs">
       <button class="tab-btn active" data-tab="tab-products" onclick="switchTab('tab-products')">Products</button>
       <button class="tab-btn" data-tab="tab-users" onclick="switchTab('tab-users')">Users</button>
       <button class="tab-btn" data-tab="tab-orders" onclick="switchTab('tab-orders')">Orders</button>
       <button class="tab-btn" data-tab="tab-images" onclick="switchTab('tab-images')">Images</button>
+      <button class="btn btn-secondary logout-btn" onclick="logoutAdmin()">Log out</button>
     </div>
 
     <div class="tab-panel active" id="tab-products">
@@ -138,14 +151,23 @@
             <input id="user-tag-id" placeholder="e.g. 04a3b2c1" />
           </div>
           <div class="field">
-            <label for="user-full-name">Full Name</label>
+            <label for="user-full-name">Full name</label>
             <input id="user-full-name" placeholder="e.g. Jane Doe" />
+          </div>
+          <div class="field">
+            <label for="username">Admin username</label>
+            <input id="username" placeholder="e.g. johndoe" />
           </div>
           <div class="field">
             <label for="user-balance">Balance (£)</label>
             <input id="user-balance" placeholder="e.g. 10.00" inputmode="decimal" />
           </div>
+           <div class="field">
+            <label for="user-password">Password</label>
+            <input id="user-password" placeholder="Enter password" type="password" />
+          </div>
         </div>
+        <p class="muted">Username and password are only required for admin accounts. Leave the password blank to keep an existing admin password.</p>
         <div class="form-footer">
           <label class="checkbox-label">
             <input type="checkbox" id="user-is-admin" />

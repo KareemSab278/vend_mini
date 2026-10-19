@@ -1,22 +1,150 @@
 use axum::{
-    extract::{Path, Query},
-    http::StatusCode,
-    response::IntoResponse,
+    extract::{Path, Query, Request},
+    http::{
+        header::{COOKIE, SET_COOKIE},
+        HeaderMap, HeaderValue, StatusCode,
+    },
+    middleware::{self, Next},
+    response::{IntoResponse, Response},
     routing::{delete, get, post},
     Json, Router,
 };
 use serde::Deserialize;
+use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Mutex, OnceLock,
+};
+use std::time::{Duration, Instant};
 use tower_http::services::ServeDir;
+use uuid::Uuid;
 
 static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
+static ADMIN_WEB_SESSIONS: OnceLock<Mutex<HashMap<String, Instant>>> = OnceLock::new();
+const ADMIN_WEB_SESSION_TTL: Duration = Duration::from_secs(12 * 60 * 60);
 
 use crate::csv_to_json;
 use crate::database;
 use crate::images;
 use crate::users_database;
 use crate::users_database::NewUser;
+
+fn admin_web_sessions() -> &'static Mutex<HashMap<String, Instant>> {
+    ADMIN_WEB_SESSIONS.get_or_init(|| Mutex::new(HashMap::new()))
+}
+
+#[derive(Deserialize)]
+struct AdminWebLogin {
+    username: String,
+    password: String,
+}
+
+async fn admin_web_login(Json(credentials): Json<AdminWebLogin>) -> impl IntoResponse {
+    match users_database::admin_login(credentials.username, credentials.password) {
+        Ok(_) => {
+            let token = Uuid::new_v4().to_string();
+            let expires_at = Instant::now() + ADMIN_WEB_SESSION_TTL;
+            match admin_web_sessions().lock() {
+                Ok(mut sessions) => {
+                    sessions.insert(token.clone(), expires_at);
+                    let cookie = format!(
+                        "admin_session={}; HttpOnly; SameSite=Strict; Path=/; Max-Age={}",
+                        token,
+                        ADMIN_WEB_SESSION_TTL.as_secs()
+                    );
+                    match HeaderValue::from_str(&cookie) {
+                        Ok(cookie) => {
+                            let mut response =
+                                (StatusCode::OK, Json(serde_json::json!({"success": true})))
+                                    .into_response();
+                            response.headers_mut().insert(SET_COOKIE, cookie);
+                            response
+                        }
+                        Err(error) => {
+                            eprintln!("Failed to create admin session cookie: {error}");
+                            StatusCode::INTERNAL_SERVER_ERROR.into_response()
+                        }
+                    }
+                }
+                Err(_) => (
+                    StatusCode::INTERNAL_SERVER_ERROR,
+                    "Admin session storage is unavailable",
+                )
+                    .into_response(),
+            }
+        }
+        Err(error) => (StatusCode::UNAUTHORIZED, error).into_response(),
+    }
+}
+
+fn admin_session_token(headers: &HeaderMap) -> Option<String> {
+    headers
+        .get(COOKIE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|cookies| {
+            cookies.split(';').find_map(|cookie| {
+                cookie
+                    .trim()
+                    .strip_prefix("admin_session=")
+                    .map(str::to_string)
+            })
+        })
+}
+
+async fn admin_web_logout(headers: HeaderMap) -> Response {
+    let token = admin_session_token(&headers);
+    let Some(token) = token else {
+        return StatusCode::UNAUTHORIZED.into_response();
+    };
+    match admin_web_sessions().lock() {
+        Ok(mut sessions) => {
+            sessions.remove(&token);
+            let mut response = StatusCode::NO_CONTENT.into_response();
+            response.headers_mut().insert(
+                SET_COOKIE,
+                HeaderValue::from_static(
+                    "admin_session=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0",
+                ),
+            );
+            response
+        }
+        Err(_) => StatusCode::INTERNAL_SERVER_ERROR.into_response(),
+    }
+}
+
+async fn admin_web_session() -> StatusCode {
+    StatusCode::NO_CONTENT
+}
+
+async fn require_admin_web_session(request: Request, next: Next) -> Response {
+    let token = admin_session_token(request.headers());
+    let Some(token) = token else {
+        return (StatusCode::UNAUTHORIZED, "Admin login required").into_response();
+    };
+
+    let valid = match admin_web_sessions().lock() {
+        Ok(mut sessions) => {
+            let now = Instant::now();
+            sessions.retain(|_, expires_at| *expires_at > now);
+            sessions
+                .get(&token)
+                .is_some_and(|expires_at| *expires_at > now)
+        }
+        Err(_) => {
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Admin session storage is unavailable",
+            )
+                .into_response()
+        }
+    };
+    if valid {
+        next.run(request).await
+    } else {
+        (StatusCode::UNAUTHORIZED, "Admin session expired").into_response()
+    }
+}
 
 // ───────────────────────────────────────────────────────────────────────────── users
 
@@ -35,12 +163,7 @@ async fn update_user_by_tag_id(
     Json(payload): Json<NewUser>,
 ) -> impl IntoResponse {
     if let Some(tag_id) = params.tag_id {
-        match users_database::update_user_by_tag_id(
-            &tag_id,
-            &payload.full_name,
-            payload.is_admin,
-            payload.balance,
-        ) {
+        match users_database::update_user_by_tag_id(&tag_id, payload) {
             Ok(_) => (StatusCode::OK, "User updated".to_string()).into_response(),
             Err(e) => {
                 eprintln!("PUT /users?tag_id={} error: {}", tag_id, e);
@@ -306,7 +429,9 @@ pub async fn initialize_static_page_server() -> Result<(), String> {
 }
 
 pub async fn start() {
-    let app = Router::new()
+    let protected_routes = Router::new()
+        .route("/auth/session", get(admin_web_session))
+        .route("/auth/logout", post(admin_web_logout))
         .route("/categories", get(get_categories).post(create_category))
         .route("/products/import", post(import_products))
         .route("/products", get(get_products).post(create_product))
@@ -325,8 +450,19 @@ pub async fn start() {
             "/balance",
             get(get_balance_by_tag_id).put(update_balance_by_tag_id),
         )
-        .route("/images", get(images::list_images).post(images::upload_image))
-        .route("/images/:name", get(images::serve_image).delete(images::delete_image))
+        .route(
+            "/images",
+            get(images::list_images).post(images::upload_image),
+        )
+        .route(
+            "/images/:name",
+            get(images::serve_image).delete(images::delete_image),
+        )
+        .route_layer(middleware::from_fn(require_admin_web_session));
+
+    let app = Router::new()
+        .route("/auth/login", post(admin_web_login))
+        .merge(protected_routes)
         .fallback_service(ServeDir::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/src/static"

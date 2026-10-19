@@ -22,15 +22,41 @@ fn ensure_user_database_schema() -> Result<()> {
             full_name TEXT    NOT NULL,
             is_admin  BOOLEAN NOT NULL DEFAULT 0,
             balance   REAL    NOT NULL DEFAULT 0
-        );",
+        );
+        CREATE TABLE IF NOT EXISTS admin_login_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            failed_attempts INTEGER NOT NULL DEFAULT 0
+        );
+        INSERT OR IGNORE INTO admin_login_state (id, failed_attempts) VALUES (1, 0);",
+    )?;
+    ensure_column(&conn, "username", "TEXT")?;
+    ensure_column(&conn, "password_hash", "TEXT")?;
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS unique_admin_username
+         ON users (lower(username)) WHERE is_admin = 1 AND username IS NOT NULL",
+        [],
+    )?;
+    Ok(())
+}
+
+fn ensure_column(conn: &Connection, name: &str, column_type: &str) -> Result<()> {
+    let mut stmt = conn.prepare("PRAGMA table_info(users)")?;
+    let columns = stmt.query_map([], |row| row.get::<_, String>(1))?;
+    for column in columns {
+        if column? == name {
+            return Ok(());
+        }
+    }
+    conn.execute(
+        &format!("ALTER TABLE users ADD COLUMN {name} {column_type}"),
+        [],
     )?;
     Ok(())
 }
 
 #[tauri::command]
 pub fn initialize_user_database() -> Result<(), String> {
-    ensure_user_database_schema()
-        .map_err(|e| format!("User database initialization failed: {}", e))
+    ensure_user_database_schema().map_err(|e| format!("User database initialization failed: {}", e))
 }
 
 fn open_user_db() -> Result<Connection> {
@@ -44,10 +70,10 @@ pub struct User {
     pub user_id: u16,
     pub tag_id: String,
     pub full_name: String,
+    pub username: String,
     pub is_admin: bool,
     pub balance: f64,
 }
-
 
 #[tauri::command]
 pub async fn are_admins_present() -> Result<bool, String> {
@@ -64,34 +90,82 @@ pub async fn are_admins_present() -> Result<bool, String> {
 #[derive(Deserialize, Debug, Clone)]
 pub struct NewUser {
     pub tag_id: String,
-    pub full_name: String,
+    #[serde(default)]
+    pub full_name: Option<String>,
+    #[serde(default)]
+    pub username: Option<String>,
+    #[serde(default)]
+    pub password: Option<String>,
     pub is_admin: bool,
     pub balance: f64,
 }
 
 #[tauri::command]
-pub fn new_user(NewUser { tag_id, full_name, is_admin, balance }: NewUser) -> Result<bool, String> {
+pub fn new_user(user: NewUser) -> Result<bool, String> {
     let conn = open_user_db().map_err(|e| e.to_string())?;
+    let username = user.username.and_then(non_empty);
+    let password_hash = if user.is_admin {
+        Some(hash_admin_password(
+            username.as_deref(),
+            user.password.as_deref(),
+        )?)
+    } else {
+        None
+    };
+    let full_name = user
+        .full_name
+        .and_then(non_empty)
+        .or_else(|| username.clone())
+        .unwrap_or_else(|| "User".to_string());
     conn.execute(
-        "INSERT INTO users (tag_id, full_name, is_admin, balance) VALUES (lower(?1), ?2, ?3, ?4)",
-        params![tag_id, full_name, is_admin, balance],
-    ).map_err(|e| e.to_string())?;
+        "INSERT INTO users (tag_id, full_name, username, password_hash, is_admin, balance)
+         VALUES (lower(?1), ?2, ?3, ?4, ?5, ?6)",
+        params![
+            user.tag_id,
+            full_name,
+            username,
+            password_hash,
+            user.is_admin,
+            user.balance
+        ],
+    )
+    .map_err(|e| e.to_string())?;
     Ok(true)
+}
+
+fn non_empty(value: String) -> Option<String> {
+    let value = value.trim().to_string();
+    (!value.is_empty()).then_some(value)
+}
+
+fn hash_admin_password(username: Option<&str>, password: Option<&str>) -> Result<String, String> {
+    let username = username.ok_or_else(|| "Admin username is required".to_string())?;
+    if username.len() < 3 {
+        return Err("Admin username must be at least 3 characters".to_string());
+    }
+    let password = password.ok_or_else(|| "Admin password is required".to_string())?;
+    if password.len() < 8 {
+        return Err("Admin password must be at least 8 characters".to_string());
+    }
+    bcrypt::hash(password, bcrypt::DEFAULT_COST)
+        .map_err(|e| format!("Failed to hash admin password: {e}"))
 }
 
 #[allow(dead_code)]
 pub fn search_users_by_name(name: &str) -> Result<Vec<User>> {
     let conn = open_user_db()?;
     let mut stmt = conn.prepare(
-        "SELECT user_id, tag_id, full_name, is_admin, balance FROM users WHERE full_name LIKE ?1",
+        "SELECT user_id, tag_id, full_name, COALESCE(username, full_name), is_admin, balance
+         FROM users WHERE COALESCE(username, full_name) LIKE ?1",
     )?;
     let user_iter = stmt.query_map(params![format!("%{}%", name)], |row| {
         Ok(User {
             user_id: row.get(0)?,
             tag_id: row.get(1)?,
             full_name: row.get(2)?,
-            is_admin: row.get(3)?,
-            balance: row.get(4)?,
+            username: row.get(3)?,
+            is_admin: row.get(4)?,
+            balance: row.get(5)?,
         })
     })?;
 
@@ -106,15 +180,17 @@ pub fn search_users_by_name(name: &str) -> Result<Vec<User>> {
 pub fn get_user_by_tag_id(tag_id: &str) -> Result<Option<User>> {
     let conn = open_user_db()?;
     let mut stmt = conn.prepare(
-        "SELECT user_id, tag_id, full_name, is_admin, balance FROM users WHERE tag_id = lower(?1)",
+        "SELECT user_id, tag_id, full_name, COALESCE(username, full_name), is_admin, balance
+         FROM users WHERE tag_id = lower(?1)",
     )?;
     let user_iter = stmt.query_map(params![tag_id], |row| {
         Ok(User {
             user_id: row.get(0)?,
             tag_id: row.get(1)?,
             full_name: row.get(2)?,
-            is_admin: row.get(3)?,
-            balance: row.get(4)?,
+            username: row.get(3)?,
+            is_admin: row.get(4)?,
+            balance: row.get(5)?,
         })
     })?;
 
@@ -144,15 +220,17 @@ pub fn fetch_balance_by_tag_id(tag_id: &str) -> Result<Option<f64>> {
 pub fn fetch_all_admins() -> Result<Vec<User>> {
     let conn = open_user_db()?;
     let mut stmt = conn.prepare(
-        "SELECT user_id, tag_id, full_name, is_admin, balance FROM users WHERE is_admin = 1",
+        "SELECT user_id, tag_id, full_name, COALESCE(username, full_name), is_admin, balance
+         FROM users WHERE is_admin = 1",
     )?;
     let admin_iter = stmt.query_map([], |row| {
         Ok(User {
             user_id: row.get(0)?,
             tag_id: row.get(1)?,
             full_name: row.get(2)?,
-            is_admin: row.get(3)?,
-            balance: row.get(4)?,
+            username: row.get(3)?,
+            is_admin: row.get(4)?,
+            balance: row.get(5)?,
         })
     })?;
 
@@ -166,6 +244,126 @@ pub fn fetch_all_admins() -> Result<Vec<User>> {
 #[tauri::command]
 pub async fn get_all_admins() -> Result<Vec<User>, String> {
     fetch_all_admins().map_err(|e| e.to_string())
+}
+
+pub fn admin_login(username: String, password: String) -> Result<User, String> {
+    const MAX_ATTEMPTS: i64 = 5;
+    let conn = open_user_db().map_err(|e| e.to_string())?;
+    let failed_attempts: i64 = conn
+        .query_row(
+            "SELECT failed_attempts FROM admin_login_state WHERE id = 1",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    if failed_attempts >= MAX_ATTEMPTS {
+        return Err("Too many failed attempts. Scan an admin NFC tag to try again.".into());
+    }
+
+    let admin = conn
+        .query_row(
+            "SELECT user_id, tag_id, full_name, COALESCE(username, full_name), password_hash,
+                    is_admin, balance
+             FROM users WHERE is_admin = 1 AND lower(username) = lower(?1)",
+            params![username.trim()],
+            |row| {
+                Ok((
+                    User {
+                        user_id: row.get(0)?,
+                        tag_id: row.get(1)?,
+                        full_name: row.get(2)?,
+                        username: row.get(3)?,
+                        is_admin: row.get(5)?,
+                        balance: row.get(6)?,
+                    },
+                    row.get::<_, Option<String>>(4)?,
+                ))
+            },
+        )
+        .ok();
+
+    if let Some((user, Some(password_hash))) = admin {
+        if bcrypt::verify(password, &password_hash).map_err(|e| e.to_string())? {
+            conn.execute(
+                "UPDATE admin_login_state SET failed_attempts = 0 WHERE id = 1",
+                [],
+            )
+            .map_err(|e| e.to_string())?;
+            return Ok(user);
+        }
+    }
+
+    conn.execute(
+        "UPDATE admin_login_state SET failed_attempts = failed_attempts + 1 WHERE id = 1",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+    let attempts: i64 = conn
+        .query_row(
+            "SELECT failed_attempts FROM admin_login_state WHERE id = 1",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(|e| e.to_string())?;
+    if attempts >= MAX_ATTEMPTS {
+        Err("Too many failed attempts. Scan an admin NFC tag to try again.".into())
+    } else {
+        Err(format!(
+            "Invalid username or password. {} attempts remaining.",
+            MAX_ATTEMPTS - attempts
+        ))
+    }
+}
+
+pub fn reset_admin_login_attempts() -> Result<(), String> {
+    let conn = open_user_db().map_err(|e| e.to_string())?;
+    conn.execute(
+        "UPDATE admin_login_state SET failed_attempts = 0 WHERE id = 1",
+        [],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
+pub fn update_admin_profile(
+    user_id: u16,
+    new_password: Option<String>,
+    tag_id: String,
+) -> Result<(), String> {
+    let conn = open_user_db().map_err(|e| e.to_string())?;
+    let (current_tag_id, username): (String, String) = conn
+        .query_row(
+            "SELECT tag_id, COALESCE(username, full_name)
+             FROM users WHERE user_id = ?1 AND is_admin = 1",
+            params![user_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .map_err(|e| format!("Admin account not found: {e}"))?;
+    let tag_id = if tag_id.trim().is_empty() {
+        current_tag_id
+    } else {
+        tag_id.trim().to_lowercase()
+    };
+    if tag_id.is_empty() {
+        return Err("Admin NFC tag ID cannot be empty".to_string());
+    }
+
+    if let Some(new_password) = new_password.and_then(non_empty) {
+        let new_hash = hash_admin_password(Some(&username), Some(&new_password))?;
+        conn.execute(
+            "UPDATE users SET tag_id = ?1, password_hash = ?2 WHERE user_id = ?3",
+            params![tag_id, new_hash, user_id],
+        )
+        .map_err(|e| e.to_string())?;
+    } else {
+        conn.execute(
+            "UPDATE users SET tag_id = ?1 WHERE user_id = ?2",
+            params![tag_id, user_id],
+        )
+        .map_err(|e| e.to_string())?;
+    }
+    Ok(())
 }
 
 #[tauri::command]
@@ -199,17 +397,55 @@ pub fn deduct_balance_by_tag_id(tag_id: &str, amount: f64) -> std::result::Resul
 }
 
 #[allow(dead_code)]
-pub fn update_user_by_tag_id(
-    tag_id: &str,
-    full_name: &str,
-    is_admin: bool,
-    balance: f64,
-) -> Result<()> {
-    let conn = open_user_db()?;
+pub fn update_user_by_tag_id(tag_id: &str, user: NewUser) -> std::result::Result<(), String> {
+    let conn = open_user_db().map_err(|e| e.to_string())?;
+    let existing = conn
+        .query_row(
+            "SELECT is_admin, password_hash FROM users WHERE tag_id = lower(?1)",
+            params![tag_id],
+            |row| Ok((row.get::<_, bool>(0)?, row.get::<_, Option<String>>(1)?)),
+        )
+        .map_err(|e| e.to_string())?;
+    let username = user.username.and_then(non_empty);
+    if user.is_admin && username.is_none() {
+        return Err("Admin username is required".to_string());
+    }
+    let password_hash = if user.is_admin {
+        if let Some(password) = user
+            .password
+            .as_deref()
+            .and_then(|p| non_empty(p.to_string()))
+        {
+            Some(bcrypt::hash(password, bcrypt::DEFAULT_COST).map_err(|e| e.to_string())?)
+        } else if existing.0 {
+            existing
+                .1
+                .ok_or_else(|| "Admin password is required".to_string())?
+                .into()
+        } else {
+            return Err("Admin password is required".to_string());
+        }
+    } else {
+        None
+    };
+    let full_name = user
+        .full_name
+        .and_then(non_empty)
+        .or_else(|| username.clone())
+        .unwrap_or_else(|| "User".to_string());
     conn.execute(
-        "UPDATE users SET full_name = ?1, is_admin = ?2, balance = ?3 WHERE tag_id = lower(?4)",
-        params![full_name, is_admin, balance, tag_id],
-    )?;
+        "UPDATE users SET full_name = ?1, username = ?2, password_hash = ?3,
+         is_admin = ?4, balance = ?5 WHERE tag_id = lower(?6)",
+        params![
+            full_name,
+            if user.is_admin { username } else { None },
+            password_hash,
+            user.is_admin,
+            user.balance,
+            tag_id
+        ],
+    )
+    .map_err(|e| e.to_string())?;
     Ok(())
 }
 
@@ -221,4 +457,20 @@ pub fn delete_user_by_tag_id(tag_id: &str) -> Result<()> {
         params![tag_id],
     )?;
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::hash_admin_password;
+
+    #[test]
+    fn admin_passwords_are_bcrypt_hashed_and_validated() {
+        let hash = hash_admin_password(Some("operator"), Some("a-strong-password"))
+            .expect("valid admin credentials should hash");
+
+        assert_ne!(hash, "a-strong-password");
+        assert!(bcrypt::verify("a-strong-password", &hash).expect("hash should verify"));
+        assert!(hash_admin_password(Some("op"), Some("a-strong-password")).is_err());
+        assert!(hash_admin_password(Some("operator"), Some("short")).is_err());
+    }
 }

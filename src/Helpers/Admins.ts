@@ -4,8 +4,14 @@ export type User = {
     user_id?: number; // can be undefined for inserts instead of updates
     tag_id: string;
     full_name: string;
+    username?: string;
     is_admin: boolean;
     balance: number;
+};
+
+export type NewAdminCredentials = {
+    username: string;
+    password: string;
 };
 
 export interface Response {
@@ -14,12 +20,14 @@ export interface Response {
 }
 
 export const Admin = {
-    create: async (user: User): Promise<Response> => {
+    create: async (user: User & Partial<NewAdminCredentials>): Promise<Response> => {
         try {
             await invoke("new_user", {
                 newUser: {
                     tag_id: user.tag_id,
                     full_name: user.full_name,
+                    username: user.username,
+                    password: user.password,
                     is_admin: user.is_admin,
                     balance: user.balance,
                 },
@@ -40,4 +48,15 @@ export const Admin = {
     getAllAdmins: async (): Promise<User[]> =>
         await invoke("get_all_admins") as User[]
     ,
+
+    updateProfile: async (
+        userId: number,
+        newPassword: string,
+        tagId: string,
+    ): Promise<void> =>
+        await invoke("update_admin_profile", {
+            userId,
+            newPassword: newPassword || null,
+            tagId,
+        }),
 };

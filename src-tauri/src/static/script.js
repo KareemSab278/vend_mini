@@ -1,9 +1,85 @@
+function showAdminLogin() {
+  document.getElementById("admin-login-overlay").hidden = false;
+}
+
+function hideAdminLogin() {
+  document.getElementById("admin-login-overlay").hidden = true;
+}
+
+function expireAdminSession() {
+  showAdminLogin();
+}
+
+async function apiFetch(url, options = {}) {
+  const response = await window.fetch(url, options);
+  if (response.status === 401) {
+    expireAdminSession();
+    throw new Error("Admin session expired. Please sign in again.");
+  }
+  return response;
+}
+
+async function loginAdmin(event) {
+  event.preventDefault();
+  const form = document.getElementById("admin-login-form");
+  const button = document.getElementById("admin-login-button");
+  const status = document.getElementById("admin-login-status");
+  button.disabled = true;
+  status.textContent = "";
+  status.className = "";
+  try {
+    const response = await window.fetch("/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: document.getElementById("admin-login-username").value.trim(),
+        password: document.getElementById("admin-login-password").value,
+      }),
+    });
+    if (!response.ok) {
+      throw new Error(await response.text() || "Sign in failed.");
+    }
+    document.getElementById("admin-login-password").value = "";
+    hideAdminLogin();
+    loadProducts();
+  } catch (error) {
+    status.textContent = error.message;
+    status.className = "err";
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function logoutAdmin() {
+  try {
+    await apiFetch("/auth/logout", { method: "POST" });
+  } catch (error) {
+    console.error("Failed to end admin session:", error);
+  } finally {
+    expireAdminSession();
+  }
+
+  async function restoreAdminSession() {
+    try {
+      const response = await window.fetch("/auth/session");
+      if (!response.ok) {
+        showAdminLogin();
+        return;
+      }
+      hideAdminLogin();
+      loadProducts();
+    } catch (error) {
+      showAdminLogin();
+    }
+  }
+}
+
 /* ═══════════════════════════════ PRODUCTS ═══════════════════════════════ */
 let products = [];
 
 async function loadProducts() {
   try {
-    const res = await fetch("/products");
+    const res = await apiFetch("/products");
     products = await res.json();
     renderTable();
   } catch (e) {
@@ -32,7 +108,7 @@ async function importProductsFromCsv() {
   status.textContent = "Importing products…";
   status.className = "";
   try {
-    const res = await fetch("/products/import", {
+    const res = await apiFetch("/products/import", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ csv_content: await file.text() }),
@@ -55,7 +131,7 @@ async function importProductsFromCsv() {
 
 async function loadCategories() {
   try {
-    const res = await fetch("/categories");
+    const res = await apiFetch("/categories");
     if (!res.ok) throw new Error("Failed to fetch categories");
     const cats = await res.json();
     const select = document.getElementById("category");
@@ -95,7 +171,7 @@ function toggleCustomCategory() {
 
 async function addCategory(category_name) {
   try {
-    const res = await fetch("/categories", {
+    const res = await apiFetch("/categories", {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -224,14 +300,14 @@ async function submitForm() {
 
   try {
     if (editId) {
-      await fetch(`/products/${editId}`, {
+      await apiFetch(`/products/${editId}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
       setStatus("Product updated.", true);
     } else {
-      await fetch("/products", {
+      await apiFetch("/products", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -248,7 +324,7 @@ async function submitForm() {
 async function deleteProduct(id) {
   if (!confirm("Delete this product?")) return;
   try {
-    await fetch(`/products/${id}`, { method: "DELETE" });
+    await apiFetch(`/products/${id}`, { method: "DELETE" });
     setStatus("Product deleted.", true);
     loadProducts();
   } catch (e) {
@@ -270,7 +346,7 @@ async function loadOrders() {
   document.getElementById("order-rows").innerHTML =
     '<tr class="empty-row"><td colspan="6">Loading…</td></tr>';
   try {
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     orders = await res.json();
     renderOrders();
   } catch (e) {
@@ -365,7 +441,7 @@ async function loadUsers() {
   });
 
   try {
-    const res = await fetch(url);
+    const res = await apiFetch(url);
     users = await res.json();
     renderUsers();
   } catch (e) {
@@ -405,15 +481,25 @@ async function toggleAdmin(encodedTagId) {
   const user = users.find(u => u.tag_id === tagId);
   if (!user) return;
 
+  if (!user.is_admin) {
+    startEditUser(encodedTagId);
+    document.getElementById("user-is-admin").checked = true;
+    document.getElementById("user-status").textContent =
+      "Set an admin username and password to promote this user.";
+    return;
+  }
+
   const updated = {
     tag_id: user.tag_id,
     full_name: user.full_name,
+    username: user.username || null,
+    password: "",
     is_admin: !user.is_admin,
     balance: user.balance,
   };
 
   try {
-    const res = await fetch(`/users?tag_id=${encodeURIComponent(tagId)}`, {
+    const res = await apiFetch(`/users?tag_id=${encodeURIComponent(tagId)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updated),
@@ -433,7 +519,7 @@ async function deleteUser(encodedTagId) {
   if (!confirm("Delete this user?")) return;
 
   try {
-    const res = await fetch(`/users?tag_id=${encodeURIComponent(tagId)}`, {
+    const res = await apiFetch(`/users?tag_id=${encodeURIComponent(tagId)}`, {
       method: "DELETE",
     });
     if (!res.ok) {
@@ -455,6 +541,8 @@ function startEditUser(encodedTagId) {
   document.getElementById("user-tag-id").value = user.tag_id;
   document.getElementById("user-tag-id").disabled = true;
   document.getElementById("user-full-name").value = user.full_name;
+  document.getElementById("username").value = user.username || "";
+  document.getElementById("user-password").value = "";
   document.getElementById("user-balance").value = user.balance.toFixed(2);
 
   const adminCheckbox = document.getElementById("user-is-admin");
@@ -480,6 +568,8 @@ function cancelUserEdit() {
   document.getElementById("user-tag-id").value = "";
   document.getElementById("user-tag-id").disabled = false;
   document.getElementById("user-full-name").value = "";
+  document.getElementById("username").value = "";
+  document.getElementById("user-password").value = "";
   document.getElementById("user-balance").value = "";
   document.getElementById("user-is-admin").checked = false;
 
@@ -495,14 +585,26 @@ async function submitUserForm() {
   const originalTagId = document.getElementById("user-edit-tag-id").value;
   const tagId = document.getElementById("user-tag-id").value.trim();
   const fullName = document.getElementById("user-full-name").value.trim();
+  const username = document.getElementById("username").value.trim();
   const balanceValue = document.getElementById("user-balance").value.trim();
+  const password = document.getElementById("user-password").value.trim();
   const isAdmin = document.getElementById("user-is-admin").checked;
   const statusEl = document.getElementById("user-status");
+  const wasAdmin = originalTagId && users.some(
+    (user) => user.tag_id === originalTagId && user.is_admin,
+  );
 
   statusEl.textContent = "";
   const balance = isAdmin ? 0 : parseFloat(balanceValue || "0");
-  if (!tagId || !fullName) {
-    statusEl.textContent = "Tag ID and full name are required.";
+  if (!tagId || !fullName || (isAdmin && !username)) {
+    statusEl.textContent = isAdmin
+      ? "Tag ID, full name, and admin username are required."
+      : "Tag ID and full name are required.";
+    statusEl.className = "err";
+    return;
+  }
+  if (isAdmin && !wasAdmin && password.length < 8) {
+    statusEl.textContent = "New admins need a password of at least 8 characters.";
     statusEl.className = "err";
     return;
   }
@@ -515,6 +617,8 @@ async function submitUserForm() {
   const payload = {
     tag_id: tagId.toLowerCase(),
     full_name: fullName,
+    username: username || null,
+    password: password || null,
     is_admin: isAdmin,
     balance: isNaN(balance) ? 0 : balance,
   };
@@ -524,7 +628,7 @@ async function submitUserForm() {
       ? `/users?tag_id=${encodeURIComponent(originalTagId)}`
       : "/users";
     const method = originalTagId ? "PUT" : "POST";
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method,
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
@@ -553,7 +657,7 @@ async function loadImages() {
   const grid = document.getElementById("image-grid");
   grid.innerHTML = '<p style="color:#52525b; grid-column: 1 / -1">Loading…</p>';
   try {
-    const res = await fetch("/images");
+    const res = await apiFetch("/images");
     if (!res.ok) throw new Error("Failed to fetch images");
     const imgs = await res.json();
     if (!imgs.length) {
@@ -586,7 +690,7 @@ async function uploadImages(files) {
   }
 
   try {
-    const res = await fetch("/images", { method: "POST", body: form });
+    const res = await apiFetch("/images", { method: "POST", body: form });
     if (!res.ok) throw new Error(await res.text() || res.statusText);
     status.textContent = `${files.length} image(s) uploaded.`;
     status.className = "ok";
@@ -602,7 +706,7 @@ async function deleteImage(encodedName) {
   const name = decodeURIComponent(encodedName);
   if (!confirm(`Delete ${name}?`)) return;
   try {
-    const res = await fetch(`/images/${encodeURIComponent(name)}`, { method: "DELETE" });
+    const res = await apiFetch(`/images/${encodeURIComponent(name)}`, { method: "DELETE" });
     if (!res.ok) throw new Error(await res.text() || res.statusText);
     loadImages();
   } catch (e) {
@@ -629,7 +733,7 @@ function switchTab(tabId) {
 }
 
 /* ═════════════════════════════ INIT ════════════════════════════════════ */
-loadProducts();
+restoreAdminSession();
 loadCategories();
 loadOrders();
 loadUsers();

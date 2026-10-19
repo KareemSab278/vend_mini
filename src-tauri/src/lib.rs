@@ -62,6 +62,7 @@ pub fn run() {
             users_database::are_admins_present,
             users_database::new_user,
             users_database::get_all_admins,
+            users_database::update_admin_profile,
             // Product management
             database::new_product,
             database::delete_product,

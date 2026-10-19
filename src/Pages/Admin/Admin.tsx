@@ -6,6 +6,7 @@ import { PrimaryButton, PrimaryButtonProps } from "../../Components/Button";
 import { KeyPressListener } from "../../Helpers/KeyPressListener";
 import { styles as appStyles } from "../App/styles";
 import { AdminModal } from "./Components/AdminModal";
+import { AdminProfileModal } from "./Components/AdminProfileModal";
 import { CansModal } from "./Components/CansModal";
 import { DoorModal } from "./Components/DoorModal";
 import { LedModal } from "./Components/LedModal";
@@ -25,6 +26,7 @@ import { IconLogout2 } from '@tabler/icons-react';
 import { IconBox } from '@tabler/icons-react';
 import { NFCNotification } from "../../Components/NFCNotification";
 import { NFC } from "../../Helpers/Nfc";
+import { Admin as AdminAccounts, type User } from "../../Helpers/Admins";
 
 const dev = import.meta.env.DEV;
 
@@ -37,6 +39,12 @@ const Admin = () => {
   const [, navigate] = useLocation();
   const [activeModal, setActiveModal] = useState<AdminModalType>(null);
   const [editorUrl, setEditorUrl] = useState<string>("");
+  const [currentAdmin, setCurrentAdmin] = useState<User | null>(null);
+  const [profileOpened, setProfileOpened] = useState(false);
+  const [taggedAdminId, setTaggedAdminId] = useState<number | null>(() => {
+    const id = Number(new URLSearchParams(window.location.search).get("adminId"));
+    return Number.isSafeInteger(id) && id > 0 ? id : null;
+  });
 
   useEffect(() => {
     const initialize = async () => {
@@ -51,6 +59,26 @@ const Admin = () => {
 
     initialize();
   }, []);
+
+  useEffect(() => {
+    if (taggedAdminId === null) {
+      setCurrentAdmin(null);
+      return;
+    }
+    let isMounted = true;
+    AdminAccounts.getAllAdmins()
+      .then((admins) => {
+        if (isMounted) {
+          setCurrentAdmin(admins.find((admin) => admin.user_id === taggedAdminId) ?? null);
+        }
+      })
+      .catch((error) => {
+        if (isMounted && dev) console.error("Failed to load scanned admin account:", error);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, [taggedAdminId]);
   const optionTheme = { display: "flex", alignItems: "center", gap: "0.5rem" };
 
   const options: { [key: string]: PrimaryButtonProps } = {
@@ -108,8 +136,9 @@ const Admin = () => {
 
     const listenToNfc = async () => {
       try {
-        const stopListeningForAdmin = await NFC.listenAdminFound(() => {
-          navigate("/admin");
+        const stopListeningForAdmin = await NFC.listenAdminFound((userId) => {
+          setTaggedAdminId(userId);
+          navigate(`/admin?adminId=${userId}`);
         });
         if (!isMounted) {
           stopListeningForAdmin();
@@ -140,7 +169,6 @@ const Admin = () => {
     };
   }, [navigate]);
 
-
   const goHome = async () => {
     await getCurrentWindow().setFullscreen(true);
     navigate("/");
@@ -155,12 +183,21 @@ const Admin = () => {
       <div style={styles.inner}>
 
         <h1 style={styles.heading}>Admin Panel</h1>
+        {currentAdmin && <p style={styles.signedIn}>NFC admin: {currentAdmin.username ?? currentAdmin.full_name}</p>}
 
         <div style={styles.grid}>
           {Object.keys(options).map((key) => (
             <PrimaryButton key={key} {...options[key]} />
           ))}
         </div>
+
+        {currentAdmin && (
+          <PrimaryButton
+            title="Admin Account"
+            onClick={() => setProfileOpened(true)}
+            size="xl"
+          />
+        )}
 
         <PrimaryButton
           title={
@@ -192,6 +229,16 @@ const Admin = () => {
       />
 
       <ThemeSetter opened={activeModal === "theme"} onClose={() => setActiveModal(null)} />
+      {currentAdmin && (
+        <AdminProfileModal
+          opened={profileOpened}
+          user={currentAdmin}
+          onClose={() => setProfileOpened(false)}
+          onSaved={(tagId) => {
+            setCurrentAdmin({ ...currentAdmin, tag_id: tagId });
+          }}
+        />
+      )}
       {nfcNotification && <NFCNotification message={nfcNotification} />}
 
     </main>
@@ -228,5 +275,10 @@ const styles: { [key: string]: React.CSSProperties } = {
     right: "1rem",
     color: "#ffffff",
     fontWeight: 600,
+  },
+  signedIn: {
+    marginTop: "-1rem",
+    marginBottom: "1.5rem",
+    opacity: 0.8,
   },
 };

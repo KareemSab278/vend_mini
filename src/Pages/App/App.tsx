@@ -129,8 +129,8 @@ const App = () => {
   const listenToNfc = async () => {
     if (nfcInitializedRef.current) return;
     nfcInitializedRef.current = true;
-    unlistenNfcAdminRef.current = await NFC.listenAdminFound(() => {
-      nfcListeningEnabled && navigate("/admin");
+    unlistenNfcAdminRef.current = await NFC.listenAdminFound((userId) => {
+      nfcListeningEnabled && navigate(`/admin?adminId=${userId}`);
     });
 
     unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {

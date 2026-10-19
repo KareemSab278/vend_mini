@@ -1324,10 +1324,14 @@ Table: `users`
 | `user_id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Unique user identifier |
 | `tag_id` | TEXT | NOT NULL UNIQUE | NFC tag UID stored as lowercase hex (e.g. `a1b2c3d4`) |
 | `full_name` | TEXT | NOT NULL | Display name |
+| `username` | TEXT | nullable | Admin login username; regular users do not need one |
+| `password_hash` | TEXT | nullable | Bcrypt hash for admin login; plaintext passwords are never stored |
 | `is_admin` | INTEGER | NOT NULL DEFAULT 0 | Boolean stored as integer: 1 = admin, 0 = regular user |
 | `balance` | REAL | NOT NULL DEFAULT 0 | GBP balance available for NFC payments |
 
-Admin users are those with `is_admin = 1`. Their tag UIDs are checked by the NFC listener at runtime to determine whether to emit `nfc-admin-found` or `nfc-unknown-tag`.
+Admin users are those with `is_admin = 1`. The browser-based product editor requires an admin username and password; its API routes require a short-lived authenticated session. Five failed sign-in attempts require scanning a registered admin NFC tag in the native app before trying again. The native app admin panel remains NFC-only. From its Admin Account screen, a scanned admin can set or reset the account password and update the NFC tag ID. The `admin_login_state` table stores the failed-attempt counter.
+
+The editor is currently served over HTTP on the local network. Use it only on a trusted network; credentials and session cookies are not encrypted in transit.
 
 **Accessing the users database manually:**
 ```

@@ -167,6 +167,9 @@ pub fn start_nfc_listener(app_handle: tauri::AppHandle) {
 
                     match users_database::get_user_by_tag_id(&uid_hex) {
                         Ok(Some(user)) if user.is_admin => {
+                            if let Err(e) = users_database::reset_admin_login_attempts() {
+                                eprintln!("Failed to reset admin login attempts: {e}");
+                            }
                             if let Err(e) =
                                 app_handle.emit("nfc-admin-found", user.user_id.to_string())
                             {
