@@ -263,6 +263,28 @@ input.error {
   color: #f87171;
 }
 
+#user-status.loading {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+#user-status.loading::before {
+  content: "";
+  width: 0.85rem;
+  height: 0.85rem;
+  border: 2px solid #a1a1aa;
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: user-save-spin 0.8s linear infinite;
+}
+
+@keyframes user-save-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ── Orders ── */
 .section-title {
   font-size: 1.5rem;

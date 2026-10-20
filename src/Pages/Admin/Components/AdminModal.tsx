@@ -3,6 +3,7 @@ import { Modal } from "@mantine/core";
 import { PrimaryButton } from "../../../Components/Button";
 import { Admin, type NewAdminCredentials, type User } from "../../../Helpers/Admins";
 import { NFC } from "../../../Helpers/Nfc";
+import { Loading } from "../../../Components/Loading";
 
 export { AdminModal };
 
@@ -21,6 +22,7 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
+  const [loading, setLoading] = useState(false);
   const adminsRef = useRef<User[]>([]);
   const registeringRef = useRef(false);
   const credentialsRef = useRef({ username, password, confirmPassword });
@@ -74,7 +76,10 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
         balance: 0,
       };
 
+      setLoading(true);
       const result = await Admin.create(newAdmin);
+      setLoading(false);
+
       if (result.success) {
         setAdmins((prev) => [...prev, newAdmin]);
         setMessage(`Admin registered: ${newAdmin.full_name}`);
@@ -99,6 +104,7 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
 
   return (
     <Modal opened={opened} onClose={onClose} title="Add Admins" size="xl">
+      {loading && <Loading />}
       <div style={styles.inner}>
         <p style={styles.text}>
           Enter admin credentials, then place and hold a new NFC tag on the reader to register an admin.

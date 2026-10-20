@@ -3,6 +3,7 @@ import { PrimaryButton } from "../../../Components/Button";
 import { Admin, type NewAdminCredentials, type User } from "../../../Helpers/Admins";
 import { NFC } from "../../../Helpers/Nfc";
 import { styles as appStyles } from "../../App/styles";
+import { Loading } from "../../../Components/Loading";
 
 interface SetupNFCProps {
   onNext: () => void;
@@ -18,6 +19,7 @@ const SetupNFC = ({ onNext }: SetupNFCProps) => {
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPasswords, setShowPasswords] = useState(false);
+  const [loading, setLoading] = useState(false);
   // avoids stale closures over `admins`/`isRegistering` inside the event listener
   const adminsRef = useRef<User[]>([]);
   const registeringRef = useRef(false);
@@ -52,6 +54,7 @@ const SetupNFC = ({ onNext }: SetupNFCProps) => {
 
       registeringRef.current = true;
       setIsRegistering(true);
+      setLoading(true);
       setMessage("Registering tag…");
 
       const newAdmin: User & NewAdminCredentials = {
@@ -77,6 +80,7 @@ const SetupNFC = ({ onNext }: SetupNFCProps) => {
 
       registeringRef.current = false;
       setIsRegistering(false);
+      setLoading(false);
     }).then((fn) => {
       unlisten = fn;
     });
@@ -145,6 +149,7 @@ const SetupNFC = ({ onNext }: SetupNFCProps) => {
             {message ?? (isRegistering ? "Registering…" : "Waiting for tap…")}
           </p>
         )}
+        {loading && <Loading />}
         {!canAddMore && message && <p style={styles.message}>{message}</p>}
 
         <div style={styles.buttons}>

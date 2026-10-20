@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Loading } from "../../../Components/Loading";
 import { PrimaryButton } from "../../../Components/Button";
 import { Admin } from "../../../Helpers/Admins";
 import { styles as appStyles } from "../../App/styles";
@@ -14,6 +15,7 @@ const SetupFailsafe = ({ onNext }: SetupFailsafeProps) => {
   const [showPasswords, setShowPasswords] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const createFailsafe = async () => {
     const credentials = { username: username.trim(), password };
@@ -27,6 +29,7 @@ const SetupFailsafe = ({ onNext }: SetupFailsafeProps) => {
     }
 
     setSaving(true);
+    setLoading(true);
     setMessage(null);
     try {
       await Admin.createFailsafeUser(credentials);
@@ -35,6 +38,7 @@ const SetupFailsafe = ({ onNext }: SetupFailsafeProps) => {
       setMessage(typeof error === "string" ? error : "Failed to create failsafe account.");
     } finally {
       setSaving(false);
+      setLoading(false);
     }
   };
 
@@ -85,6 +89,7 @@ const SetupFailsafe = ({ onNext }: SetupFailsafeProps) => {
           size="xl"
           disabled={saving}
         />
+      {loading && <Loading />}
       </div>
     </div>
   );

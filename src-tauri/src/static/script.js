@@ -626,6 +626,9 @@ function toggleUserPasswordVisibility() {
 }
 
 async function submitUserForm() {
+  const submitButton = document.getElementById("user-submit-btn");
+  if (submitButton.disabled) return;
+
   const originalTagId = document.getElementById("user-edit-tag-id").value;
   const tagId = document.getElementById("user-tag-id").value.trim();
   const fullName = document.getElementById("user-full-name").value.trim();
@@ -673,6 +676,13 @@ async function submitUserForm() {
     balance: isNaN(balance) ? 0 : balance,
   };
 
+  const isUpdating = Boolean(originalTagId);
+  submitButton.disabled = true;
+  submitButton.textContent = isUpdating ? "Updating…" : "Creating…";
+  document.getElementById("user-cancel-btn").disabled = true;
+  statusEl.textContent = isUpdating ? "Updating user…" : "Creating user…";
+  statusEl.className = "loading";
+
   try {
     const url = originalTagId
       ? `/users?tag_id=${encodeURIComponent(originalTagId)}`
@@ -687,13 +697,19 @@ async function submitUserForm() {
       const text = await res.text();
       throw new Error(text || res.statusText);
     }
-    statusEl.textContent = originalTagId ? "User updated." : "User created.";
-    statusEl.className = "ok";
     cancelUserEdit();
+    statusEl.textContent = isUpdating ? "User updated." : "User created.";
+    statusEl.className = "ok";
     loadUsers();
   } catch (e) {
     statusEl.textContent = `Save failed: ${e}`;
     statusEl.className = "err";
+  } finally {
+    submitButton.disabled = false;
+    submitButton.textContent = document.getElementById("user-edit-tag-id").value
+      ? "Save user"
+      : "Create user";
+    document.getElementById("user-cancel-btn").disabled = false;
   }
 }
 
