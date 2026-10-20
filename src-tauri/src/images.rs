@@ -18,23 +18,20 @@ fn images_path() -> Result<PathBuf, String> {
         .or_else(|_| std::env::var("HOME"))
         .unwrap_or_else(|_| std::env::temp_dir().to_string_lossy().into_owned());
     let directory_path = PathBuf::from(home).join("data").join("images");
-    fs::create_dir_all(&directory_path).map_err(|e| format!("Failed to create images directory: {}", e))?;
+    fs::create_dir_all(&directory_path)
+        .map_err(|e| format!("Failed to create images directory: {}", e))?;
     Ok(directory_path)
 }
 
 fn is_safe_image_name(name: &str) -> bool {
-    !name.is_empty()
-        && !name.contains('/')
-        && !name.contains('\\')
-        && !name.starts_with('.')
-        && {
-            let lower = name.to_lowercase();
-            lower.ends_with(".png")
-                || lower.ends_with(".jpg")
-                || lower.ends_with(".jpeg")
-                || lower.ends_with(".webp")
-                || lower.ends_with(".gif")
-        }
+    !name.is_empty() && !name.contains('/') && !name.contains('\\') && !name.starts_with('.') && {
+        let lower = name.to_lowercase();
+        lower.ends_with(".png")
+            || lower.ends_with(".jpg")
+            || lower.ends_with(".jpeg")
+            || lower.ends_with(".webp")
+            || lower.ends_with(".gif")
+    }
 }
 
 #[derive(Serialize)]
@@ -85,7 +82,6 @@ pub async fn list_images_command() -> Result<Vec<ImageListEntry>, String> {
     Ok(entries)
 }
 
-
 pub async fn serve_image(Path(name): Path<String>) -> impl IntoResponse {
     if !is_safe_image_name(&name) {
         return (StatusCode::BAD_REQUEST, "Invalid image name").into_response();
@@ -94,7 +90,11 @@ pub async fn serve_image(Path(name): Path<String>) -> impl IntoResponse {
         Ok(p) => p.join(&name),
         Err(e) => {
             eprintln!("GET /images/{} error: {}", name, e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get image path").into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to get image path",
+            )
+                .into_response();
         }
     };
     if !path.exists() {
@@ -125,13 +125,16 @@ pub async fn serve_image(Path(name): Path<String>) -> impl IntoResponse {
         .into_response()
 }
 
-
 pub async fn upload_image(mut multipart: Multipart) -> impl IntoResponse {
     let images_dir = match images_path() {
         Ok(p) => p,
         Err(e) => {
             eprintln!("Upload error: {}", e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get images directory").into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to get images directory",
+            )
+                .into_response();
         }
     };
 
@@ -175,7 +178,11 @@ pub async fn delete_image(Path(name): Path<String>) -> impl IntoResponse {
         Ok(p) => p.join(&name),
         Err(e) => {
             eprintln!("DELETE /images/{} error: {}", name, e);
-            return (StatusCode::INTERNAL_SERVER_ERROR, "Failed to get image path").into_response();
+            return (
+                StatusCode::INTERNAL_SERVER_ERROR,
+                "Failed to get image path",
+            )
+                .into_response();
         }
     };
     if !image_path.exists() {

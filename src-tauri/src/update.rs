@@ -22,7 +22,9 @@ fn to_raw_github_url(url: &str) -> String {
 }
 
 async fn fetch_latest_release() -> Result<serde_json::Value, String> {
-    let response = reqwest::get(LATEST_RELEASE_URL).await.map_err(|err| err.to_string())?;
+    let response = reqwest::get(LATEST_RELEASE_URL)
+        .await
+        .map_err(|err| err.to_string())?;
     if !response.status().is_success() {
         return Err(format!("HTTP {}", response.status()));
     }
@@ -61,14 +63,20 @@ async fn download_deb(download_url: &str) -> Result<std::path::PathBuf, String> 
 
     println!("Downloading to: {:?}", file_path);
 
-    let mut response = reqwest::get(download_url).await.map_err(|err| err.to_string())?;
+    let mut response = reqwest::get(download_url)
+        .await
+        .map_err(|err| err.to_string())?;
     response
         .error_for_status_ref()
         .map_err(|err| err.to_string())?;
 
-    let mut file = File::create(&file_path).await.map_err(|err| err.to_string())?;
+    let mut file = File::create(&file_path)
+        .await
+        .map_err(|err| err.to_string())?;
     while let Some(chunk) = response.chunk().await.map_err(|err| err.to_string())? {
-        file.write_all(&chunk).await.map_err(|err| err.to_string())?;
+        file.write_all(&chunk)
+            .await
+            .map_err(|err| err.to_string())?;
     }
 
     println!("Download complete");
@@ -121,9 +129,7 @@ async fn install_deb_with_pkexec(file_path: &std::path::Path) -> Result<(), Stri
 
     Err(format!(
         "dpkg failed ({}). stdout: {} stderr: {}",
-        output.status,
-        stdout,
-        stderr
+        output.status, stdout, stderr
     ))
 }
 
@@ -148,7 +154,10 @@ async fn install_deb_with_sudo(file_path: &std::path::Path, password: &str) -> R
             .map_err(|err| err.to_string())?;
     }
 
-    let output = child.wait_with_output().await.map_err(|err| err.to_string())?;
+    let output = child
+        .wait_with_output()
+        .await
+        .map_err(|err| err.to_string())?;
 
     if output.status.success() {
         Ok(())

@@ -197,10 +197,12 @@ pub fn start_nfc_listener(app_handle: tauri::AppHandle) {
     });
 }
 
-
 #[cfg(not(target_os = "linux"))]
 pub fn start_nfc_listener(_app_handle: tauri::AppHandle) {
-    println!("\nLINUX OS REQUIRED.\nDETECTED: {}.\nNFC listener not started.\n", std::env::consts::OS);
+    println!(
+        "\nLINUX OS REQUIRED.\nDETECTED: {}.\nNFC listener not started.\n",
+        std::env::consts::OS
+    );
 }
 
 #[cfg(target_os = "linux")]
@@ -210,7 +212,8 @@ pub fn listen_for_tag_ids() -> Result<String, String> {
         .mode(SpiModeFlags::SPI_MODE_0)
         .build();
 
-    let mut spi = find_spi(MAX_SPI_ATTEMPTS).map_err(|_| "Failed to open SPI device".to_string())?;
+    let mut spi =
+        find_spi(MAX_SPI_ATTEMPTS).map_err(|_| "Failed to open SPI device".to_string())?;
 
     if let Err(e) = spi.configure(&options) {
         eprintln!("Failed to configure SPI device: {:?}", e);

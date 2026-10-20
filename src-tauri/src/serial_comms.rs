@@ -4,8 +4,6 @@
 // port with an identifying command, then keeps a background reader thread
 // per device so commands and status lines never block each other.
 
-
-
 // Serial device /dev/ttyUSB2 was not assigned: Unable to open /dev/serial/by-path/platform-xhci-hcd.0-usb-0:1:1.0-port0: Device or resource busy
 
 use crate::config as C;
@@ -106,7 +104,10 @@ impl DeviceConnection {
             ))
             .spawn(move || serial_worker(port, receiver, state))
         {
-            eprintln!("failed to start serial worker for {}: {e}", connection.descriptor.identity);
+            eprintln!(
+                "failed to start serial worker for {}: {e}",
+                connection.descriptor.identity
+            );
             return connection;
         }
 
@@ -135,7 +136,8 @@ impl DeviceConnection {
     }
 
     pub(crate) fn lines_since_with_seq(&self, cursor: u64) -> Result<(Vec<String>, u64), String> {
-        let state = self.state
+        let state = self
+            .state
             .0
             .lock()
             .map_err(|_| "Serial state poisoned".to_string())?;
@@ -343,8 +345,14 @@ impl DeviceRegistry {
                 .as_ref()
                 .is_some_and(|connection| connection.descriptor.identity == identity)
                 || self.doors.contains_key(&identity)
-                || self.led.as_ref().is_some_and(|connection| connection.descriptor.identity == identity)
-                || self.can_counter.as_ref().is_some_and(|connection| connection.descriptor.identity == identity);
+                || self
+                    .led
+                    .as_ref()
+                    .is_some_and(|connection| connection.descriptor.identity == identity)
+                || self
+                    .can_counter
+                    .as_ref()
+                    .is_some_and(|connection| connection.descriptor.identity == identity);
             if already_managed {
                 continue;
             }
@@ -807,7 +815,10 @@ fn stable_port_name(port_name: &str) -> String {
     port_name.to_string()
 }
 
-pub fn write_to_buffer(state: &Arc<(Mutex<ConnectionState>, Condvar)>, value: String) -> Result<(), String> {
+pub fn write_to_buffer(
+    state: &Arc<(Mutex<ConnectionState>, Condvar)>,
+    value: String,
+) -> Result<(), String> {
     push_line(state, value);
     Ok(())
 }

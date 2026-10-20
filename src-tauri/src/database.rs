@@ -1,5 +1,5 @@
 use rusqlite::{params, Connection, Result};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 
@@ -61,7 +61,8 @@ pub fn get_categories() -> Result<Vec<String>, String> {
     let mut categories: Vec<String> = Vec::new();
 
     // Distinct categories currently used by products
-    let mut stmt = conn.prepare("SELECT DISTINCT product_category FROM products")
+    let mut stmt = conn
+        .prepare("SELECT DISTINCT product_category FROM products")
         .map_err(|e| format!("Failed to prepare statement: {}", e))?;
     let product_categories = stmt
         .query_map([], |row| row.get(0))
@@ -71,7 +72,8 @@ pub fn get_categories() -> Result<Vec<String>, String> {
     categories.extend(product_categories);
 
     // Categories explicitly created via the admin page
-    let mut stmt = conn.prepare("SELECT category_name FROM categories ORDER BY category_name")
+    let mut stmt = conn
+        .prepare("SELECT category_name FROM categories ORDER BY category_name")
         .map_err(|e| format!("Failed to prepare categories statement: {}", e))?;
     let explicit_categories = stmt
         .query_map([], |row| row.get(0))
@@ -116,8 +118,13 @@ pub async fn new_product(
     product_price: f64,
     product_availability: bool,
 ) -> Result<(), String> {
-    add_product(product_name, product_category, product_price, product_availability)
-        .map_err(|e| format!("Failed to add new product: {}", e))
+    add_product(
+        product_name,
+        product_category,
+        product_price,
+        product_availability,
+    )
+    .map_err(|e| format!("Failed to add new product: {}", e))
 }
 
 pub fn add_product(
