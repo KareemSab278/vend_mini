@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 
 const ALPHA_ROWS = [
@@ -25,8 +25,55 @@ export const VirtualKeyboard = ({ value, onChange, onClose }: Props) => {
     const [shift, setShift] = useState(false);
     const [numMode, setNumMode] = useState(false);
     const [pressedKey, setPressedKey] = useState<string | null>(null);
+    const overlayRef = useRef<HTMLDivElement>(null);
 
     const rows = numMode ? NUM_ROWS : ALPHA_ROWS;
+
+    useEffect(() => {
+        const keyboard = overlayRef.current;
+        const input = document.activeElement;
+        if (!keyboard || !(input instanceof HTMLElement)) return;
+
+        let scrollable: HTMLElement | null = input.parentElement;
+        while (scrollable) {
+            const overflowY = window.getComputedStyle(scrollable).overflowY;
+            if (overflowY === "auto" || overflowY === "scroll") break;
+            scrollable = scrollable.parentElement;
+        }
+        if (!scrollable) {
+            const documentScroller = document.scrollingElement;
+            scrollable = documentScroller instanceof HTMLElement ? documentScroller : null;
+        }
+
+        const originalPaddingBottom = scrollable?.style.paddingBottom;
+        if (scrollable) {
+            const paddingBottom = Number.parseFloat(
+                window.getComputedStyle(scrollable).paddingBottom,
+            ) || 0;
+            scrollable.style.paddingBottom =
+                `${paddingBottom + keyboard.getBoundingClientRect().height}px`;
+        }
+
+        const frame = requestAnimationFrame(() => {
+            const keyboardTop = keyboard.getBoundingClientRect().top;
+
+            const overlap = input.getBoundingClientRect().bottom - keyboardTop + 12;
+            if (overlap <= 0) return;
+
+            if (scrollable) {
+                scrollable.scrollBy({ top: overlap, behavior: "smooth" });
+            } else {
+                window.scrollBy({ top: overlap, behavior: "smooth" });
+            }
+        });
+
+        return () => {
+            cancelAnimationFrame(frame);
+            if (scrollable && originalPaddingBottom !== undefined) {
+                scrollable.style.paddingBottom = originalPaddingBottom;
+            }
+        };
+    }, []);
 
     const handleKey = (key: string) => {
         switch (key) {
@@ -45,7 +92,7 @@ export const VirtualKeyboard = ({ value, onChange, onClose }: Props) => {
     };
 
     return (
-        <div style={styles.overlay}>
+        <div ref={overlayRef} style={styles.overlay}>
             {rows.map((row, ri) => (
                 <div key={ri} style={styles.row}>
                     {row.map(key => {
@@ -105,6 +152,7 @@ const styles: Record<string, CSSProperties> = {
         flexDirection: 'column',
         gap: 6,
         boxShadow: '0 -4px 16px rgba(0,0,0,0.18)',
+        touchAction: 'pan-y',
     },
     row: {
         display: 'flex',
