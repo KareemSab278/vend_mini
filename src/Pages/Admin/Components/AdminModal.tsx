@@ -19,10 +19,12 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
   const [message, setMessage] = useState<string | null>(null);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPasswords, setShowPasswords] = useState(false);
   const adminsRef = useRef<User[]>([]);
   const registeringRef = useRef(false);
-  const credentialsRef = useRef({ username, password });
-  credentialsRef.current = { username, password };
+  const credentialsRef = useRef({ username, password, confirmPassword });
+  credentialsRef.current = { username, password, confirmPassword };
 
   useEffect(() => {
     adminsRef.current = admins;
@@ -47,6 +49,10 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
       const credentials = credentialsRef.current;
       if (credentials.username.trim().length < 3 || credentials.password.length < 8) {
         setMessage("Enter a username (at least 3 characters) and password (at least 8 characters) before scanning.");
+        return;
+      }
+      if (credentials.password !== credentials.confirmPassword) {
+        setMessage("Passwords do not match.");
         return;
       }
 
@@ -74,6 +80,8 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
         setMessage(`Admin registered: ${newAdmin.full_name}`);
         setUsername("");
         setPassword("");
+        setConfirmPassword("");
+        setShowPasswords(false);
       } else {
         setMessage(result.message ?? "Failed to register admin.");
       }
@@ -107,10 +115,26 @@ const AdminModal = ({ opened, onClose }: AdminModalProps) => {
             aria-label="Admin password"
             autoComplete="new-password"
             placeholder="Admin password (8+ characters)"
-            type="password"
+            type={showPasswords ? "text" : "password"}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
+          <input
+            aria-label="Confirm admin password"
+            autoComplete="new-password"
+            placeholder="Confirm admin password"
+            type={showPasswords ? "text" : "password"}
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+          />
+          <label style={styles.showPasswords}>
+            <input
+              type="checkbox"
+              checked={showPasswords}
+              onChange={(event) => setShowPasswords(event.target.checked)}
+            />
+            Show passwords
+          </label>
         </div>
 
         <p style={styles.counter}>
@@ -188,5 +212,11 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: "0.75rem",
     width: "min(100%, 28rem)",
     marginBottom: "1rem",
+  },
+  showPasswords: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.5rem",
   },
 };

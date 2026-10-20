@@ -10,6 +10,8 @@ interface SetupFailsafeProps {
 const SetupFailsafe = ({ onNext }: SetupFailsafeProps) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPasswords, setShowPasswords] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -17,6 +19,10 @@ const SetupFailsafe = ({ onNext }: SetupFailsafeProps) => {
     const credentials = { username: username.trim(), password };
     if (credentials.username.length < 3 || credentials.password.length < 8) {
       setMessage("Enter a username (at least 3 characters) and password (at least 8 characters).");
+      return;
+    }
+    if (password !== confirmPassword) {
+      setMessage("Passwords do not match.");
       return;
     }
 
@@ -51,10 +57,26 @@ const SetupFailsafe = ({ onNext }: SetupFailsafeProps) => {
             aria-label="Failsafe password"
             autoComplete="new-password"
             placeholder="Failsafe password (8+ characters)"
-            type="password"
+            type={showPasswords ? "text" : "password"}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
           />
+          <input
+            aria-label="Confirm failsafe password"
+            autoComplete="new-password"
+            placeholder="Confirm failsafe password"
+            type={showPasswords ? "text" : "password"}
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
+          />
+          <label style={styles.showPasswords}>
+            <input
+              type="checkbox"
+              checked={showPasswords}
+              onChange={(event) => setShowPasswords(event.target.checked)}
+            />
+            Show passwords
+          </label>
         </div>
         {message && <p style={styles.message}>{message}</p>}
         <PrimaryButton
@@ -93,6 +115,12 @@ const styles: { [key: string]: React.CSSProperties } = {
     gap: "0.75rem",
     width: "min(100%, 28rem)",
     marginBottom: "1rem",
+  },
+  showPasswords: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "0.5rem",
   },
   message: {
     fontSize: "1.1rem",

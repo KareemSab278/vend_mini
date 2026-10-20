@@ -543,6 +543,7 @@ function startEditUser(encodedTagId) {
   document.getElementById("user-full-name").value = user.full_name;
   document.getElementById("username").value = user.username || "";
   document.getElementById("user-password").value = "";
+  document.getElementById("user-password-confirm").value = "";
   document.getElementById("user-balance").value = user.balance.toFixed(2);
 
   const adminCheckbox = document.getElementById("user-is-admin");
@@ -570,6 +571,9 @@ function cancelUserEdit() {
   document.getElementById("user-full-name").value = "";
   document.getElementById("username").value = "";
   document.getElementById("user-password").value = "";
+  document.getElementById("user-password-confirm").value = "";
+  document.getElementById("show-user-passwords").checked = false;
+  toggleUserPasswordVisibility();
   document.getElementById("user-balance").value = "";
   document.getElementById("user-is-admin").checked = false;
 
@@ -581,6 +585,12 @@ function cancelUserEdit() {
   document.getElementById("user-status").textContent = "";
 }
 
+function toggleUserPasswordVisibility() {
+  const type = document.getElementById("show-user-passwords").checked ? "text" : "password";
+  document.getElementById("user-password").type = type;
+  document.getElementById("user-password-confirm").type = type;
+}
+
 async function submitUserForm() {
   const originalTagId = document.getElementById("user-edit-tag-id").value;
   const tagId = document.getElementById("user-tag-id").value.trim();
@@ -588,6 +598,7 @@ async function submitUserForm() {
   const username = document.getElementById("username").value.trim();
   const balanceValue = document.getElementById("user-balance").value.trim();
   const password = document.getElementById("user-password").value.trim();
+  const confirmPassword = document.getElementById("user-password-confirm").value.trim();
   const isAdmin = document.getElementById("user-is-admin").checked;
   const statusEl = document.getElementById("user-status");
   const wasAdmin = originalTagId && users.some(
@@ -605,6 +616,11 @@ async function submitUserForm() {
   }
   if (isAdmin && !wasAdmin && password.length < 8) {
     statusEl.textContent = "New admins need a password of at least 8 characters.";
+    statusEl.className = "err";
+    return;
+  }
+  if (isAdmin && password !== confirmPassword) {
+    statusEl.textContent = "Passwords do not match.";
     statusEl.className = "err";
     return;
   }

@@ -166,7 +166,15 @@
             <label for="user-password">Password</label>
             <input id="user-password" placeholder="Enter password" type="password" />
           </div>
+          <div class="field">
+            <label for="user-password-confirm">Confirm password</label>
+            <input id="user-password-confirm" placeholder="Confirm password" type="password" />
+          </div>
         </div>
+        <label class="checkbox-label">
+          <input type="checkbox" id="show-user-passwords" onchange="toggleUserPasswordVisibility()" />
+          Show passwords
+        </label>
         <p class="muted">Username and password are only required for admin accounts. Leave the password blank to keep an existing admin password.</p>
         <div class="form-footer">
           <label class="checkbox-label">

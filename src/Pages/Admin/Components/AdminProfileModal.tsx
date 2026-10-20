@@ -18,6 +18,8 @@ const AdminProfileModal = ({
 }: AdminProfileModalProps) => {
   const [username, setUsername] = useState(user.username ?? user.full_name);
   const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPasswords, setShowPasswords] = useState(false);
   const [tagId, setTagId] = useState(user.tag_id);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -26,6 +28,8 @@ const AdminProfileModal = ({
     if (!opened) return;
     setUsername(user.username ?? user.full_name);
     setNewPassword("");
+    setConfirmPassword("");
+    setShowPasswords(false);
     setTagId(user.tag_id);
     setMessage(null);
   }, [opened, user.tag_id]);
@@ -37,6 +41,10 @@ const AdminProfileModal = ({
     }
     if (newPassword && newPassword.length < 8) {
       setMessage("New password must be at least 8 characters.");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setMessage("Passwords do not match.");
       return;
     }
     setSaving(true);
@@ -75,10 +83,27 @@ const AdminProfileModal = ({
           id="admin-new-password"
           autoComplete="new-password"
           placeholder="Leave blank to keep current password"
-          type="password"
+          type={showPasswords ? "text" : "password"}
           value={newPassword}
           onChange={(event) => setNewPassword(event.target.value)}
         />
+        <label style={styles.label} htmlFor="admin-confirm-password">Confirm new password</label>
+        <input
+          id="admin-confirm-password"
+          autoComplete="new-password"
+          placeholder="Confirm new password"
+          type={showPasswords ? "text" : "password"}
+          value={confirmPassword}
+          onChange={(event) => setConfirmPassword(event.target.value)}
+        />
+        <label style={styles.showPasswords}>
+          <input
+            type="checkbox"
+            checked={showPasswords}
+            onChange={(event) => setShowPasswords(event.target.checked)}
+          />
+          Show passwords
+        </label>
         <label style={styles.label} htmlFor="admin-tag-id">NFC tag ID</label>
         <input
           id="admin-tag-id"
@@ -105,6 +130,11 @@ const styles: { [key: string]: React.CSSProperties } = {
   },
   label: {
     textAlign: "left",
+  },
+  showPasswords: {
+    display: "flex",
+    alignItems: "center",
+    gap: "0.5rem",
   },
   message: {
     color: "#ff8080",
