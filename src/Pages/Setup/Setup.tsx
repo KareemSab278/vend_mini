@@ -3,12 +3,13 @@ import { useLocation } from "wouter";
 import { Greeting } from "./Components/Greeting";
 import { SetupNFC } from "./Components/SetupNFC";
 import { SetupComplete } from "./Components/SetupComplete";
+import { SetupFailsafe } from "./Components/SetupFailsafe";
 import { KeyPressListener } from "../../Helpers/KeyPressListener";
 import { isPiOs } from "../App/Helpers";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Admin } from "../../Helpers/Admins";
 
-type SetupStep = "greeting" | "nfc" | "complete";
+type SetupStep = "checking" | "failsafe" | "greeting" | "nfc" | "complete";
 
 const Setup = () => {
 
@@ -22,10 +23,32 @@ const Setup = () => {
   useEffect(() => { startFullScreen(); }, []);
 
   const [, navigate] = useLocation();
-  const [step, setStep] = useState<SetupStep>("greeting");
+  const [step, setStep] = useState<SetupStep>("checking");
   const [setupError, setSetupError] = useState<string | null>(null);
 
+  useEffect(() => {
+    let isMounted = true;
+    Admin.areFailsafeUsersPresent()
+      .then((present) => {
+        if (isMounted) setStep(present ? "greeting" : "failsafe");
+      })
+      .catch((error) => {
+        console.error("Failed to verify setup readiness:", error);
+        if (isMounted) {
+          setSetupError("Could not check setup readiness. Press Next to try again.");
+          setStep("greeting");
+        }
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
   const finish = () => navigate("/");
+  const finishFailsafeSetup = () => {
+    setSetupError(null);
+    setStep("greeting");
+  };
   const startAdminSetup = async () => {
     try {
       const failsafePresent = await Admin.areFailsafeUsersPresent();
@@ -33,15 +56,20 @@ const Setup = () => {
         setSetupError(null);
         setStep("nfc");
       } else {
-        setSetupError("Setup is not ready yet. Please contact your installer.");
+        setSetupError(null);
+        setStep("failsafe");
       }
     } catch (error) {
-      console.error("Failed to verify installer setup readiness:", error);
-      setSetupError("Setup is not ready yet. Please contact your installer.");
+      console.error("Failed to verify setup readiness:", error);
+      setSetupError("Could not check setup readiness. Please try again.");
     }
   };
 
   switch (step) {
+    case "checking":
+      return null;
+    case "failsafe":
+      return <><KeyPressListener /><SetupFailsafe onNext={finishFailsafeSetup} /></>;
     case "greeting":
       return <><KeyPressListener /><Greeting onNext={startAdminSetup} error={setupError} /></>;
     case "nfc":
