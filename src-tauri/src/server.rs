@@ -41,7 +41,7 @@ struct AdminWebLogin {
 }
 
 async fn admin_web_login(Json(credentials): Json<AdminWebLogin>) -> impl IntoResponse {
-    match users_database::admin_login(credentials.username, credentials.password) {
+    match users_database::admin_login(credentials.username, credentials.password).await {
         Ok(_) => {
             let token = Uuid::new_v4().to_string();
             let expires_at = Instant::now() + ADMIN_WEB_SESSION_TTL;
@@ -149,7 +149,7 @@ async fn require_admin_web_session(request: Request, next: Next) -> Response {
 // ───────────────────────────────────────────────────────────────────────────── users
 
 async fn new_user(Json(user): Json<NewUser>) -> impl IntoResponse {
-    match users_database::new_user(user) {
+    match users_database::new_user(user).await {
         Ok(_) => (StatusCode::CREATED, "ok".to_string()),
         Err(e) => {
             eprintln!("POST /users error: {}", e);
@@ -163,7 +163,7 @@ async fn update_user_by_tag_id(
     Json(payload): Json<NewUser>,
 ) -> impl IntoResponse {
     if let Some(tag_id) = params.tag_id {
-        match users_database::update_user_by_tag_id(&tag_id, payload) {
+        match users_database::update_user_by_tag_id(tag_id.clone(), payload).await {
             Ok(_) => (StatusCode::OK, "User updated".to_string()).into_response(),
             Err(e) => {
                 eprintln!("PUT /users?tag_id={} error: {}", tag_id, e);

@@ -64,8 +64,11 @@ fn ensure_column(conn: &Connection, name: &str, column_type: &str) -> Result<()>
 }
 
 #[tauri::command]
-pub fn initialize_user_database() -> Result<(), String> {
-    ensure_user_database_schema().map_err(|e| format!("User database initialization failed: {}", e))
+pub async fn initialize_user_database() -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(ensure_user_database_schema)
+        .await
+        .map_err(|e| format!("User database initialization task failed: {e}"))?
+        .map_err(|e| format!("User database initialization failed: {e}"))
 }
 
 fn open_user_db() -> Result<Connection> {
@@ -86,14 +89,19 @@ pub struct User {
 
 #[tauri::command]
 pub async fn are_admins_present() -> Result<bool, String> {
-    let conn = open_user_db().map_err(|e| e.to_string())?;
-    let mut stmt = conn
-        .prepare("SELECT COUNT(*) FROM users WHERE is_admin = 1 AND failsafe = 0")
-        .map_err(|e| e.to_string())?;
-    let count: i64 = stmt
-        .query_row([], |row| row.get(0))
-        .map_err(|e| e.to_string())?;
-    Ok(count > 0)
+    tauri::async_runtime::spawn_blocking(|| {
+        let conn = open_user_db().map_err(|e| e.to_string())?;
+        let count: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM users WHERE is_admin = 1 AND failsafe = 0",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+        Ok(count > 0)
+    })
+    .await
+    .map_err(|e| format!("Admin lookup task failed: {e}"))?
 }
 
 #[derive(Deserialize, Debug, Clone)]
@@ -117,17 +125,27 @@ pub struct FailsafeCredentials {
 
 #[tauri::command]
 pub async fn are_failsafe_users_present() -> Result<bool, String> {
-    let conn = open_user_db().map_err(|e| e.to_string())?;
-    let count: i64 = conn
-        .query_row("SELECT COUNT(*) FROM users WHERE failsafe = 1", [], |row| {
-            row.get(0)
-        })
-        .map_err(|e| e.to_string())?;
-    Ok(count > 0)
+    tauri::async_runtime::spawn_blocking(|| {
+        let conn = open_user_db().map_err(|e| e.to_string())?;
+        let count: i64 = conn
+            .query_row("SELECT COUNT(*) FROM users WHERE failsafe = 1", [], |row| {
+                row.get(0)
+            })
+            .map_err(|e| e.to_string())?;
+        Ok(count > 0)
+    })
+    .await
+    .map_err(|e| format!("Failsafe user lookup task failed: {e}"))?
 }
 
 #[tauri::command]
-pub fn new_failsafe_user(credentials: FailsafeCredentials) -> Result<(), String> {
+pub async fn new_failsafe_user(credentials: FailsafeCredentials) -> Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || create_failsafe_user(credentials))
+        .await
+        .map_err(|e| format!("Failsafe user creation task failed: {e}"))?
+}
+
+fn create_failsafe_user(credentials: FailsafeCredentials) -> Result<(), String> {
     let conn = open_user_db().map_err(|e| e.to_string())?;
     let username = non_empty(credentials.username)
         .ok_or_else(|| "Failsafe username is required".to_string())?;
@@ -145,7 +163,13 @@ pub fn new_failsafe_user(credentials: FailsafeCredentials) -> Result<(), String>
 }
 
 #[tauri::command]
-pub fn new_user(user: NewUser) -> Result<bool, String> {
+pub async fn new_user(user: NewUser) -> Result<bool, String> {
+    tauri::async_runtime::spawn_blocking(move || create_user(user))
+        .await
+        .map_err(|e| format!("User creation task failed: {e}"))?
+}
+
+fn create_user(user: NewUser) -> Result<bool, String> {
     let conn = open_user_db().map_err(|e| e.to_string())?;
     let username = user.username.and_then(non_empty);
     let password_hash = if user.is_admin {
@@ -299,12 +323,18 @@ pub fn fetch_all_admins() -> Result<Vec<User>> {
 
 #[tauri::command]
 pub async fn get_all_admins() -> Result<Vec<User>, String> {
-    fetch_all_admins().map_err(|e| e.to_string())
+    tauri::async_runtime::spawn_blocking(|| fetch_all_admins().map_err(|e| e.to_string()))
+        .await
+        .map_err(|e| format!("Admin list task failed: {e}"))?
 }
 
-pub fn admin_login(username: String, password: String) -> Result<User, String> {
-    let conn = open_user_db().map_err(|e| e.to_string())?;
-    admin_login_with_connection(&conn, &username, &password)
+pub async fn admin_login(username: String, password: String) -> Result<User, String> {
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = open_user_db().map_err(|e| e.to_string())?;
+        admin_login_with_connection(&conn, &username, &password)
+    })
+    .await
+    .map_err(|e| format!("Admin login task failed: {e}"))?
 }
 
 fn admin_login_with_connection(
@@ -394,14 +424,18 @@ fn reset_admin_login_attempts_in_connection(conn: &Connection) -> rusqlite::Resu
 }
 
 #[tauri::command]
-pub fn update_admin_profile(
+pub async fn update_admin_profile(
     user_id: u16,
     username: String,
     new_password: Option<String>,
     tag_id: String,
 ) -> Result<(), String> {
-    let conn = open_user_db().map_err(|e| e.to_string())?;
-    update_admin_profile_with_connection(&conn, user_id, &username, new_password, &tag_id)
+    tauri::async_runtime::spawn_blocking(move || {
+        let conn = open_user_db().map_err(|e| e.to_string())?;
+        update_admin_profile_with_connection(&conn, user_id, &username, new_password, &tag_id)
+    })
+    .await
+    .map_err(|e| format!("Admin profile update task failed: {e}"))?
 }
 
 fn update_admin_profile_with_connection(
@@ -449,7 +483,9 @@ fn update_admin_profile_with_connection(
 
 #[tauri::command]
 pub async fn update_balance_by_tag_id(tag_id: String, amount: f64) -> Result<f64, String> {
-    deduct_balance_by_tag_id(&tag_id, amount)
+    tauri::async_runtime::spawn_blocking(move || deduct_balance_by_tag_id(&tag_id, amount))
+        .await
+        .map_err(|e| format!("Balance update task failed: {e}"))?
 }
 
 #[allow(dead_code)]
@@ -478,7 +514,16 @@ pub fn deduct_balance_by_tag_id(tag_id: &str, amount: f64) -> std::result::Resul
 }
 
 #[allow(dead_code)]
-pub fn update_user_by_tag_id(tag_id: &str, user: NewUser) -> std::result::Result<(), String> {
+pub async fn update_user_by_tag_id(
+    tag_id: String,
+    user: NewUser,
+) -> std::result::Result<(), String> {
+    tauri::async_runtime::spawn_blocking(move || update_user_by_tag_id_blocking(&tag_id, user))
+        .await
+        .map_err(|e| format!("User update task failed: {e}"))?
+}
+
+fn update_user_by_tag_id_blocking(tag_id: &str, user: NewUser) -> std::result::Result<(), String> {
     let conn = open_user_db().map_err(|e| e.to_string())?;
     let existing = conn
         .query_row(
