@@ -71,8 +71,9 @@
             </select>
           </div>
           <div class="field" id="custom-category-field" style="display:none">
-            <label for="custom-category">Custom Category</label>
+            <label for="custom-category">New Category</label>
             <input id="custom-category" placeholder="e.g. Energy Drinks" />
+            <button class="btn btn-secondary" id="add-category-btn" type="button" onclick="addCategory()">Create category</button>
           </div>
           <div class="field">
             <label for="price">Price (£)</label>
@@ -88,6 +89,7 @@
           </label>
           <button class="btn btn-primary" onclick="submitForm()">Save</button>
           <button class="btn btn-secondary" id="cancel-btn" style="display:none" onclick="cancelEdit()">Cancel</button>
+          <span id="category-status" role="status" aria-live="polite"></span>
           <span id="status"></span>
         </div>
       </div>

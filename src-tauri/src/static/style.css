@@ -244,6 +244,7 @@ input.error {
 }
 
 #status,
+#category-status,
 #user-status {
   font-size: 0.8rem;
   color: #a1a1aa;
@@ -251,11 +252,13 @@ input.error {
 }
 
 #status.ok,
+#category-status.ok,
 #user-status.ok {
   color: #4ade80;
 }
 
 #status.err,
+#category-status.err,
 #user-status.err {
   color: #f87171;
 }

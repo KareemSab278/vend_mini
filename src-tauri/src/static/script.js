@@ -169,19 +169,53 @@ function toggleCustomCategory() {
   document.getElementById("custom-category-field").style.display = isOther ? "flex" : "none";
 }
 
-async function addCategory(category_name) {
+async function addCategory() {
+  const input = document.getElementById("custom-category");
+  const button = document.getElementById("add-category-btn");
+  const status = document.getElementById("category-status");
+  const categoryName = input.value.trim();
+
+  status.textContent = "";
+  status.className = "";
+  if (!categoryName) {
+    status.textContent = "Category name is required.";
+    status.className = "err";
+    input.focus();
+    return;
+  }
+
+  button.disabled = true;
   try {
     const res = await apiFetch("/categories", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({ category_name })
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ category_name: categoryName })
     });
-    if (!res.ok) throw new Error("Failed to create category");
-    loadCategories();
+    if (!res.ok) throw new Error(await res.text() || "Failed to create category.");
+
+    const select = document.getElementById("category");
+    let option = Array.from(select.options).find(item => item.value === categoryName);
+    if (!option) {
+      option = document.createElement("option");
+      option.value = categoryName;
+      option.textContent = categoryName;
+      const otherOption = select.querySelector('option[value="__other__"]');
+      if (otherOption) {
+        select.insertBefore(option, otherOption);
+      } else {
+        select.appendChild(option);
+      }
+    }
+    select.value = categoryName;
+    input.value = "";
+    toggleCustomCategory();
+    status.textContent = "Category created.";
+    status.className = "ok";
   } catch (e) {
-    setStatus("Failed to create category.", false);
+    status.textContent = `Failed to create category: ${e.message}`;
+    status.className = "err";
+  } finally {
+    button.disabled = false;
   }
 }
 
