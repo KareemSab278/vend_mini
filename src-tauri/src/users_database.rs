@@ -149,6 +149,17 @@ pub fn new_user(user: NewUser) -> Result<bool, String> {
     let conn = open_user_db().map_err(|e| e.to_string())?;
     let username = user.username.and_then(non_empty);
     let password_hash = if user.is_admin {
+        let setup_ready: bool = conn
+            .query_row(
+                "SELECT EXISTS(SELECT 1 FROM users WHERE failsafe = 1)
+                 OR EXISTS(SELECT 1 FROM users WHERE is_admin = 1 AND failsafe = 0)",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(|e| e.to_string())?;
+        if !setup_ready {
+            return Err("Setup is not ready yet. Please contact your installer.".to_string());
+        }
         Some(hash_admin_password(
             username.as_deref(),
             user.password.as_deref(),

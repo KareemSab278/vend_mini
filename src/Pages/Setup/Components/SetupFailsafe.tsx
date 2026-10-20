@@ -1,13 +1,11 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { PrimaryButton } from "../../../Components/Button";
 import { Admin } from "../../../Helpers/Admins";
 import { styles as appStyles } from "../../App/styles";
 
-interface SetupFailsafeProps {
-  onNext: () => void;
-}
-
-const SetupFailsafe = ({ onNext }: SetupFailsafeProps) => {
+const SetupFailsafe = () => {
+  const [, navigate] = useLocation();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
@@ -24,7 +22,7 @@ const SetupFailsafe = ({ onNext }: SetupFailsafeProps) => {
     setMessage(null);
     try {
       await Admin.createFailsafeUser(credentials);
-      onNext();
+      navigate("/");
     } catch (error) {
       setMessage(typeof error === "string" ? error : "Failed to create failsafe account.");
     } finally {

@@ -12,7 +12,7 @@ const Greeting = ({ onNext, error }: GreetingProps) => {
       <div style={styles.inner}>
         <h1 style={styles.heading}>Welcome</h1>
         <p style={styles.text}>
-          First, set up a private failsafe username and password for the admin web screen. Then add admin users using the NFC reader.
+          Before you can start using the application, you'll need to add some admin users using the NFC reader.
         </p>
         <p style={styles.text}>
           You can set up a maximum of 3 admin users. This is required to ensure proper management of the application.

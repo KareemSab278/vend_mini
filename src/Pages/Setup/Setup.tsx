@@ -3,13 +3,12 @@ import { useLocation } from "wouter";
 import { Greeting } from "./Components/Greeting";
 import { SetupNFC } from "./Components/SetupNFC";
 import { SetupComplete } from "./Components/SetupComplete";
-import { SetupFailsafe } from "./Components/SetupFailsafe";
 import { KeyPressListener } from "../../Helpers/KeyPressListener";
 import { isPiOs } from "../App/Helpers";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { Admin } from "../../Helpers/Admins";
 
-type SetupStep = "greeting" | "failsafe" | "nfc" | "complete";
+type SetupStep = "greeting" | "nfc" | "complete";
 
 const Setup = () => {
 
@@ -30,18 +29,21 @@ const Setup = () => {
   const startAdminSetup = async () => {
     try {
       const failsafePresent = await Admin.areFailsafeUsersPresent();
-      setStep(failsafePresent ? "nfc" : "failsafe");
+      if (failsafePresent) {
+        setSetupError(null);
+        setStep("nfc");
+      } else {
+        setSetupError("Setup is not ready yet. Please contact your installer.");
+      }
     } catch (error) {
-      console.error("Failed to check failsafe account:", error);
-      setSetupError(typeof error === "string" ? error : "Failed to check failsafe account.");
+      console.error("Failed to verify installer setup readiness:", error);
+      setSetupError("Setup is not ready yet. Please contact your installer.");
     }
   };
 
   switch (step) {
     case "greeting":
       return <><KeyPressListener /><Greeting onNext={startAdminSetup} error={setupError} /></>;
-    case "failsafe":
-      return <><KeyPressListener /><SetupFailsafe onNext={() => setStep("nfc")} /></>;
     case "nfc":
       return <><KeyPressListener /><SetupNFC onNext={() => setStep("complete")} /></>;
     case "complete":

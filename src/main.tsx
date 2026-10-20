@@ -8,6 +8,7 @@ import { AppConfig } from "./Helpers/AppConfig";
 import { App } from "./Pages/App/App";
 import { PrePaidApp } from "./Pages/App/PrePaidApp";
 import { Setup } from "./Pages/Setup/Setup";
+import { SetupFailsafe } from "./Pages/Setup/Components/SetupFailsafe";
 import { Admin } from "./Pages/Admin/Admin";
 import { applyTheme, ThemeStore, type Theme } from "./Helpers/theme";
 import { getCurrentWindow } from "@tauri-apps/api/window";
@@ -48,6 +49,7 @@ const ThemedApp = () => {
     <MantineProvider defaultColorScheme="dark">
       <Router>
         <Switch>
+          <Route path="/installer/failsafe-setup" component={SetupFailsafe} />
           <Route path="/setup" component={Setup} />
           <Route path="/admin" component={Admin} />
           {/* conditionally render if the prepaid feature is enabled */}

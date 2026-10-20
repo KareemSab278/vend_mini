@@ -1322,21 +1322,19 @@ Table: `users`
 | Column | Type | Constraints | Description |
 |--------|------|-------------|-------------|
 | `user_id` | INTEGER | PRIMARY KEY AUTOINCREMENT | Unique user identifier |
-| `tag_id` | TEXT | NOT NULL UNIQUE | NFC tag UID stored as lowercase hex (e.g. `a1b2c3d4`); empty for the failsafe account |
+| `tag_id` | TEXT | NOT NULL UNIQUE | NFC tag UID stored as lowercase hex (e.g. `a1b2c3d4`) |
 | `full_name` | TEXT | NOT NULL | Display name |
 | `username` | TEXT | nullable | Admin login username; regular users do not need one |
 | `password_hash` | TEXT | nullable | Bcrypt hash for admin login; plaintext passwords are never stored |
 | `is_admin` | INTEGER | NOT NULL DEFAULT 0 | Boolean stored as integer: 1 = admin, 0 = regular user |
 | `balance` | REAL | NOT NULL DEFAULT 0 | GBP balance available for NFC payments |
-| `failsafe` | BOOLEAN | NOT NULL DEFAULT 0 | Hidden, password-only account used to sign in to the browser editor |
 
 ### Admin access
 
-- **Initial setup:** Create the private failsafe username and password before registering NFC admins if no failsafe account exists. It does not need a tag and is never shown in user or admin lists.
 - **Native app:** Scan a registered admin tag to open the admin panel. Scanning the same tag 12 times also opens the panel.
 - **Register a new admin:** In the app's Admin panel, open **Admins**, enter that admin's username and password, then scan the new tag. Regular users do not need login credentials.
 - **Set up or reset an existing admin's credentials:** Scan that admin's tag to open the app's Admin panel, then open **Admin Account**. Set the username and password there. The same screen can update the tag ID.
-- **Browser editor:** Open the editor URL from the app and sign in with an admin or failsafe username and password. The failsafe credentials work only for this browser sign-in. Its data API requires a short-lived authenticated session.
+- **Browser editor:** Open the editor URL from the app and sign in with an admin username and password. Its data API requires a short-lived authenticated session.
 - **Failed sign-ins:** After five failed browser sign-in attempts, scan a registered admin tag in the app to clear the attempt counter before trying again. The `admin_login_state` table stores the counter.
 
 The editor is currently served over HTTP on the local network. Use it only on a trusted network; credentials and session cookies are not encrypted in transit.
