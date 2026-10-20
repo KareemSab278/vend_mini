@@ -3,6 +3,7 @@ import { Loading } from "../../../Components/Loading";
 import { PrimaryButton } from "../../../Components/Button";
 import { Admin } from "../../../Helpers/Admins";
 import { styles as appStyles } from "../../App/styles";
+import { KeyboardInput } from "../../../Components/KeyboardInput";
 
 interface SetupFailsafeProps {
   onNext: () => void;
@@ -50,28 +51,28 @@ const SetupFailsafe = ({ onNext }: SetupFailsafeProps) => {
           This private username and password are only for signing in to the admin web screen. No NFC tag is needed.
         </p>
         <div style={styles.credentials}>
-          <input
+          <KeyboardInput
             aria-label="Failsafe username"
             autoComplete="username"
             placeholder="Failsafe username"
             value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            onValueChange={setUsername}
           />
-          <input
+          <KeyboardInput
             aria-label="Failsafe password"
             autoComplete="new-password"
             placeholder="Failsafe password (8+ characters)"
             type={showPasswords ? "text" : "password"}
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onValueChange={setPassword}
           />
-          <input
+          <KeyboardInput
             aria-label="Confirm failsafe password"
             autoComplete="new-password"
             placeholder="Confirm failsafe password"
             type={showPasswords ? "text" : "password"}
             value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
+            onValueChange={setConfirmPassword}
           />
           <label style={styles.showPasswords}>
             <input

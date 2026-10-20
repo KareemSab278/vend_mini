@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Modal, PasswordInput, Stack } from "@mantine/core";
 import { invoke } from "@tauri-apps/api/core";
 import { PrimaryButton } from "../../../Components/Button";
+import { VirtualKeyboard } from "../../../Components/VirtualKeyboard";
 import type { CSSProperties } from "react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 
@@ -31,6 +32,7 @@ const UpdateModal = ({ opened, onClose }: UpdateModalProps) => {
     const [message, setMessage] = useState<string | null>(null);
     const [needsPassword, setNeedsPassword] = useState(false);
     const [password, setPassword] = useState("");
+    const [keyboardOpen, setKeyboardOpen] = useState(false);
 
     const handleUpdateSuccess = () => {
         setMessage("Update installed - killing app now... Please Restart");
@@ -99,11 +101,20 @@ const UpdateModal = ({ opened, onClose }: UpdateModalProps) => {
                         placeholder="Enter device password"
                         value={password}
                         onChange={(event) => setPassword(event.currentTarget.value)}
+                        onFocus={() => setKeyboardOpen(true)}
+                        onBlur={() => setKeyboardOpen(false)}
                         onKeyDown={(event) => {
                             if (event.key === "Enter") {
                                 void handleInstallWithPassword();
                             }
                         }}
+                    />
+                )}
+                {needsPassword && keyboardOpen && (
+                    <VirtualKeyboard
+                        value={password}
+                        onChange={setPassword}
+                        onClose={() => setKeyboardOpen(false)}
                     />
                 )}
                 {needsPassword && password && (

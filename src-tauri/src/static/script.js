@@ -1,9 +1,12 @@
 function showAdminLogin() {
   document.getElementById("admin-login-overlay").hidden = false;
+  document.getElementById("admin-login-username").focus();
 }
 
 function hideAdminLogin() {
   document.getElementById("admin-login-overlay").hidden = true;
+  virtualKeyboard.hidden = true;
+  keyboardTarget = null;
 }
 
 function expireAdminSession() {
@@ -797,6 +800,137 @@ function switchTab(tabId) {
   document.getElementById(tabId).classList.add('active');
   document.querySelector(`[data-tab="${tabId}"]`).classList.add('active');
 }
+
+/* ═══════════════════════════ VIRTUAL KEYBOARD ═════════════════════════ */
+const keyboardAlphaRows = [
+  ["q", "w", "e", "r", "t", "y", "u", "i", "o", "p"],
+  ["a", "s", "d", "f", "g", "h", "j", "k", "l"],
+  ["⇧", "z", "x", "c", "v", "b", "n", "m", "⌫"],
+  ["123", " ", "✕"],
+];
+const keyboardNumRows = [
+  ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"],
+  ["-", "/", ":", ";", "(", ")", "£", "&", "@", "\""],
+  [".", ",", "?", "!", "'", "⌫"],
+  ["ABC", " ", "✕"],
+];
+const virtualKeyboard = document.createElement("div");
+virtualKeyboard.className = "virtual-keyboard";
+virtualKeyboard.hidden = true;
+virtualKeyboard.setAttribute("aria-label", "On-screen keyboard");
+document.body.appendChild(virtualKeyboard);
+
+let keyboardTarget = null;
+let keyboardNumMode = false;
+let keyboardShift = false;
+
+function isKeyboardInput(element) {
+  if (!(element instanceof HTMLInputElement) || element.disabled || element.readOnly) return false;
+  return ["text", "password", "search", "email", "url", "tel"].includes(element.type)
+    || element.inputMode === "decimal"
+    || element.inputMode === "numeric";
+}
+
+function renderVirtualKeyboard() {
+  const rows = keyboardNumMode ? keyboardNumRows : keyboardAlphaRows;
+  virtualKeyboard.replaceChildren();
+  rows.forEach((row) => {
+    const rowElement = document.createElement("div");
+    rowElement.className = "virtual-keyboard-row";
+    row.forEach((key) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "virtual-keyboard-key";
+      if (key === " ") button.classList.add("space-key");
+      if (key === "✕") button.classList.add("close-key");
+      if (["⌫", "123", "ABC", "⇧"].includes(key)) button.classList.add("wide-key");
+      button.textContent = key === " " ? "space"
+        : (!keyboardNumMode && keyboardShift && !["⇧", "⌫", "✕"].includes(key))
+          ? key.toUpperCase()
+          : key;
+      button.addEventListener("pointerdown", (event) => {
+        event.preventDefault();
+        handleVirtualKey(key);
+      });
+      rowElement.appendChild(button);
+    });
+    virtualKeyboard.appendChild(rowElement);
+  });
+}
+
+function insertVirtualText(text) {
+  if (!keyboardTarget) return;
+  const supportsSelection = ["text", "password", "search", "url", "tel"].includes(keyboardTarget.type);
+  const start = supportsSelection
+    ? keyboardTarget.selectionStart ?? keyboardTarget.value.length
+    : keyboardTarget.value.length;
+  const end = supportsSelection ? keyboardTarget.selectionEnd ?? start : start;
+  const nextValue = keyboardTarget.value.slice(0, start) + text + keyboardTarget.value.slice(end);
+  keyboardTarget.value = nextValue;
+  const caret = start + text.length;
+  if (supportsSelection) keyboardTarget.setSelectionRange(caret, caret);
+  keyboardTarget.dispatchEvent(new Event("input", { bubbles: true }));
+}
+
+function handleVirtualKey(key) {
+  if (!keyboardTarget) return;
+  if (key === "✕") {
+    keyboardTarget.blur();
+    virtualKeyboard.hidden = true;
+    keyboardTarget = null;
+  } else if (key === "⇧") {
+    keyboardShift = !keyboardShift;
+    renderVirtualKeyboard();
+  } else if (key === "123") {
+    keyboardNumMode = true;
+    renderVirtualKeyboard();
+  } else if (key === "ABC") {
+    keyboardNumMode = false;
+    keyboardShift = false;
+    renderVirtualKeyboard();
+  } else if (key === "⌫") {
+    const supportsSelection = ["text", "password", "search", "url", "tel"].includes(keyboardTarget.type);
+    const start = supportsSelection
+      ? keyboardTarget.selectionStart ?? keyboardTarget.value.length
+      : keyboardTarget.value.length;
+    const end = supportsSelection ? keyboardTarget.selectionEnd ?? start : start;
+    if (start === end && start > 0) {
+      if (supportsSelection) {
+        keyboardTarget.setSelectionRange(start - 1, end);
+      } else {
+        keyboardTarget.value = keyboardTarget.value.slice(0, -1);
+        keyboardTarget.dispatchEvent(new Event("input", { bubbles: true }));
+        return;
+      }
+    }
+    insertVirtualText("");
+  } else {
+    const character = keyboardNumMode ? key : keyboardShift ? key.toUpperCase() : key;
+    insertVirtualText(character);
+    if (keyboardShift) {
+      keyboardShift = false;
+      renderVirtualKeyboard();
+    }
+  }
+}
+
+document.addEventListener("focusin", (event) => {
+  if (!isKeyboardInput(event.target)) return;
+  keyboardTarget = event.target;
+  keyboardNumMode = ["decimal", "numeric"].includes(keyboardTarget.inputMode);
+  keyboardShift = false;
+  virtualKeyboard.hidden = false;
+  renderVirtualKeyboard();
+});
+
+document.addEventListener("focusout", () => {
+  setTimeout(() => {
+    if (!isKeyboardInput(document.activeElement)) {
+      virtualKeyboard.hidden = true;
+      keyboardTarget = null;
+    }
+  }, 0);
+});
 
 /* ═════════════════════════════ INIT ════════════════════════════════════ */
 restoreAdminSession();

@@ -463,6 +463,60 @@ input.error {
   display: none;
 }
 
+.virtual-keyboard {
+  position: fixed;
+  inset: auto 0 0;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.5rem 0.35rem max(0.75rem, env(safe-area-inset-bottom));
+  background: #d1d5db;
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.3);
+}
+
+.virtual-keyboard[hidden] {
+  display: none;
+}
+
+.virtual-keyboard-row {
+  display: flex;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.virtual-keyboard-key {
+  flex: 1;
+  min-width: 0;
+  max-width: 6rem;
+  height: clamp(2.5rem, 8vh, 4.75rem);
+  padding: 0 0.35rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: #fff;
+  box-shadow: 0 2px 0 #9ca3af;
+  color: #1a1a1a;
+  font: 500 clamp(1rem, 3vw, 2rem) Montserrat, Arial, sans-serif;
+  touch-action: manipulation;
+  user-select: none;
+}
+
+.virtual-keyboard-key.wide-key {
+  flex: 1.5;
+  max-width: 8rem;
+  background: #9ca3af;
+}
+
+.virtual-keyboard-key.space-key {
+  flex: 4;
+  max-width: 25rem;
+}
+
+.virtual-keyboard-key.close-key {
+  background: #e53935;
+  color: #fff;
+}
+
 .logout-btn {
   margin-left: auto;
 }

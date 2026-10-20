@@ -4,6 +4,7 @@ import { Admin, type NewAdminCredentials, type User } from "../../../Helpers/Adm
 import { NFC } from "../../../Helpers/Nfc";
 import { styles as appStyles } from "../../App/styles";
 import { Loading } from "../../../Components/Loading";
+import { KeyboardInput } from "../../../Components/KeyboardInput";
 
 interface SetupNFCProps {
   onNext: () => void;
@@ -107,28 +108,28 @@ const SetupNFC = ({ onNext }: SetupNFCProps) => {
           Set a unique username and password, then scan that admin's NFC tag to register the account.
         </p>
         <div style={styles.credentials}>
-          <input
+          <KeyboardInput
             aria-label="Admin username"
             autoComplete="username"
             placeholder="Admin username"
             value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            onValueChange={setUsername}
           />
-          <input
+          <KeyboardInput
             aria-label="Admin password"
             autoComplete="new-password"
             placeholder="Admin password (8+ characters)"
             type={showPasswords ? "text" : "password"}
             value={password}
-            onChange={(event) => setPassword(event.target.value)}
+            onValueChange={setPassword}
           />
-          <input
+          <KeyboardInput
             aria-label="Confirm admin password"
             autoComplete="new-password"
             placeholder="Confirm admin password"
             type={showPasswords ? "text" : "password"}
             value={confirmPassword}
-            onChange={(event) => setConfirmPassword(event.target.value)}
+            onValueChange={setConfirmPassword}
           />
           <label style={styles.showPasswords}>
             <input

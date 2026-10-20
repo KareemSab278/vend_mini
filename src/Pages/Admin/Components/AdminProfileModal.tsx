@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "@mantine/core";
 import { PrimaryButton } from "../../../Components/Button";
 import { Admin, type User } from "../../../Helpers/Admins";
+import { KeyboardInput } from "../../../Components/KeyboardInput";
 
 interface AdminProfileModalProps {
   opened: boolean;
@@ -72,29 +73,29 @@ const AdminProfileModal = ({
     <Modal opened={opened} onClose={onClose} title="Admin Account" size="md">
       <div style={styles.inner}>
         <label style={styles.label} htmlFor="admin-username">Username</label>
-        <input
+        <KeyboardInput
           id="admin-username"
           autoComplete="username"
           value={username}
-          onChange={(event) => setUsername(event.target.value)}
+          onValueChange={setUsername}
         />
         <label style={styles.label} htmlFor="admin-new-password">New password</label>
-        <input
+        <KeyboardInput
           id="admin-new-password"
           autoComplete="new-password"
           placeholder="Leave blank to keep current password"
           type={showPasswords ? "text" : "password"}
           value={newPassword}
-          onChange={(event) => setNewPassword(event.target.value)}
+          onValueChange={setNewPassword}
         />
         <label style={styles.label} htmlFor="admin-confirm-password">Confirm new password</label>
-        <input
+        <KeyboardInput
           id="admin-confirm-password"
           autoComplete="new-password"
           placeholder="Confirm new password"
           type={showPasswords ? "text" : "password"}
           value={confirmPassword}
-          onChange={(event) => setConfirmPassword(event.target.value)}
+          onValueChange={setConfirmPassword}
         />
         <label style={styles.showPasswords}>
           <input
@@ -105,11 +106,11 @@ const AdminProfileModal = ({
           Show passwords
         </label>
         <label style={styles.label} htmlFor="admin-tag-id">NFC tag ID</label>
-        <input
+        <KeyboardInput
           id="admin-tag-id"
           autoComplete="off"
           value={tagId}
-          onChange={(event) => setTagId(event.target.value)}
+          onValueChange={setTagId}
         />
         {message && <p role="alert" style={styles.message}>{message}</p>}
         <PrimaryButton
