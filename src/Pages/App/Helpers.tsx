@@ -60,13 +60,14 @@ import {
 } from "@tabler/icons-react";
 import { invoke } from "@tauri-apps/api/core";
 import { TbNfc } from "react-icons/tb";
+const dev = import.meta.env.DEV;
 
 const statusIcon = (payStatus: "paying" | "dispensing" | "done" | "waiting_door" | "error" | "idle" | "nfc") => {
   const iconProps = { size: 56, stroke: 1.5, color: "#fff" };
   return (
     {
       paying: <IconCreditCard {...iconProps} />,
-      nfc: <TbNfc/>,
+      nfc: <TbNfc />,
       dispensing: <IconSettings {...iconProps} />,
       done: <IconCircleCheck {...iconProps} color="#4caf50" />,
       waiting_door: <IconDoor {...iconProps} />,
@@ -81,6 +82,15 @@ const totalPrice = (selectedProducts: { product_price: number; count: number }[]
     (sum, p) => sum + p.product_price * p.count,
     0,
   );
+};
+
+
+export const startScreenSaverServer = async () => {
+  try {
+    await invoke("initialize_static_page_server");
+  } catch (e) {
+    dev && console.error("Failed to start static page server:", e);
+  }
 };
 
 const isPiOs = async () => {

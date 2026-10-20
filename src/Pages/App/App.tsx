@@ -1,16 +1,18 @@
-const dev = import.meta.env.DEV;
 
+const dev = import.meta.env.DEV;
 import { useState, useRef, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { useLocation } from "wouter";
-import { totalPrice } from "./Helpers";
+import { totalPrice, startScreenSaverServer } from "./Helpers";
 import { styles } from "./styles";
+
 import { SelectedProductsModal } from "./Components/SelectedProductsModal";
 import { CheckoutModal } from "./Components/CheckoutModal";
 import { PaymentMethodModal } from "./Components/PaymentMethodModal";
 import { ProductsWithCategories } from "./Components/ProductsWithCategories";
 import { NFCNotification } from "../../Components/NFCNotification";
 import { PriceStatusPill } from "../../Components/PriceStatusPill";
+
+import { Order } from "../../Helpers/Order";
 import { Door } from "../../Helpers/Door";
 import { NFC } from "../../Helpers/Nfc";
 import { Payment } from "../../Helpers/Payment";
@@ -55,6 +57,7 @@ const App = () => {
   const nfcInitializedRef = useRef(false);
   const [nfcNotification, setNfcNotification] = useState<string | null>(null);
   const [nfcListeningEnabled, setNfcListeningEnabled] = useState<boolean>(true);
+
   useEffect(() => {
     setNfcListeningEnabled(
       paymentMethodModalOpen === false
@@ -76,17 +79,15 @@ const App = () => {
   useEffect(() => { initilaizeLed(); }, []);
 
   useEffect(() => {
-    if (payStatus === "paying") {
-      setPayMessage(`Please tap or swipe your ${paymentMethod === "card" ? "card" : "NFC tag"}…`);
-    }
-    if (payStatus === "dispensing") {
-      setPayMessage("Payment approved! Opening door…");
-    }
-    if (payStatus === "waiting_door") {
-      setPayMessage("Please take your items and close the door.");
-    }
-  }, [payStatus, paymentMethod, modalOpen, checkoutActive]);
+    const messages: Partial<Record<PayStatus, string>> = {
+      paying: `Please tap or swipe your ${paymentMethod === "card" ? "card" : "NFC tag"}…`,
+      dispensing: "Payment approved! Opening door…",
+      waiting_door: "Please take your items and close the door.",
+    };
 
+    const message = messages[payStatus];
+    if (message !== undefined) setPayMessage(message);
+  }, [payStatus, paymentMethod, modalOpen, checkoutActive]);
 
   const clearInactivityTimer = () => {
     if (inactivityTimerRef.current) {
@@ -107,14 +108,6 @@ const App = () => {
   const resetInactivityTimer = () => {
     setScreenSaverActive(false);
     startInactivityTimer();
-  };
-
-  const startScreenSaverServer = async () => {
-    try {
-      await invoke("initialize_static_page_server");
-    } catch (e) {
-      dev && console.error("Failed to start static page server:", e);
-    }
   };
 
 
@@ -202,7 +195,7 @@ const App = () => {
   const fetchProducts = async () => {
     pollRef.current = setInterval(async () => {
       try {
-        const prods: any[] = await invoke("query_products");
+        const prods: ProductType[] = await Products.fetchProducts();
         setProducts(prods);
       } catch (e) {
         dev && console.error("Failed to fetch products:", e);
@@ -213,17 +206,13 @@ const App = () => {
 
   const insertOrderToDB = async () => {
     for (const p of selectedProducts as ProductType[]) {
-      try {
-        await invoke("insert_order", {
-          productId: p.product_id,
-          quantity: p.count,
-          price: p.product_price * p.count,
-        });
-      } catch (e) {
-        dev && console.error("Failed to save order for product", p.product_id, e);
-      }
+      await Order.insertOrder({
+        productId: p.product_id,
+        quantity: p.count,
+        price: p.product_price * p.count,
+      });
     }
-  };
+  }
 
   const openDoorAndWaitForClose = async (newBalance?: string) => {
     if (cancelledRef.current) return;
