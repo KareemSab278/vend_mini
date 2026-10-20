@@ -21,7 +21,8 @@ fn ensure_user_database_schema() -> Result<()> {
             tag_id   TEXT    NOT NULL UNIQUE,
             full_name TEXT    NOT NULL,
             is_admin  BOOLEAN NOT NULL DEFAULT 0,
-            balance   REAL    NOT NULL DEFAULT 0
+            balance   REAL    NOT NULL DEFAULT 0,
+            failsafe  BOOLEAN NOT NULL DEFAULT 0
         );
         CREATE TABLE IF NOT EXISTS admin_login_state (
             id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -31,9 +32,17 @@ fn ensure_user_database_schema() -> Result<()> {
     )?;
     ensure_column(&conn, "username", "TEXT")?;
     ensure_column(&conn, "password_hash", "TEXT")?;
+    ensure_column(&conn, "failsafe", "BOOLEAN NOT NULL DEFAULT 0")?;
+    conn.execute("DROP INDEX IF EXISTS unique_admin_username", [])?;
     conn.execute(
         "CREATE UNIQUE INDEX IF NOT EXISTS unique_admin_username
-         ON users (lower(username)) WHERE is_admin = 1 AND username IS NOT NULL",
+         ON users (lower(username))
+         WHERE (is_admin = 1 OR failsafe = 1) AND username IS NOT NULL",
+        [],
+    )?;
+    conn.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS unique_failsafe_user
+         ON users (failsafe) WHERE failsafe = 1",
         [],
     )?;
     Ok(())
@@ -79,7 +88,7 @@ pub struct User {
 pub async fn are_admins_present() -> Result<bool, String> {
     let conn = open_user_db().map_err(|e| e.to_string())?;
     let mut stmt = conn
-        .prepare("SELECT COUNT(*) FROM users WHERE is_admin = 1")
+        .prepare("SELECT COUNT(*) FROM users WHERE is_admin = 1 AND failsafe = 0")
         .map_err(|e| e.to_string())?;
     let count: i64 = stmt
         .query_row([], |row| row.get(0))
@@ -98,6 +107,41 @@ pub struct NewUser {
     pub password: Option<String>,
     pub is_admin: bool,
     pub balance: f64,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct FailsafeCredentials {
+    pub username: String,
+    pub password: String,
+}
+
+#[tauri::command]
+pub async fn are_failsafe_users_present() -> Result<bool, String> {
+    let conn = open_user_db().map_err(|e| e.to_string())?;
+    let count: i64 = conn
+        .query_row("SELECT COUNT(*) FROM users WHERE failsafe = 1", [], |row| {
+            row.get(0)
+        })
+        .map_err(|e| e.to_string())?;
+    Ok(count > 0)
+}
+
+#[tauri::command]
+pub fn new_failsafe_user(credentials: FailsafeCredentials) -> Result<(), String> {
+    let conn = open_user_db().map_err(|e| e.to_string())?;
+    let username = non_empty(credentials.username)
+        .ok_or_else(|| "Failsafe username is required".to_string())?;
+    if username.len() < 3 {
+        return Err("Failsafe username must be at least 3 characters".to_string());
+    }
+    let password_hash = hash_admin_password(Some(&username), Some(&credentials.password))?;
+    conn.execute(
+        "INSERT INTO users (tag_id, full_name, username, password_hash, is_admin, balance, failsafe)
+         VALUES ('', ?1, ?1, ?2, 0, 0, 1)",
+        params![username, password_hash],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 #[tauri::command]
@@ -156,7 +200,7 @@ pub fn search_users_by_name(name: &str) -> Result<Vec<User>> {
     let conn = open_user_db()?;
     let mut stmt = conn.prepare(
         "SELECT user_id, tag_id, full_name, COALESCE(username, full_name), is_admin, balance
-         FROM users WHERE COALESCE(username, full_name) LIKE ?1",
+         FROM users WHERE failsafe = 0 AND COALESCE(username, full_name) LIKE ?1",
     )?;
     let user_iter = stmt.query_map(params![format!("%{}%", name)], |row| {
         Ok(User {
@@ -181,7 +225,7 @@ pub fn get_user_by_tag_id(tag_id: &str) -> Result<Option<User>> {
     let conn = open_user_db()?;
     let mut stmt = conn.prepare(
         "SELECT user_id, tag_id, full_name, COALESCE(username, full_name), is_admin, balance
-         FROM users WHERE tag_id = lower(?1)",
+         FROM users WHERE tag_id = lower(?1) AND failsafe = 0",
     )?;
     let user_iter = stmt.query_map(params![tag_id], |row| {
         Ok(User {
@@ -208,7 +252,8 @@ pub async fn get_balance_by_tag_id(tag_id: String) -> Result<Option<f64>, String
 #[allow(dead_code)]
 pub fn fetch_balance_by_tag_id(tag_id: &str) -> Result<Option<f64>> {
     let conn = open_user_db()?;
-    let mut stmt = conn.prepare("SELECT balance FROM users WHERE tag_id = lower(?1)")?;
+    let mut stmt =
+        conn.prepare("SELECT balance FROM users WHERE tag_id = lower(?1) AND failsafe = 0")?;
     let balance_iter = stmt.query_map(params![tag_id], |row| row.get(0))?;
 
     for balance in balance_iter {
@@ -221,7 +266,7 @@ pub fn fetch_all_admins() -> Result<Vec<User>> {
     let conn = open_user_db()?;
     let mut stmt = conn.prepare(
         "SELECT user_id, tag_id, full_name, COALESCE(username, full_name), is_admin, balance
-         FROM users WHERE is_admin = 1",
+         FROM users WHERE is_admin = 1 AND failsafe = 0",
     )?;
     let admin_iter = stmt.query_map([], |row| {
         Ok(User {
@@ -272,7 +317,8 @@ fn admin_login_with_connection(
         .query_row(
             "SELECT user_id, tag_id, full_name, COALESCE(username, full_name), password_hash,
                     is_admin, balance
-             FROM users WHERE is_admin = 1 AND lower(username) = lower(?1)",
+             FROM users
+             WHERE (is_admin = 1 OR failsafe = 1) AND lower(username) = lower(?1)",
             params![username.trim()],
             |row| {
                 Ok((
@@ -362,7 +408,7 @@ fn update_admin_profile_with_connection(
     let (current_tag_id, password_hash): (String, Option<String>) = conn
         .query_row(
             "SELECT tag_id, password_hash
-             FROM users WHERE user_id = ?1 AND is_admin = 1",
+             FROM users WHERE user_id = ?1 AND is_admin = 1 AND failsafe = 0",
             params![user_id],
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
@@ -382,7 +428,8 @@ fn update_admin_profile_with_connection(
         Some(password_hash.ok_or_else(|| "Admin password is required".to_string())?)
     };
     conn.execute(
-        "UPDATE users SET username = ?1, tag_id = ?2, password_hash = ?3 WHERE user_id = ?4",
+        "UPDATE users SET username = ?1, tag_id = ?2, password_hash = ?3
+         WHERE user_id = ?4 AND is_admin = 1 AND failsafe = 0",
         params![username, tag_id, password_hash, user_id],
     )
     .map_err(|e| e.to_string())?;
@@ -399,7 +446,7 @@ pub fn deduct_balance_by_tag_id(tag_id: &str, amount: f64) -> std::result::Resul
     let conn = open_user_db().map_err(|e| e.to_string())?;
     let current_balance: f64 = conn
         .query_row(
-            "SELECT balance FROM users WHERE tag_id = lower(?1)",
+            "SELECT balance FROM users WHERE tag_id = lower(?1) AND failsafe = 0",
             params![tag_id],
             |row| row.get(0),
         )
@@ -411,7 +458,7 @@ pub fn deduct_balance_by_tag_id(tag_id: &str, amount: f64) -> std::result::Resul
         Err(format!("Insufficient balance: {}", current_balance))
     } else {
         conn.execute(
-            "UPDATE users SET balance = ?1 WHERE tag_id = lower(?2)",
+            "UPDATE users SET balance = ?1 WHERE tag_id = lower(?2) AND failsafe = 0",
             params![new_balance, tag_id],
         )
         .map_err(|e| e.to_string())?;
@@ -424,7 +471,8 @@ pub fn update_user_by_tag_id(tag_id: &str, user: NewUser) -> std::result::Result
     let conn = open_user_db().map_err(|e| e.to_string())?;
     let existing = conn
         .query_row(
-            "SELECT is_admin, password_hash FROM users WHERE tag_id = lower(?1)",
+            "SELECT is_admin, password_hash FROM users
+             WHERE tag_id = lower(?1) AND failsafe = 0",
             params![tag_id],
             |row| Ok((row.get::<_, bool>(0)?, row.get::<_, Option<String>>(1)?)),
         )
@@ -458,7 +506,7 @@ pub fn update_user_by_tag_id(tag_id: &str, user: NewUser) -> std::result::Result
         .unwrap_or_else(|| "User".to_string());
     conn.execute(
         "UPDATE users SET full_name = ?1, username = ?2, password_hash = ?3,
-         is_admin = ?4, balance = ?5 WHERE tag_id = lower(?6)",
+         is_admin = ?4, balance = ?5 WHERE tag_id = lower(?6) AND failsafe = 0",
         params![
             full_name,
             if user.is_admin { username } else { None },
@@ -476,7 +524,7 @@ pub fn update_user_by_tag_id(tag_id: &str, user: NewUser) -> std::result::Result
 pub fn delete_user_by_tag_id(tag_id: &str) -> Result<()> {
     let conn = open_user_db()?;
     conn.execute(
-        "DELETE FROM users WHERE tag_id = lower(?1)",
+        "DELETE FROM users WHERE tag_id = lower(?1) AND failsafe = 0",
         params![tag_id],
     )?;
     Ok(())
@@ -500,7 +548,8 @@ mod tests {
                 username TEXT,
                 password_hash TEXT,
                 is_admin BOOLEAN NOT NULL,
-                balance REAL NOT NULL
+                balance REAL NOT NULL,
+                failsafe BOOLEAN NOT NULL DEFAULT 0
             );
             CREATE TABLE admin_login_state (
                 id INTEGER PRIMARY KEY,
@@ -539,6 +588,26 @@ mod tests {
             .expect("matching credentials should sign in");
 
         assert_eq!(admin.username, "operator");
+    }
+
+    #[test]
+    fn failsafe_login_accepts_credentials_without_an_admin_tag() {
+        let conn = admin_login_db();
+        let hash = bcrypt::hash("failsafe-password", bcrypt::DEFAULT_COST)
+            .expect("failsafe password should hash");
+        conn.execute(
+            "INSERT INTO users
+             (tag_id, full_name, username, password_hash, is_admin, balance, failsafe)
+             VALUES ('', 'Failsafe', 'private-user', ?1, 0, 0, 1)",
+            params![hash],
+        )
+        .expect("failsafe user should be created without a tag id");
+
+        let user = admin_login_with_connection(&conn, "private-user", "failsafe-password")
+            .expect("failsafe credentials should sign in");
+
+        assert_eq!(user.tag_id, "");
+        assert!(!user.is_admin);
     }
 
     #[test]

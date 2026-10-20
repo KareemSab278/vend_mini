@@ -28,6 +28,7 @@ type PaymentType = "card" | "nfc";
 
 const SCREENSAVER_TIMEOUT_MINUTES: number = 1;
 const FETCH_PRODUCTS_INTERVAL: number = 6000;
+const ADMIN_SCREEN_SCAN_THRESHOLD = 12;
 
 const App = () => {
   const [, navigate] = useLocation();
@@ -49,6 +50,7 @@ const App = () => {
   const pollRef = useRef<number | null>(null);
   const inactivityTimerRef = useRef<number | null>(null);
   const cancelledRef = useRef<boolean>(false);
+  const repeatedTagRef = useRef<{ tagId: string; count: number } | null>(null);
 
   const nfcInitializedRef = useRef(false);
   const [nfcNotification, setNfcNotification] = useState<string | null>(null);
@@ -134,6 +136,15 @@ const App = () => {
     });
 
     unlistenNfcUnknownRef.current = await NFC.listenUnknownTag((tagId) => {
+      const previous = repeatedTagRef.current;
+      const count = previous?.tagId === tagId ? previous.count + 1 : 1;
+      repeatedTagRef.current = { tagId, count };
+      if (count >= ADMIN_SCREEN_SCAN_THRESHOLD) {
+        repeatedTagRef.current = null;
+        navigate("/admin");
+        setScreenSaverActive(false);
+        return;
+      }
       dev && nfcListeningEnabled && showNfcNotification(`Unknown NFC tag: ${tagId}`);
     });
   };

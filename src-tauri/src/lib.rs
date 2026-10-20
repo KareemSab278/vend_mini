@@ -60,6 +60,8 @@ pub fn run() {
             // User DB
             users_database::initialize_user_database,
             users_database::are_admins_present,
+            users_database::are_failsafe_users_present,
+            users_database::new_failsafe_user,
             users_database::new_user,
             users_database::get_all_admins,
             users_database::update_admin_profile,

@@ -3,19 +3,21 @@ import { styles as appStyles } from "../../App/styles";
 
 interface GreetingProps {
   onNext: () => void;
+  error?: string | null;
 }
 
-const Greeting = ({ onNext }: GreetingProps) => {
+const Greeting = ({ onNext, error }: GreetingProps) => {
   return (
     <div style={appStyles.body}>
       <div style={styles.inner}>
         <h1 style={styles.heading}>Welcome</h1>
         <p style={styles.text}>
-          Before you can start using the application, you'll need to add some admin users using the NFC reader.
+          First, set up a private failsafe username and password for the admin web screen. Then add admin users using the NFC reader.
         </p>
         <p style={styles.text}>
           You can set up a maximum of 3 admin users. This is required to ensure proper management of the application.
         </p>
+        {error && <p role="alert" style={styles.text}>{error}</p>}
         <PrimaryButton title="Next" onClick={onNext} size="xl" />
       </div>
     </div>

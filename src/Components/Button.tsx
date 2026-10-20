@@ -9,9 +9,10 @@ export interface PrimaryButtonProps {
   textColor?: string;
   onDoubleClick?: () => void;
   size?: "sm" | "md" | "lg" | "xl";
+  disabled?: boolean;
 }
 
-const PrimaryButton = ({ title, onClick, color, textColor, onDoubleClick, size }: PrimaryButtonProps) => {
+const PrimaryButton = ({ title, onClick, color, textColor, onDoubleClick, size, disabled }: PrimaryButtonProps) => {
   return (
     <section style={{ display: "inline-block", margin: "8px" }}>
       <Button
@@ -33,6 +34,7 @@ const PrimaryButton = ({ title, onClick, color, textColor, onDoubleClick, size }
         }}
         onClick={onClick}
         onDoubleClick={onDoubleClick}
+        disabled={disabled}
       >
         {title}
       </Button>

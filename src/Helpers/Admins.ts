@@ -14,6 +14,11 @@ export type NewAdminCredentials = {
     password: string;
 };
 
+export type FailsafeCredentials = {
+    username: string;
+    password: string;
+};
+
 export interface Response {
     success: boolean;
     message?: string;
@@ -43,6 +48,14 @@ export const Admin = {
 
     areAdminsPresent: async (): Promise<boolean> =>
         await invoke("are_admins_present") as boolean
+    ,
+
+    areFailsafeUsersPresent: async (): Promise<boolean> =>
+        await invoke("are_failsafe_users_present") as boolean
+    ,
+
+    createFailsafeUser: async (credentials: FailsafeCredentials): Promise<void> =>
+        await invoke("new_failsafe_user", { credentials })
     ,
 
     getAllAdmins: async (): Promise<User[]> =>
