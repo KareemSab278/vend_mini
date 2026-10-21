@@ -82,6 +82,17 @@ pub async fn list_images_command() -> Result<Vec<ImageListEntry>, String> {
     Ok(entries)
 }
 
+#[tauri::command]
+pub async fn get_image_command(name: String) -> Result<tauri::ipc::Response, String> {
+    if !is_safe_image_name(&name) {
+        return Err("Invalid image name".to_string());
+    }
+    let image_path = images_path()?.join(&name);
+    let bytes = fs::read(&image_path)
+        .map_err(|e| format!("Failed to read image {}: {}", name, e))?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
 pub async fn serve_image(Path(name): Path<String>) -> impl IntoResponse {
     if !is_safe_image_name(&name) {
         return (StatusCode::BAD_REQUEST, "Invalid image name").into_response();

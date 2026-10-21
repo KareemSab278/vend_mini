@@ -81,6 +81,7 @@ pub fn run() {
             server::initialize_static_page_server,
             server::return_editor_url,
             images::list_images_command,
+            images::get_image_command,
             #[cfg(target_os = "linux")]
             led::set_color,
             #[cfg(target_os = "linux")]
