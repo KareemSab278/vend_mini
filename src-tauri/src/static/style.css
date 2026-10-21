@@ -317,6 +317,10 @@ input.error {
 }
 
 /* ── Images ── */
+.virtual-keyboard {
+  display: none !important;
+}
+
 .image-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));

@@ -1,7 +1,7 @@
 use axum::{
     extract::{Path, Query, Request},
     http::{
-        header::{COOKIE, SET_COOKIE},
+        header::{CACHE_CONTROL, COOKIE, SET_COOKIE},
         HeaderMap, HeaderValue, StatusCode,
     },
     middleware::{self, Next},
@@ -23,6 +23,14 @@ use uuid::Uuid;
 static SERVER_STARTED: AtomicBool = AtomicBool::new(false);
 static ADMIN_WEB_SESSIONS: OnceLock<Mutex<HashMap<String, Instant>>> = OnceLock::new();
 const ADMIN_WEB_SESSION_TTL: Duration = Duration::from_secs(12 * 60 * 60);
+
+async fn prevent_browser_cache(request: Request, next: Next) -> Response {
+    let mut response = next.run(request).await;
+    response
+        .headers_mut()
+        .insert(CACHE_CONTROL, HeaderValue::from_static("no-store"));
+    response
+}
 
 use crate::csv_to_json;
 use crate::database;
@@ -466,7 +474,8 @@ pub async fn start() {
         .fallback_service(ServeDir::new(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/src/static"
-        )));
+        )))
+        .layer(middleware::from_fn(prevent_browser_cache));
     let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
     let local_ip = get_local_ip();
 
