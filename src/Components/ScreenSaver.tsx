@@ -83,13 +83,12 @@ const ScreenSaver = ({ images, onClose }: { images?: string[]; onClose: () => vo
     let objectUrl: string | null = null;
     setCurrentImageUrl(null);
 
-    invoke<Uint8Array>('get_image_command', { name: imageName })
-      .then((bytes) => {
+    invoke<ArrayBuffer | number[]>('get_image_command', { name: imageName })
+      .then((data) => {
         if (cancelled) return;
-        const buffer = new ArrayBuffer(bytes.byteLength);
-        new Uint8Array(buffer).set(bytes);
+        const bytes = data instanceof ArrayBuffer ? data : new Uint8Array(data);
         objectUrl = URL.createObjectURL(
-          new Blob([buffer], { type: imageContentType(imageName) }),
+          new Blob([bytes], { type: imageContentType(imageName) }),
         );
         setCurrentImageUrl(objectUrl);
       })

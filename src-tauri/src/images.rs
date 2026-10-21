@@ -48,6 +48,9 @@ pub async fn list_images() -> Json<Vec<ImageListEntry>> {
                 if let Ok(meta) = entry.metadata() {
                     if meta.is_file() {
                         let name = entry.file_name().to_string_lossy().into_owned();
+                        if !is_safe_image_name(&name) {
+                            continue;
+                        }
                         entries.push(ImageListEntry {
                             url: format!("/images/{}", name),
                             name,
@@ -70,6 +73,9 @@ pub async fn list_images_command() -> Result<Vec<ImageListEntry>, String> {
             if let Ok(meta) = entry.metadata() {
                 if meta.is_file() {
                     let name = entry.file_name().to_string_lossy().into_owned();
+                    if !is_safe_image_name(&name) {
+                        continue;
+                    }
                     entries.push(ImageListEntry {
                         url: format!("/images/{}", name),
                         name,
