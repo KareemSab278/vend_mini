@@ -1,6 +1,6 @@
 # Coinadrink Ordering System
 
-A contactless card and NFC balance payment system for PicoVend EZ Bridge vending machines. Built with React (frontend), Tauri (desktop bridge), and Flask (payment logic and hardware communication). Features Raspberry Pi GPIO-based PIR motion sensing for screen-saver wake/inactivity, an MFRC522 NFC reader for admin authentication and user balance payments, and a full-screen screen saver that activates after a configurable inactivity timeout.
+A contactless card and NFC balance payment system for PicoVend EZ Bridge vending machines. Built with React (frontend), Tauri (desktop bridge), and Flask (payment logic and hardware communication). Features Raspberry Pi GPIO-based PIR motion sensing for screen-saver wake/inactivity, an MFRC522 NFC reader for admin authentication and user balance payments, and a full-screen screen saver that activates after a configurable inactivity timeout. Please note that you must compile a new build for each version just in case any libs are missing or misconfigured!
 
 ---
 
