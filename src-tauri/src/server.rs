@@ -12,11 +12,13 @@ use axum::{
 use serde::Deserialize;
 use std::collections::HashMap;
 use std::net::{SocketAddr, UdpSocket};
+use std::path::PathBuf;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
     Mutex, OnceLock,
 };
 use std::time::{Duration, Instant};
+use tauri::Manager;
 use tower_http::services::ServeDir;
 use uuid::Uuid;
 
@@ -426,17 +428,35 @@ pub fn return_editor_url() -> String {
 }
 
 #[tauri::command]
-pub async fn initialize_static_page_server() -> Result<(), String> {
+pub async fn initialize_static_page_server(app: tauri::AppHandle) -> Result<(), String> {
+    let bundled_static_dir = app
+        .path()
+        .resource_dir()
+        .map_err(|e| format!("Failed to locate bundled resources: {e}"))?
+        .join("src/static");
+    let source_static_dir = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("src/static");
+    let static_dir = if bundled_static_dir.is_dir() {
+        bundled_static_dir
+    } else if source_static_dir.is_dir() {
+        source_static_dir
+    } else {
+        return Err(format!(
+            "Static page files were not found in {} or {}",
+            bundled_static_dir.display(),
+            source_static_dir.display()
+        ));
+    };
+
     if SERVER_STARTED
         .compare_exchange(false, true, Ordering::SeqCst, Ordering::SeqCst)
         .is_ok()
     {
-        tokio::spawn(start());
+        tokio::spawn(start(static_dir));
     }
     Ok(())
 }
 
-pub async fn start() {
+pub async fn start(static_dir: PathBuf) {
     let protected_routes = Router::new()
         .route("/auth/session", get(admin_web_session))
         .route("/auth/logout", post(admin_web_logout))
@@ -471,10 +491,7 @@ pub async fn start() {
     let app = Router::new()
         .route("/auth/login", post(admin_web_login))
         .merge(protected_routes)
-        .fallback_service(ServeDir::new(concat!(
-            env!("CARGO_MANIFEST_DIR"),
-            "/src/static"
-        )))
+        .fallback_service(ServeDir::new(static_dir).append_index_html_on_directories(true))
         .layer(middleware::from_fn(prevent_browser_cache));
     let addr = SocketAddr::from(([0, 0, 0, 0], 8000));
     let local_ip = get_local_ip();

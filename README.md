@@ -1259,7 +1259,7 @@ Deletes a product by ID.
 
 #### GET / (and all other paths)
 
-Serves static files from `src-tauri/src/static/`. The default `index.html` is the product editor admin page.
+Serves static files from the bundled `src-tauri/src/static/` resources. The default `index.html` is the product editor admin page, served at `/` as well as `/index.html`.
 
 ### Tauri Commands
 
@@ -1268,7 +1268,7 @@ These are the Rust functions exposed to the React frontend via `invoke()`. Each 
 | Command | JS Usage | Description |
 |---------|----------|-------------|
 | `initialize_payment_server` | `await invoke("initialize_payment_server")` | Spawns `app_vend.py` |
-| `initialize_static_page_server` | `await invoke("initialize_static_page_server")` | Spawns the Axum server |
+| `initialize_static_page_server` | `await invoke("initialize_static_page_server")` | Starts the Axum server using bundled static files (or the source directory in development) |
 | `initialize_orders_database` | `await invoke("initialize_orders_database")` | Creates orders table |
 | `initialize_products_database` | `await invoke("initialize_products_database")` | Creates products table |
 | `initialize_user_database` | `await invoke("initialize_user_database")` | Creates users table |
